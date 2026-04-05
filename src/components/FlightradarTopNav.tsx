@@ -1,0 +1,127 @@
+import React from 'react';
+
+interface FlightradarTopNavProps {
+  onSearch: (term: string) => void;
+  flightCount: number;
+  isHeatmapActive: boolean;
+  toggleHeatmap: () => void;
+  onReset: () => void;
+}
+
+export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset }: FlightradarTopNavProps) {
+  return (
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '60px',
+      backgroundColor: 'rgba(15, 23, 42, 0.95)', // Solidified for performance
+      display: 'flex',
+      alignItems: 'center',
+      padding: '0 24px',
+      zIndex: 1000,
+      color: '#fff',
+      boxSizing: 'border-box',
+      justifyContent: 'space-between',
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+      borderBottom: '1px solid rgba(0, 243, 255, 0.15)', // Electric cyan base line
+      boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)'
+    }}>
+      
+      {/* 1. LEFT CONTROLS */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <button
+          onClick={onReset}
+          title="Reset map view and clear all tracked data"
+          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)')}
+          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)')}
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            color: '#fff',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          ⌂ HOME
+        </button>
+        
+        <button
+          onClick={toggleHeatmap}
+          style={{
+            backgroundColor: isHeatmapActive ? 'rgba(0, 243, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+            border: isHeatmapActive ? '1px solid #00f3ff' : '1px solid rgba(255, 255, 255, 0.1)',
+            color: isHeatmapActive ? '#00f3ff' : '#8E9297',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: isHeatmapActive ? '0 0 10px rgba(0, 243, 255, 0.3)' : 'none'
+          }}
+        >
+          {isHeatmapActive ? '◆ Altitude Heatmap: ON' : '◇ Altitude Heatmap: OFF'}
+        </button>
+      </div>
+
+      {/* 2. CENTER BRANDING LOGO */}
+      <div 
+        onClick={onReset} 
+        title="Reset Map"
+        style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer' }}
+      >
+        <span style={{ 
+          fontSize: '20px', 
+          fontWeight: 900, 
+          fontFamily: '"SF Pro Display", -apple-system, sans-serif',
+          letterSpacing: '-0.3px',
+          textTransform: 'uppercase'
+        }}>
+          <span style={{ color: '#ffffff' }}>GKAS</span>
+          <span style={{ color: '#FFDE1B' }}>FLOWS</span>
+        </span>
+      </div>
+
+      {/* 3. RIGHT SEARCH ENGINE */}
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', position: 'relative' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '380px' }}>
+          <input 
+            type="text" 
+            id="search-input"
+            placeholder="System Search: Flights, Airports, IATA..."
+            onChange={(e) => onSearch(e.target.value)}
+            style={{
+              width: '100%',
+              height: '36px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              padding: '0 16px 0 40px',
+              color: '#00f3ff', // Search queries type in bright cyan!
+              fontSize: '13px',
+              fontWeight: 500,
+              outline: 'none',
+              boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.3)',
+              transition: 'border 0.3s ease, background-color 0.3s ease',
+              boxSizing: 'border-box'
+            }}
+          />
+          <svg style={{ position: 'absolute', left: '14px', top: '11px', width: '14px', height: '14px', fill: '#00f3ff', opacity: 0.8 }} viewBox="0 0 24 24">
+            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+  );
+}
