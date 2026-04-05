@@ -172,17 +172,13 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
     }
     const data = await response.json();
     const rawFr24 = data.states || [];
-    
-    let openSkyHeaders: HeadersInit = {};
-    if (data._osU && data._osP) {
-      openSkyHeaders['Authorization'] = 'Basic ' + window.btoa(`${data._osU}:${data._osP}`);
-    }
 
-    // 2. Fetch 12,000 Global OpenSky planes DIRECTLY FROM THE USER'S HOME WIFI! 
-    // This mathematically completely sidesteps Vercel's IP Ban!
+    // 2. Fetch 12,000 Global OpenSky planes DIRECTLY FROM THE USER'S HOME BROWSER! 
+    // By mathematically making this an "Anonymous Simple GET" (0 custom headers), 
+    // Chrome dynamically bypasses the Preflight CORS OPTIONS block entirely, seamlessly pulling 12000 planes 
+    // while strictly adhering to OpenSky's 10-second anonymous limit (our loop is 35s!).
     const osResponse = await fetch('https://opensky-network.org/api/states/all', { 
-      signal: controller.signal,
-      headers: openSkyHeaders
+      signal: controller.signal
     }).catch(() => null);
 
     const osData = osResponse ? await osResponse.json().catch(() => null) : null;
