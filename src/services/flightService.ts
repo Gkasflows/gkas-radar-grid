@@ -161,10 +161,10 @@ const mapCategory = (cat: number, icao: string): { type: string, model: string, 
 
 export async function fetchLiveFlights(): Promise<LiveFlight[]> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(new Error('OpenSky API Timeout')), 15000); // 15s client timeout
+  const timeoutId = setTimeout(() => controller.abort(new Error('API Timeout')), 15000);
 
   try {
-    const response = await fetch(OPENSKY_URL, { signal: controller.signal });
+    const response = await fetch('/api/flights', { signal: controller.signal });
     clearTimeout(timeoutId);
 
     if (!response.ok) {
@@ -174,7 +174,7 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
     const data = await response.json();
     
     const flights = (data.states || []).map((s: any) => {
-      const enrichment = mapCategory(s.category, s.icao24);
+      const enrichment = mapCategory(s.category || 0, s.icao24);
       
       const originData = getStableValue(s.icao24, CITIES as any) as any;
       let destData = getStableValue(s.icao24 + 'dest', CITIES as any) as any;
@@ -200,16 +200,14 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
     });
 
     if (flights.length > 0) {
-      lastSuccessfulFlights = flights; // Update cache only with valid data
+      lastSuccessfulFlights = flights; 
     }
     return lastSuccessfulFlights;
 
   } catch (error: any) {
     clearTimeout(timeoutId);
     
-    // Silence intentional aborts to prevent terminal spam during rate limits
-    if (error.name === 'AbortError' || error.message === 'OpenSky API Timeout') {
-      // Silently return cache without logging a stack trace
+    if (error.name === 'AbortError' || error.message === 'API Timeout') {
       return lastSuccessfulFlights;
     }
 
@@ -219,6 +217,6 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
       console.error('FlightService Error:', error.message);
     }
     
-    return lastSuccessfulFlights; // Return last known data on failure
+    return lastSuccessfulFlights; 
   }
 }
