@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const FR24_URL = 'https://data-cloud.flightradar24.com/zones/fcgi/feed.js?faa=1&bounds=22,-5,-20,30&satellite=1&mlat=1&flarm=1&adsb=1&gnd=0&air=1&vehicles=0&estimated=1&maxage=14400&gliders=0&stats=0';
+const FR24_URL = 'https://data-cloud.flightradar24.com/zones/fcgi/feed.js?faa=1&bounds=85,-85,-180,180&satellite=1&mlat=1&flarm=1&adsb=1&gnd=0&air=1&vehicles=0&estimated=1&maxage=14400&gliders=0&stats=0';
 const OPENSKY_URL = 'https://opensky-network.org/api/states/all';
 
 // HARD MEMORY CACHE: This is the ultimate shield against 429s.
