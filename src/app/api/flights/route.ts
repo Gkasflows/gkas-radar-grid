@@ -24,6 +24,16 @@ export async function GET() {
   const timeoutId = setTimeout(() => controller.abort(), 12000);
 
   try {
+    // 1. Build dynamic OpenSky Authenticated Headers
+    let openSkyHeaders: any = { 'User-Agent': 'WorldView-Aviation-Dashboard/1.0' };
+    if (process.env.OPENSKY_USERNAME && process.env.OPENSKY_PASSWORD) {
+      const basicAuth = Buffer.from(`${process.env.OPENSKY_USERNAME}:${process.env.OPENSKY_PASSWORD}`).toString('base64');
+      openSkyHeaders['Authorization'] = `Basic ${basicAuth}`;
+      console.log('API: OpenSky Authentication Engaged - Injecting Basic Auth Bypass Protocol!');
+    } else {
+      console.warn('API: Proceeding without OpenSky Authentication (Will fail on Cloud/Vercel boundaries).');
+    }
+
     // Fire dual asynchronous server requests
     const [fr24Response, openskyResponse] = await Promise.allSettled([
       fetch(FR24_URL, {
@@ -39,7 +49,7 @@ export async function GET() {
       fetch(OPENSKY_URL, {
         signal: controller.signal,
         next: { revalidate: 35 },
-        headers: { 'User-Agent': 'WorldView-Aviation-Dashboard/1.0' }
+        headers: openSkyHeaders
       })
     ]);
     
