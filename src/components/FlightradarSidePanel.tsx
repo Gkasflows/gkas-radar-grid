@@ -33,16 +33,30 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
   if (!displayFlight || (!flight && !isAnimating)) return null;
 
   return (
-    <div className={`fixed z-[1000] transition-all duration-400 ease-in-out
-      ${isOpen ? 'bottom-0' : '-bottom-[100%]'} 
-      left-0 w-full h-[40vh] bg-slate-900/95 border-t border-white/10 rounded-t-3xl text-white flex flex-col overflow-hidden shadow-[0_-8px_30px_rgba(0,0,0,0.5)]`}
-    >
+    <div style={{
+      position: 'fixed',
+      zIndex: 1000,
+      transition: 'bottom 0.4s cubic-bezier(0.16,1,0.3,1)',
+      bottom: isOpen ? '0px' : '-100%', 
+      left: '0px',
+      width: '100%',
+      height: '40vh',
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '24px 24px 0 0',
+      color: '#fff',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      boxShadow: '0 -8px 30px rgba(0,0,0,0.5)',
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
+    }}>
       {/* Swipe Handle Helper & Close Button */}
-      <div className="w-full flex justify-between items-center px-6 py-3 absolute top-0 z-50 bg-gradient-to-b from-black/60 to-transparent">
-        <div className="flex-1"></div>
-        <div className="w-16 h-1.5 bg-white/40 rounded-full mx-auto"></div>
-        <div className="flex-1 flex justify-end">
-          <button onClick={() => setIsOpen(false)} className="text-[#00f3ff] text-xs font-bold uppercase drop-shadow-md hover:text-white transition-colors">✕</button>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', position: 'absolute', top: 0, zIndex: 50, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)' }}>
+        <div style={{ flex: 1 }}></div>
+        <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕</button>
         </div>
       </div>
       {/* 1. PHOTO AND X BUTTON */}

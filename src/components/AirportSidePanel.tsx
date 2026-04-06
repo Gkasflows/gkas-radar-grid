@@ -88,23 +88,31 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
   if (!displayAirport || (!airport && !isAnimating)) return null;
 
   return (
-    <div className={`fixed md:absolute z-[1000] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]
-      ${isOpen 
-        ? 'bottom-0 md:bottom-auto md:top-[76px] left-0 md:left-4' 
-        : '-bottom-full md:bottom-auto md:top-[76px] left-0 md:-left-[340px]'
-      } w-full md:w-[340px] h-[50vh] md:h-[calc(100vh-92px)] bg-slate-900/95 border-t md:border border-white/10 rounded-t-2xl md:rounded-2xl text-white flex flex-col overflow-hidden shadow-2xl md:shadow-none`}
-    >
-      {/* SLIDE TOGGLE BUTTON */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="hidden md:flex absolute -right-8 top-8 w-8 h-12 bg-slate-900/65 backdrop-blur-md border border-white/10 border-l-0 rounded-r-xl text-[#00f3ff] items-center justify-center cursor-pointer shadow-[4px_0_10px_rgba(0,0,0,0.3)] transition-colors"
-      >
-        {isOpen ? '◀' : '▶'}
-      </button>
-
-      {/* Mobile Swipe Handle Helper */}
-      <div className="md:hidden w-full flex justify-center pt-2 pb-1 absolute top-0 z-50 bg-gradient-to-b from-black/50 to-transparent">
-        <div className="w-12 h-1.5 bg-white/30 rounded-full" onClick={() => setIsOpen(!isOpen)}></div>
+    <div style={{
+      position: 'fixed',
+      zIndex: 1000,
+      transition: 'bottom 0.4s cubic-bezier(0.16,1,0.3,1)',
+      bottom: isOpen ? '0px' : '-100%', 
+      left: '0px',
+      width: '100%',
+      height: '40vh',
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '24px 24px 0 0',
+      color: '#fff',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      boxShadow: '0 -8px 30px rgba(0,0,0,0.5)',
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
+    }}>
+      {/* Swipe Handle Helper & Close Button */}
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', position: 'absolute', top: 0, zIndex: 50, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)' }}>
+        <div style={{ flex: 1 }}></div>
+        <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕</button>
+        </div>
       </div>
 
       {/* 1. PHOTO AND X BUTTON */}

@@ -58,30 +58,62 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
       {!isOpen && (
         <button 
           onClick={() => setIsOpen(true)}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-3 rounded-full flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.3)] z-[950] font-bold text-[14px]"
+          style={{
+            position: 'absolute',
+            bottom: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#ffffff',
+            color: '#000000',
+            padding: '12px 24px',
+            borderRadius: '9999px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            zIndex: 950,
+            fontWeight: 'bold',
+            fontSize: '14px',
+            border: 'none',
+            cursor: 'pointer'
+          }}
         >
-          <span className="text-[16px]">🗺️</span> Open Tracker List
+          <span style={{ fontSize: '16px' }}>🗺️</span> Open Tracker List
         </button>
       )}
 
-      <div className={`fixed z-[900] transition-all duration-400 ease-in-out
-        ${isOpen ? 'bottom-0' : '-bottom-[100%]'} 
-        left-0 w-full h-[40vh] bg-slate-900/95 border-t border-white/10 rounded-t-3xl text-white flex flex-col overflow-hidden shadow-[0_-8px_30px_rgba(0,0,0,0.5)]`}
-      >
+      <div style={{
+          position: 'fixed', // Force strict positioning
+          zIndex: 900,
+          transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
+          bottom: isOpen ? '0px' : '-100%', // Animate globally bottom-sheet
+          left: '0px',
+          width: '100%',
+          height: '40vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '24px 24px 0 0',
+          color: '#fff',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          boxShadow: '0 -8px 30px rgba(0,0,0,0.5)',
+          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
+      }}>
       {/* SLIDE TOGGLE BUTTON (Hidden on Mobile) */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="hidden md:flex absolute -left-8 top-8 w-8 h-12 bg-slate-900/65 backdrop-blur-md border border-white/10 border-r-0 rounded-l-xl text-[#00f3ff] items-center justify-center cursor-pointer shadow-[-4px_0_10px_rgba(0,0,0,0.3)] transition-colors"
+        style={{ display: 'none' }}
       >
         {isOpen ? '▶' : '◀'}
       </button>
 
       {/* Swipe Handle Helper & Close Button (Now applies to all screens) */}
-      <div className="w-full flex justify-between items-center px-6 py-3 absolute top-0 z-50 bg-gradient-to-b from-black/60 to-transparent">
-        <div className="flex-1"></div>
-        <div className="w-16 h-1.5 bg-white/40 rounded-full mx-auto"></div>
-        <div className="flex-1 flex justify-end">
-          <button onClick={() => setIsOpen(false)} className="text-[#00f3ff] text-xs font-bold uppercase hover:text-white transition-colors">✕ Hide</button>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', position: 'absolute', top: 0, zIndex: 50, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)' }}>
+        <div style={{ flex: 1 }}></div>
+        <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕ Hide</button>
         </div>
       </div>
 

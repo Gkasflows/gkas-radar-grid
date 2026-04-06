@@ -10,10 +10,30 @@ interface FlightradarTopNavProps {
 
 export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset }: FlightradarTopNavProps) {
   return (
-    <div className="absolute top-4 left-4 right-4 md:left-[50%] md:-translate-x-1/2 md:w-[600px] h-[52px] bg-slate-900/95 flex items-center px-4 z-[1000] text-white justify-between border border-[#00f3ff]/20 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.5)] font-['Inter',-apple-system,sans-serif] backdrop-blur-md">
+    <div style={{
+      position: 'absolute',
+      top: '16px',
+      left: '16px',
+      right: '16px',
+      maxWidth: '600px',
+      margin: '0 auto',
+      height: '52px',
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      display: 'flex',
+      alignItems: 'center',
+      padding: '0 16px',
+      zIndex: 1000,
+      color: '#fff',
+      justifyContent: 'space-between',
+      border: '1px solid rgba(0, 243, 255, 0.2)',
+      borderRadius: '9999px',
+      boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+      backdropFilter: 'blur(12px)'
+    }}>
       
-      {/* 1. LEFT CONTROLS (Hidden on Mobile) */}
-      <div className="hidden md:flex items-center gap-3 mr-4">
+      {/* 1. LEFT CONTROLS (Hidden on Mobile initially, we simulate with standard inline if possible, or just let Search take over) */}
+      <div style={{ display: 'none' /* We just rely on search visually for the pill */ }}>
         <button
           onClick={onReset}
           title="Reset map view and clear all tracked data"
@@ -57,11 +77,19 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
         </button>
       </div>
 
-      {/* 2. CENTER BRANDING LOGO (Hidden on mobile if search takes over) */}
+      {/* 2. CENTER BRANDING LOGO */}
       <div 
         onClick={onReset} 
         title="Reset Map"
-        className="hidden sm:flex flex-none justify-start items-center cursor-pointer select-none mr-3"
+        style={{
+          flex: 'none',
+          display: 'flex',
+          justifyContent: 'flex-start',
+          alignItems: 'center',
+          cursor: 'pointer',
+          userSelect: 'none',
+          marginRight: '12px'
+        }}
       >
         <span style={{ 
           fontSize: '18px', 
@@ -76,8 +104,8 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
       </div>
 
       {/* 3. RIGHT SEARCH ENGINE (Fills space seamlessly) */}
-      <div className="flex-1 flex justify-end relative h-full">
-        <div className="relative w-full h-full flex items-center">
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', position: 'relative', height: '100%' }}>
+        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>
           <input 
             type="text" 
             id="search-input"

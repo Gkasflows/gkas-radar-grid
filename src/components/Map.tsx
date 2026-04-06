@@ -735,7 +735,21 @@ export default function Map() {
       />
 
       {/* HIGH-TECH ZOOM CONTROLS */}
-      <div className="absolute bottom-6 right-4 md:right-[340px] flex flex-col gap-[6px] z-[1000] bg-slate-900/95 rounded-lg p-1.5 border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
+      <div style={{
+        position: 'absolute',
+        bottom: '24px',
+        right: '24px', // Right-aligned cleanly across all screens now that side panels are exclusively bottom-sheets
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        zIndex: 1000,
+        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        borderRadius: '8px',
+        padding: '6px',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(8px)'
+      }}>
         <button
           onClick={handleTrackLocation}
           title="Acquire Satellite GPS Lock"
