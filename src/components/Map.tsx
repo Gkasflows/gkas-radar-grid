@@ -137,6 +137,7 @@ export default function Map() {
   const [viewState, setViewState] = useState<any>(INITIAL_VIEW_STATE);
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLocationActive, setIsLocationActive] = useState(false);
   const [isHeatmapActive, setIsHeatmapActive] = useState(false);
   const [radarPath, setRadarPath] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
@@ -309,6 +310,7 @@ export default function Map() {
     setSearchQuery('');
     setHoveredFlight(null);
     setIsHeatmapActive(false);
+    setIsLocationActive(false);
 
     // Physically clear the un-controlled DOM search text input
     const searchInput = document.getElementById('search-input') as HTMLInputElement;
@@ -407,41 +409,31 @@ export default function Map() {
   const zoomOut = () => setViewState(prev => ({ ...prev, zoom: Math.max(prev.zoom - 1, 2), transitionDuration: 300 }));
 
   const handleTrackLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is intrinsically blocked by this browser architecture.');
+    if (isLocationActive) {
+      handleMasterReset();
+      setIsLocationActive(false);
       return;
     }
-    
-    playRadarBlip();
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setUserLocation([longitude, latitude]);
-        
-        // Disengage current UI lock-ons
-        setSelectedFlightId(null);
-        setSelectedAirportIata(null);
-        
-        // Dynamic Geospatial swoop down to the user's location
-        setViewState((prev: any) => ({
-          ...prev,
-          longitude,
-          latitude,
-          zoom: 10.5, // Standard tactical airspace observation elevation
+    if (navigator.geolocation) {
+      playRadarBlip();
+      navigator.geolocation.getCurrentPosition((position) => {
+        setViewState({
+          longitude: position.coords.longitude,
+          latitude: position.coords.latitude,
+          zoom: 12, // Go closer to tracked location natively
           pitch: 0,
           bearing: 0,
-          transitionDuration: 3500,
+          transitionDuration: 3000,
           transitionInterpolator: new FlyToInterpolator()
-        }));
-      },
-      (error) => {
-        console.warn("GPS Lock failed:", error);
+        });
+        setIsLocationActive(true);
+      }, (err) => {
+        console.warn("Unable to obtain GPS lock natively.", err);
         alert("Satellite array failed to acquire your GPS coordinate lock. Ensure browser permissions are granted.");
-      },
-      { enableHighAccuracy: false, timeout: 30000, maximumAge: Infinity }
-    );
-  }, [playRadarBlip]);
+      }, { enableHighAccuracy: false, timeout: 30000, maximumAge: Infinity });
+    }
+  }, [isLocationActive, handleMasterReset, playRadarBlip]);
 
   const filteredFlights = useMemo(() => {
     if (!searchQuery) return flights;
@@ -684,8 +676,9 @@ export default function Map() {
       <DeckGL
         views={new MapView({ id: 'map', repeat: true })}
         viewState={viewState}
-        onViewStateChange={e => {
-          setViewState(e.viewState as any);
+        onViewStateChange={({ viewState }) => {
+          setViewState(viewState);
+          if (isLocationActive) setIsLocationActive(false);
         }}
         controller={{ doubleClickZoom: false, keyboard: true, inertia: true, scrollZoom: { speed: 0.05, smooth: true } }}
         layers={layers}

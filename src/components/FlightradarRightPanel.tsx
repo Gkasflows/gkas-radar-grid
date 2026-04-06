@@ -51,6 +51,20 @@ const VirtualList = ({ items, itemHeight, renderItem }: { items: any[], itemHeig
 export default function FlightradarRightPanel({ flights, airports, onFlightClick, onAirportClick, selectedFlightId, selectedAirportIata }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<'flights' | 'airports'>('flights');
   const [isOpen, setIsOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
+  
+  // SWIPE DOWN STATE
+  const [touchStartY, setTouchStartY] = useState(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndY = e.changedTouches[0].clientY;
+    if (touchEndY - touchStartY > 40) { // Quick 40px downward swipe
+      setIsOpen(false);
+    }
+  };
 
   return (
     <>
@@ -109,7 +123,11 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
       </button>
 
       {/* Swipe Handle Helper & Close Button (Now applies to all screens) */}
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', position: 'absolute', top: 0, zIndex: 50, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)' }}>
+      <div 
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', position: 'relative', background: 'transparent' }}
+      >
         <div style={{ flex: 1 }}></div>
         <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
         <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
