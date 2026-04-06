@@ -737,7 +737,7 @@ export default function Map() {
       {/* HIGH-TECH ZOOM CONTROLS */}
       <div style={{
         position: 'absolute',
-        bottom: '24px',
+        bottom: '64px',
         right: '24px', // Right-aligned cleanly across all screens now that side panels are exclusively bottom-sheets
         display: 'flex',
         flexDirection: 'column',
