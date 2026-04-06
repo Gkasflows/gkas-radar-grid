@@ -89,27 +89,71 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
           userSelect: 'none'
         }}
       >
-        <span style={{ 
-          fontSize: '20px', 
-          fontWeight: 900, 
-          fontFamily: '"SF Pro Display", -apple-system, sans-serif',
-          letterSpacing: '-0.5px' 
-        }}>
+        <span style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '-0.5px' }}>
           GKAS<span style={{ color: '#00f3ff' }}>FLOWS</span> 
         </span>
         <span style={{
-          marginLeft: '8px',
-          fontSize: '10px',
-          fontWeight: 700,
-          backgroundColor: 'rgba(0, 243, 255, 0.1)',
-          color: '#00f3ff',
-          padding: '2px 6px',
-          borderRadius: '4px',
-          letterSpacing: '1px'
+          marginLeft: '8px', fontSize: '10px', fontWeight: 700, backgroundColor: 'rgba(0, 243, 255, 0.1)',
+          color: '#00f3ff', padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px'
         }}>
           LIVE BETA
         </span>
       </div>
+
+      {/* MOBILE FLOATING CONTROLS (Home & Heatmap) */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed',
+          top: '80px',
+          right: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          zIndex: 1000
+        }}>
+          {/* HOME BUTTON */}
+          <button
+            onClick={onReset}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              color: '#ffffff',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '18px'
+            }}
+          >
+            ⌂
+          </button>
+          
+          {/* HEATMAP BUTTON */}
+          <button
+            onClick={toggleHeatmap}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              backgroundColor: isHeatmapActive ? 'rgba(0, 243, 255, 0.2)' : 'rgba(15, 23, 42, 0.95)',
+              border: isHeatmapActive ? '1px solid #00f3ff' : '1px solid rgba(0, 243, 255, 0.2)',
+              color: isHeatmapActive ? '#00f3ff' : '#ffffff',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '18px'
+            }}
+          >
+            {isHeatmapActive ? '🔥' : '📍'}
+          </button>
+        </div>
+      )}
 
       {/* 3. RIGHT SEARCH ENGINE */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', position: 'relative', height: '100%' }}>

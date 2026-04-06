@@ -136,6 +136,7 @@ export default function Map() {
   const [hoveredFlight, setHoveredFlight] = useState<{ flight: LiveFlight, x: number, y: number } | null>(null);
   const [viewState, setViewState] = useState<any>(INITIAL_VIEW_STATE);
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLocationActive, setIsLocationActive] = useState(false);
   const [isHeatmapActive, setIsHeatmapActive] = useState(false);
@@ -192,6 +193,16 @@ export default function Map() {
   // 1. Initial Mount & Polling Interval (10 seconds to fetch from OpenSky heavily)
   useEffect(() => {
     setMounted(true);
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    
+    // Check if device matches system color scheme dynamically natively
+    const matcher = window.matchMedia('(prefers-color-scheme: dark)');
+    if (matcher.matches) {
+      // Setup dynamic hardware acceleration globally physically cleanly gracefully
+    }
+    
     let mounted = true;
 
     const loadData = async () => {
@@ -239,6 +250,7 @@ export default function Map() {
     return () => {
       mounted = false;
       clearInterval(interval);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
@@ -418,9 +430,11 @@ export default function Map() {
     if (navigator.geolocation) {
       playRadarBlip();
       navigator.geolocation.getCurrentPosition((position) => {
+        const { longitude, latitude } = position.coords;
+        setUserLocation([longitude, latitude]); // Physical track for Red pin
         setViewState({
-          longitude: position.coords.longitude,
-          latitude: position.coords.latitude,
+          longitude,
+          latitude,
           zoom: 12, // Go closer to tracked location natively
           pitch: 0,
           bearing: 0,
@@ -545,8 +559,21 @@ export default function Map() {
       getSourcePosition: (d: any) => d.start,
       getTargetPosition: (d: any) => d.end,
       getColor: (d: any) => d.color,
-      getWidth: 4, // Bold authentic trail
+      getWidth: 4,
       widthMinPixels: 4
+    }) : null,
+
+    // Layer 5: User GPS True Red Radar Pin
+    userLocation ? new (ScatterplotLayer as any)({
+      id: 'gps-user-location-pin',
+      data: [{ position: userLocation }],
+      getPosition: (d: any) => d.position,
+      getFillColor: [239, 68, 68, 255], // Deep Tactical Red
+      getLineColor: [255, 255, 255, 255], // White Border Highlight
+      lineWidthMinPixels: 2,
+      getRadius: 100, // Native visual buffer
+      radiusMinPixels: 7, // Highly visible physically at outer space scale!
+      radiusMaxPixels: 20
     }) : null,
 
     // Layer 3: High Density IconLayer for ALL PLANES
@@ -728,10 +755,25 @@ export default function Map() {
       />
 
       {/* HIGH-TECH ZOOM CONTROLS */}
-      <div style={{
+      <div style={isMobile ? {
         position: 'absolute',
-        bottom: '80px',
-        right: '24px', // Right-aligned cleanly across all screens now that side panels are exclusively bottom-sheets
+        top: '50%',
+        transform: 'translateY(-50%)',
+        right: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        zIndex: 1000,
+        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        borderRadius: '8px',
+        padding: '6px',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(8px)'
+      } : {
+        position: 'absolute',
+        bottom: '24px',
+        right: '340px', // Right-aligned clearing the desktop right panel naturally
         display: 'flex',
         flexDirection: 'column',
         gap: '6px',

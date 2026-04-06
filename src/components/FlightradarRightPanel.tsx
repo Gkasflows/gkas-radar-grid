@@ -69,7 +69,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     const touchEndY = e.changedTouches[0].clientY;
-    if (touchEndY - touchStartY > 40) { // Quick 40px downward swipe
+    if (touchEndY - touchStartY > 20) { // Fluid 20px downward swipe
       setIsOpen(false);
     }
   };
