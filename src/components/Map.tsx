@@ -37,13 +37,13 @@ const FALLBACK_AIRPORTS: Airport[] = [
 ];
 
 const INITIAL_VIEW_STATE = {
-  longitude: 10,
-  latitude: 10,
-  zoom: 1.1,
-  pitch: 30, // Reduced base tilt 
+  longitude: 0,
+  latitude: 0,
+  zoom: 0, // Zoom out globe entirely
+  pitch: 0, // Looking straight down globally
   bearing: 0,
   maxZoom: 20,
-  minZoom: 1.0
+  minZoom: 0
 };
 
 const calculateFlightHistoryTrail = (flight: LiveFlight | null) => {

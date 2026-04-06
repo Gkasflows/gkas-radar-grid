@@ -54,21 +54,19 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
 
   return (
     <>
-      {/* MOBILE FLOATING "EXPLORE" BUTTON (Google Maps Style) */}
+      {/* GLOBAL FLOATING "EXPLORE" BUTTON (Bottom center) */}
       {!isOpen && (
         <button 
           onClick={() => setIsOpen(true)}
-          className="md:hidden absolute bottom-6 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-3 rounded-full flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.3)] z-[950] font-bold text-[14px]"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-3 rounded-full flex items-center gap-2 shadow-[0_4px_20px_rgba(0,0,0,0.3)] z-[950] font-bold text-[14px]"
         >
-          <span className="text-[16px]">🗺️</span> View Live Flights
+          <span className="text-[16px]">🗺️</span> Open Tracker List
         </button>
       )}
 
-      <div className={`fixed md:absolute z-[900] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]
-        ${isOpen 
-          ? 'bottom-0 md:bottom-auto md:top-[76px] right-0 md:right-4' 
-          : '-bottom-full md:bottom-auto md:top-[76px] right-0 md:-right-[300px]'
-        } w-full md:w-[300px] h-[55vh] md:h-[calc(100vh-92px)] bg-slate-900/95 border-t md:border border-white/10 rounded-t-3xl md:rounded-2xl text-white flex flex-col overflow-hidden shadow-[0_-8px_30px_rgba(0,0,0,0.5)] md:shadow-[0_12px_40px_rgba(0,0,0,0.5)]`}
+      <div className={`fixed z-[900] transition-all duration-400 ease-in-out
+        ${isOpen ? 'bottom-0' : '-bottom-[100%]'} 
+        left-0 w-full h-[40vh] bg-slate-900/95 border-t border-white/10 rounded-t-3xl text-white flex flex-col overflow-hidden shadow-[0_-8px_30px_rgba(0,0,0,0.5)]`}
       >
       {/* SLIDE TOGGLE BUTTON (Hidden on Mobile) */}
       <button 
@@ -78,9 +76,13 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
         {isOpen ? '▶' : '◀'}
       </button>
 
-      {/* Mobile Close Button */}
-      <div className="md:hidden w-full flex justify-end p-4 absolute top-0 z-50">
-        <button onClick={() => setIsOpen(false)} className="text-[#00f3ff] text-xs font-bold uppercase tracking-wider bg-black/40 px-3 py-1 rounded-full border border-white/10">✕ Close Sheet</button>
+      {/* Swipe Handle Helper & Close Button (Now applies to all screens) */}
+      <div className="w-full flex justify-between items-center px-6 py-3 absolute top-0 z-50 bg-gradient-to-b from-black/60 to-transparent">
+        <div className="flex-1"></div>
+        <div className="w-16 h-1.5 bg-white/40 rounded-full mx-auto"></div>
+        <div className="flex-1 flex justify-end">
+          <button onClick={() => setIsOpen(false)} className="text-[#00f3ff] text-xs font-bold uppercase hover:text-white transition-colors">✕ Hide</button>
+        </div>
       </div>
 
       {/* TABS */}

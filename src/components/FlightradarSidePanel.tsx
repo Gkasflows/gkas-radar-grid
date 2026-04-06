@@ -33,23 +33,17 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
   if (!displayFlight || (!flight && !isAnimating)) return null;
 
   return (
-    <div className={`fixed md:absolute z-[1000] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]
-      ${isOpen 
-        ? 'bottom-0 md:bottom-auto md:top-[76px] left-0 md:left-4' 
-        : '-bottom-full md:bottom-auto md:top-[76px] left-0 md:-left-[320px]'
-      } w-full md:w-[320px] h-[50vh] md:h-[calc(100vh-92px)] bg-slate-900/95 border-t md:border border-white/10 rounded-t-2xl md:rounded-2xl text-white flex flex-col overflow-hidden shadow-2xl md:shadow-none`}
+    <div className={`fixed z-[1000] transition-all duration-400 ease-in-out
+      ${isOpen ? 'bottom-0' : '-bottom-[100%]'} 
+      left-0 w-full h-[40vh] bg-slate-900/95 border-t border-white/10 rounded-t-3xl text-white flex flex-col overflow-hidden shadow-[0_-8px_30px_rgba(0,0,0,0.5)]`}
     >
-      {/* SLIDE TOGGLE BUTTON (Hidden on Mobile) */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="hidden md:flex absolute -right-8 top-8 w-8 h-12 bg-slate-900/65 border border-white/10 border-l-0 rounded-r-xl text-[#00f3ff] items-center justify-center cursor-pointer shadow-[4px_0_10px_rgba(0,0,0,0.3)] transition-colors"
-      >
-        {isOpen ? '◀' : '▶'}
-      </button>
-
-      {/* Mobile Swipe Handle Helper */}
-      <div className="md:hidden w-full flex justify-center pt-2 pb-1 absolute top-0 z-50 bg-gradient-to-b from-black/50 to-transparent">
-        <div className="w-12 h-1.5 bg-white/30 rounded-full" onClick={() => setIsOpen(!isOpen)}></div>
+      {/* Swipe Handle Helper & Close Button */}
+      <div className="w-full flex justify-between items-center px-6 py-3 absolute top-0 z-50 bg-gradient-to-b from-black/60 to-transparent">
+        <div className="flex-1"></div>
+        <div className="w-16 h-1.5 bg-white/40 rounded-full mx-auto"></div>
+        <div className="flex-1 flex justify-end">
+          <button onClick={() => setIsOpen(false)} className="text-[#00f3ff] text-xs font-bold uppercase drop-shadow-md hover:text-white transition-colors">✕</button>
+        </div>
       </div>
       {/* 1. PHOTO AND X BUTTON */}
       <div style={{ 
