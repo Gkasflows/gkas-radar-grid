@@ -84,12 +84,15 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
           onClick={() => setIsOpen(true)}
           style={{
             position: 'absolute', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
-            backgroundColor: '#ffffff', color: '#000000', padding: '12px 24px', borderRadius: '9999px',
-            display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-            zIndex: 950, fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer'
+            background: 'linear-gradient(135deg, #00f3ff 0%, #0077ff 100%)', 
+            color: '#0f172a', padding: '14px 32px', borderRadius: '9999px',
+            display: 'flex', alignItems: 'center', gap: '10px', 
+            boxShadow: '0 8px 32px rgba(0, 243, 255, 0.35), inset 0 2px 4px rgba(255,255,255,0.4)',
+            zIndex: 950, fontWeight: 800, fontSize: '13px', border: 'none', cursor: 'pointer',
+            letterSpacing: '1px', textTransform: 'uppercase', backdropFilter: 'blur(8px)'
           }}
         >
-          <span style={{ fontSize: '16px' }}>🗺️</span> Open Tracker List
+          <span style={{ fontSize: '18px' }}>📡</span> Live Tracker
         </button>
       )}
 
