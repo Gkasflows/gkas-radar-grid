@@ -160,6 +160,40 @@ export default function Map() {
       });
   }, []);
 
+  // Global Geographic Auto-Panning Engine (Integrates real physical world maps dynamically)
+  useEffect(() => {
+    if (!searchQuery || searchQuery.length < 3) return;
+    
+    const debouncer = setTimeout(async () => {
+      // Prevent fetching if they already clicked a flight during typing
+      if (selectedFlightId || selectedAirportIata) return; 
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1`);
+        const json = await res.json();
+        if (json && json.length > 0) {
+          const targetLat = parseFloat(json[0].lat);
+          const targetLon = parseFloat(json[0].lon);
+          
+          setViewState((prev: any) => ({
+            ...prev,
+            latitude: targetLat,
+            longitude: targetLon,
+            zoom: 5.5, // Perfect wide country scale view
+            pitch: 0,
+            bearing: 0,
+            transitionDuration: 4500, // Cinematic smooth travel
+            transitionInterpolator: new FlyToInterpolator()
+          }));
+        }
+      } catch (e) {
+        console.warn('Geocoding blocked or failed natively.', e);
+      }
+    }, 1200); // 1.2s delay typing tolerance preventing massive API limits
+    
+    return () => clearTimeout(debouncer);
+  }, [searchQuery, selectedFlightId, selectedAirportIata]);
+
   const lastSelectedFlightId = useRef<string | null>(null);
   const isAnimatingRef = useRef<boolean>(false);
 
