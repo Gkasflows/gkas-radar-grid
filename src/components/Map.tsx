@@ -421,8 +421,8 @@ export default function Map() {
   }, [selectedAirportIata, selectedFlightId, flights]);
 
   // Map Controls
-  const zoomIn = () => setViewState(prev => ({ ...prev, zoom: Math.min(prev.zoom + 1, 20), transitionDuration: 300 }));
-  const zoomOut = () => setViewState(prev => ({ ...prev, zoom: Math.max(prev.zoom - 1, 2), transitionDuration: 300 }));
+  const zoomIn = () => setViewState(prev => ({ ...prev, zoom: Math.min(prev.zoom + (isMobile ? 1.5 : 1), 20), transitionDuration: 300 }));
+  const zoomOut = () => setViewState(prev => ({ ...prev, zoom: Math.max(prev.zoom - (isMobile ? 2.5 : 1), 2), transitionDuration: 300 }));
 
   const handleTrackLocation = useCallback(() => {
     if (isLocationActive) {
