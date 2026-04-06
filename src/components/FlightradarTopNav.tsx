@@ -157,8 +157,8 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
       )}
 
       {/* 3. RIGHT SEARCH ENGINE */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', position: 'relative', height: '100%' }}>
-        <div style={{ position: 'relative', width: isMobile ? '180px' : '300px', height: '36px', display: 'flex', alignItems: 'center' }}>
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', position: 'relative', height: '100%' }}>
+        <div style={{ position: 'relative', width: isMobile ? '160px' : '300px', height: '32px', display: 'flex', alignItems: 'center' }}>
           <input 
             type="text" 
             id="search-input"
@@ -166,20 +166,20 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
             onChange={(e) => onSearch(e.target.value)}
             style={{
               width: '100%',
-              height: '36px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '8px',
-              padding: '0 16px 0 36px',
+              height: '100%',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '16px',
+              padding: '0 12px 0 32px',
               color: '#00f3ff', 
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: 500,
               outline: 'none',
-              boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.3)',
+              boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.5)',
               boxSizing: 'border-box'
             }}
           />
-          <svg style={{ position: 'absolute', left: '12px', width: '16px', height: '16px', fill: '#00f3ff', opacity: 0.8 }} viewBox="0 0 24 24">
+          <svg style={{ position: 'absolute', left: '10px', width: '14px', height: '14px', fill: '#ffffff', opacity: 0.8 }} viewBox="0 0 24 24">
             <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
           </svg>
         </div>

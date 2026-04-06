@@ -26,8 +26,11 @@ const getAirportImage = (iata: string) => {
 export default function AirportSidePanel({ airport, onClose, liveFlights = [], onFlightClick }: AirportSidePanelProps) {
   const [activeTab, setActiveTab] = useState<'arrivals' | 'departures'>('arrivals');
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [cachedAirport, setCachedAirport] = useState<Airport | null>(null);
+
+  const [touchStartY, setTouchStartY] = useState(0);
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -38,6 +41,7 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
     if (airport) {
       setCachedAirport(airport);
       setIsAnimating(true);
+      setIsExpanded(false);
       if (isMobile) {
         setTimeout(() => setIsOpen(true), 4000); 
       } else {
@@ -45,10 +49,26 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
       }
     } else {
       setIsOpen(false);
+      setIsExpanded(false);
       const timer = setTimeout(() => setIsAnimating(false), 400); // Transition match
       return () => clearTimeout(timer);
     }
   }, [airport?.iata, isMobile]);
+
+  const handleTouchStart = (e: React.TouchEvent) => setTouchStartY(e.changedTouches[0].clientY);
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndY = e.changedTouches[0].clientY;
+    const diff = touchEndY - touchStartY;
+    if (diff < -30) {
+      setIsExpanded(true);
+    } else if (diff > 30) {
+      if (isExpanded) setIsExpanded(false);
+      else {
+         setIsOpen(false);
+         setTimeout(onClose, 400); 
+      }
+    }
+  };
 
   const displayAirport = airport || cachedAirport;
 
@@ -96,11 +116,15 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
   if (!displayAirport || (!airport && !isAnimating)) return null;
 
   return (
-    <div style={isMobile ? {
+    <div 
+      onTouchStart={isMobile ? handleTouchStart : undefined}
+      onTouchEnd={isMobile ? handleTouchEnd : undefined}
+      style={isMobile ? {
       position: 'fixed', zIndex: 1000, transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
-      bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', height: '40vh',
+      bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', 
+      height: isExpanded ? '100vh' : '40vh',
       backgroundColor: 'rgba(15, 23, 42, 0.95)', borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '24px 24px 0 0', display: 'flex', flexDirection: 'column', color: '#fff',
+      borderRadius: isExpanded ? '0' : '24px 24px 0 0', display: 'flex', flexDirection: 'column', color: '#fff',
       overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, sans-serif'
     } : {
       position: 'absolute', top: '76px', left: isOpen ? '16px' : '-340px', transition: 'left 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -130,7 +154,7 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
           <div style={{ flex: 1 }}></div>
           <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '9999px', margin: '0 auto', boxShadow: '0 1px 4px rgba(0,0,0,0.5)' }}></div>
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>✕</button>
+            <button onClick={() => { setIsOpen(false); setTimeout(onClose, 400); }} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>✕ Hide</button>
           </div>
         </div>
       )}

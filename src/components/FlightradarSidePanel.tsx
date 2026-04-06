@@ -11,8 +11,12 @@ interface FlightradarSidePanelProps {
 
 export default function FlightradarSidePanel({ flight, onClose, onPointClick }: FlightradarSidePanelProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [cachedFlight, setCachedFlight] = useState<LiveFlight | null>(null);
+
+  // Swipe drag states map
+  const [touchStartY, setTouchStartY] = useState(0);
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -23,6 +27,7 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
     if (flight) {
       setCachedFlight(flight);
       setIsAnimating(true);
+      setIsExpanded(false); // Reset to partial view natively first
       // Wait for globe tracking pan to finish before showing details safely explicitly smartly 
       if (isMobile) {
         setTimeout(() => setIsOpen(true), 4000); 
@@ -31,10 +36,29 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
       }
     } else {
       setIsOpen(false);
+      setIsExpanded(false);
       const timer = setTimeout(() => setIsAnimating(false), 300); // 0.3s transition match
       return () => clearTimeout(timer);
     }
   }, [flight?.icao24, isMobile]);
+
+  const handleTouchStart = (e: React.TouchEvent) => setTouchStartY(e.changedTouches[0].clientY);
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndY = e.changedTouches[0].clientY;
+    const diff = touchEndY - touchStartY;
+    if (diff < -30) {
+      // Swiped UP gracefully
+      setIsExpanded(true);
+    } else if (diff > 30) {
+      // Swiped DOWN gracefully
+      if (isExpanded) setIsExpanded(false);
+      else {
+         setIsOpen(false);
+         // Important: Dispatch closure perfectly reliably without visual crash
+         setTimeout(onClose, 300); 
+      }
+    }
+  };
 
   const displayFlight = flight || cachedFlight;
 
@@ -42,11 +66,15 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
   if (!displayFlight || (!flight && !isAnimating)) return null;
 
   return (
-    <div style={isMobile ? {
+    <div 
+      onTouchStart={isMobile ? handleTouchStart : undefined}
+      onTouchEnd={isMobile ? handleTouchEnd : undefined}
+      style={isMobile ? {
       position: 'fixed', zIndex: 1000, transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
-      bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', height: '40vh',
+      bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', 
+      height: isExpanded ? '100vh' : '40vh',
       backgroundColor: 'rgba(15, 23, 42, 0.95)', borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '24px 24px 0 0', display: 'flex', flexDirection: 'column', color: '#fff',
+      borderRadius: isExpanded ? '0' : '24px 24px 0 0', display: 'flex', flexDirection: 'column', color: '#fff',
       overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, sans-serif'
     } : {
       position: 'absolute', top: '76px', left: isOpen ? '16px' : '-320px', transition: 'left 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -76,7 +104,7 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
           <div style={{ flex: 1 }}></div>
           <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '9999px', margin: '0 auto', boxShadow: '0 1px 4px rgba(0,0,0,0.5)' }}></div>
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>✕ Hide</button>
+            <button onClick={() => { setIsOpen(false); setTimeout(onClose, 300); }} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>✕ Hide</button>
           </div>
         </div>
       )}
@@ -91,16 +119,18 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
         position: 'relative'
       }}>
         {/* Close Button FR24 style */}
-        <button onClick={onClose} style={{
-          position: 'absolute', top: '16px', right: '16px',
-          width: '32px', height: '32px',
-          borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)',
-          border: 'none', color: '#fff', fontSize: '18px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer'
-        }}>
-          ✕
-        </button>
+        {!isMobile && (
+          <button onClick={onClose} style={{
+            position: 'absolute', top: '16px', right: '16px',
+            width: '32px', height: '32px',
+            borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)',
+            border: 'none', color: '#fff', fontSize: '18px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer'
+          }}>
+            ✕
+          </button>
+        )}
         <div style={{
           position: 'absolute', bottom: '12px', left: '16px', right: '16px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',

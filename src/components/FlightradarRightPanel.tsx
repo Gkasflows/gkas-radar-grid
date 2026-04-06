@@ -166,7 +166,10 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
               itemHeight={66} 
               renderItem={(f: LiveFlight) => (
                 <div 
-                  onClick={() => onFlightClick(f)}
+                  onClick={() => {
+                    onFlightClick(f);
+                    if (isMobile) setIsOpen(false);
+                  }}
                   style={{
                     height: '100%',
                     padding: '8px 12px',
@@ -195,7 +198,10 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
               itemHeight={66} 
               renderItem={(a: Airport) => (
                 <div 
-                  onClick={() => onAirportClick(a)}
+                  onClick={() => {
+                    onAirportClick(a);
+                    if (isMobile) setIsOpen(false);
+                  }}
                   style={{
                     height: '100%',
                     padding: '8px 12px',

@@ -143,6 +143,10 @@ export default function Map() {
   const [radarPath, setRadarPath] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
+  // Native UI drag state for zoom buttons
+  const [zoomPos, setZoomPos] = useState({ bottom: 150, right: 16 });
+  const zoomDragRef = useRef({ isDragging: false, startX: 0, startY: 0, initialBottom: 150, initialRight: 16 });
+
   useEffect(() => {
     fetch('https://api.rainviewer.com/public/v3/weather/maps.json')
       .then(r => r.json())
@@ -424,6 +428,7 @@ export default function Map() {
     if (isLocationActive) {
       handleMasterReset();
       setIsLocationActive(false);
+      setUserLocation(null);
       return;
     }
 
@@ -754,11 +759,33 @@ export default function Map() {
         onClose={() => setSelectedAirportIata(null)}
       />
 
-      {/* HIGH-TECH ZOOM CONTROLS */}
-      <div style={isMobile ? {
+      {/* HIGH-TECH DRAGGABLE ZOOM CONTROLS */}
+      <div 
+        onPointerDown={(e) => {
+          zoomDragRef.current = { isDragging: true, startX: e.clientX, startY: e.clientY, initialBottom: zoomPos.bottom, initialRight: zoomPos.right };
+          e.currentTarget.setPointerCapture(e.pointerId);
+          e.currentTarget.style.cursor = 'grabbing';
+        }}
+        onPointerMove={(e) => {
+          if (!zoomDragRef.current.isDragging) return;
+          const dy = e.clientY - zoomDragRef.current.startY;
+          const dx = e.clientX - zoomDragRef.current.startX;
+          setZoomPos({
+            bottom: zoomDragRef.current.initialBottom - dy,
+            right: zoomDragRef.current.initialRight - dx
+          });
+        }}
+        onPointerUp={(e) => {
+          zoomDragRef.current.isDragging = false;
+          e.currentTarget.releasePointerCapture(e.pointerId);
+          e.currentTarget.style.cursor = 'grab';
+        }}
+        // Prevent map interaction while dragging zoom
+        onPointerLeave={(e) => { if(zoomDragRef.current.isDragging) e.stopPropagation(); }}
+        style={isMobile ? {
         position: 'absolute',
-        bottom: '150px',
-        right: '16px',
+        bottom: `${zoomPos.bottom}px`,
+        right: `${zoomPos.right}px`,
         display: 'flex',
         flexDirection: 'column',
         gap: '6px',
@@ -766,9 +793,11 @@ export default function Map() {
         backgroundColor: 'rgba(15, 23, 42, 0.95)',
         borderRadius: '8px',
         padding: '6px',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
         boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(8px)'
+        backdropFilter: 'blur(8px)',
+        cursor: 'grab',
+        touchAction: 'none' // Essential to stop natural page scrolling while moving the HUD
       } : {
         position: 'absolute',
         bottom: '24px',
@@ -785,7 +814,7 @@ export default function Map() {
         backdropFilter: 'blur(8px)'
       }}>
         <button
-          onClick={handleTrackLocation}
+          onClick={(e) => { if(!zoomDragRef.current.isDragging) handleTrackLocation(); }}
           title="Acquire Satellite GPS Lock"
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
