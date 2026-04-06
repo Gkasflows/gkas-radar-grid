@@ -14,18 +14,27 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
   const [isAnimating, setIsAnimating] = useState(false);
   const [cachedFlight, setCachedFlight] = useState<LiveFlight | null>(null);
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+  }, []);
+
   useEffect(() => {
     if (flight) {
       setCachedFlight(flight);
-      // Double RAF ensures the browser paints the panel off-screen before sliding it in
-      requestAnimationFrame(() => requestAnimationFrame(() => setIsOpen(true)));
       setIsAnimating(true);
+      // Wait for globe tracking pan to finish before showing details safely explicitly smartly 
+      if (isMobile) {
+        setTimeout(() => setIsOpen(true), 4000); 
+      } else {
+        requestAnimationFrame(() => requestAnimationFrame(() => setIsOpen(true)));
+      }
     } else {
       setIsOpen(false);
       const timer = setTimeout(() => setIsAnimating(false), 300); // 0.3s transition match
       return () => clearTimeout(timer);
     }
-  }, [flight?.icao24]);
+  }, [flight?.icao24, isMobile]);
 
   const displayFlight = flight || cachedFlight;
 
@@ -33,52 +42,44 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
   if (!displayFlight || (!flight && !isAnimating)) return null;
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: '76px', /* Match top nav offset */
-      left: isOpen ? '16px' : '-320px', /* Float cleanly */
-      transition: 'left 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-      zIndex: 1000,
+    <div style={isMobile ? {
+      position: 'fixed', zIndex: 1000, transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
+      bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', height: '40vh',
+      backgroundColor: 'rgba(15, 23, 42, 0.95)', borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '24px 24px 0 0', display: 'flex', flexDirection: 'column', color: '#fff',
+      overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, sans-serif'
+    } : {
+      position: 'absolute', top: '76px', left: isOpen ? '16px' : '-320px', transition: 'left 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+      zIndex: 1000, width: '320px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+      display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: '"Inter", -apple-system, sans-serif', color: '#fff'
     }}>
-      {/* SLIDE TOGGLE BUTTON */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          position: 'absolute',
-          right: '-32px',
-          top: '32px',
-          width: '32px',
-          height: '48px',
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderLeft: 'none',
-          borderRadius: '0 12px 12px 0',
-          color: '#00f3ff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          zIndex: 1000,
-          boxShadow: '4px 0 10px rgba(0,0,0,0.3)',
-          transition: 'color 0.2s',
-        }}
-      >
-        {isOpen ? '◀' : '▶'}
-      </button>
+      {/* SLIDE TOGGLE BUTTON - Desktop Only */}
+      {!isMobile && (
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            position: 'absolute', right: '-32px', top: '32px', width: '32px', height: '48px',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderLeft: 'none', borderRadius: '0 12px 12px 0', color: '#00f3ff', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 1000,
+            boxShadow: '4px 0 10px rgba(0,0,0,0.3)'
+          }}
+        >
+          {isOpen ? '◀' : '▶'}
+        </button>
+      )}
 
-      {/* MAIN CONTAINER */}
-      <div style={{
-        width: '320px',
-        height: 'calc(100vh - 92px)',
-        backgroundColor: 'rgba(15, 23, 42, 0.95)', // Solidified for performance
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '16px',
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-        overflow: 'hidden'
-      }}>
+      {/* SWIPE HANDLE - Mobile Only */}
+      {isMobile && (
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', position: 'absolute', top: 0, left: 0, zIndex: 1010 }}>
+          <div style={{ flex: 1 }}></div>
+          <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '9999px', margin: '0 auto', boxShadow: '0 1px 4px rgba(0,0,0,0.5)' }}></div>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>✕ Hide</button>
+          </div>
+        </div>
+      )}
       {/* 1. PHOTO AND X BUTTON */}
       <div style={{ 
         height: '180px', 
@@ -274,8 +275,6 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
         <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: '12px', color: '#8E9297' }}>
           Flight data provided by OpenSky Network & GKASFLOWS
         </div>
-
-      </div>
       </div>
     </div>
   );

@@ -19,10 +19,10 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
 
   return (
     <div style={isMobile ? {
-      position: 'absolute', top: '24px', left: '16px', right: '16px', maxWidth: '100%', margin: '0', height: '48px',
-      backgroundColor: '#ffffff', display: 'flex', alignItems: 'center', padding: '0 16px', zIndex: 1000,
-      color: '#000000', justifyContent: 'center', borderRadius: '24px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.2)', fontFamily: '"Inter", sans-serif'
+      position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', backgroundColor: 'rgba(15, 23, 42, 0.95)', display: 'flex',
+      alignItems: 'center', padding: '0 16px', zIndex: 1000, color: '#fff', boxSizing: 'border-box', justifyContent: 'space-between',
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+      borderBottom: '1px solid rgba(0, 243, 255, 0.15)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)'
     } : {
       position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', backgroundColor: 'rgba(15, 23, 42, 0.95)', display: 'flex',
       alignItems: 'center', padding: '0 24px', zIndex: 1000, color: '#fff', boxSizing: 'border-box', justifyContent: 'space-between',
@@ -81,22 +81,24 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
         title="Reset Map"
         style={{
           flex: 'none',
-          display: isMobile ? 'none' : 'flex',
+          display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
           cursor: 'pointer',
           userSelect: 'none'
         }}
       >
-        <span style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '-0.5px' }}>
+        <span style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 900, letterSpacing: '-0.5px' }}>
           GKAS<span style={{ color: '#00f3ff' }}>FLOWS</span> 
         </span>
-        <span style={{
-          marginLeft: '8px', fontSize: '10px', fontWeight: 700, backgroundColor: 'rgba(0, 243, 255, 0.1)',
-          color: '#00f3ff', padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px'
-        }}>
-          LIVE BETA
-        </span>
+        {!isMobile && (
+          <span style={{
+            marginLeft: '8px', fontSize: '10px', fontWeight: 700, backgroundColor: 'rgba(0, 243, 255, 0.1)',
+            color: '#00f3ff', padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px'
+          }}>
+            LIVE BETA
+          </span>
+        )}
       </div>
 
       {/* MOBILE FLOATING CONTROLS (Home & Heatmap) */}
@@ -155,29 +157,29 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
       )}
 
       {/* 3. RIGHT SEARCH ENGINE */}
-      <div style={{ flex: isMobile ? '1' : '1', display: 'flex', justifyContent: isMobile ? 'center' : 'flex-end', position: 'relative', height: '100%', width: '100%' }}>
-        <div style={{ position: 'relative', width: isMobile ? '100%' : '300px', height: '36px', display: 'flex', alignItems: 'center' }}>
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', position: 'relative', height: '100%' }}>
+        <div style={{ position: 'relative', width: isMobile ? '180px' : '300px', height: '36px', display: 'flex', alignItems: 'center' }}>
           <input 
             type="text" 
             id="search-input"
-            placeholder="Search Flights, Airports..."
+            placeholder={isMobile ? "Search..." : "Search Flights, Airports..."}
             onChange={(e) => onSearch(e.target.value)}
             style={{
               width: '100%',
-              height: isMobile ? '48px' : '36px',
-              backgroundColor: isMobile ? 'transparent' : 'rgba(255, 255, 255, 0.05)',
-              border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: isMobile ? '0' : '8px',
-              padding: '0 16px 0 40px',
-              color: isMobile ? '#000000' : '#00f3ff', 
-              fontSize: '15px',
+              height: '36px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              padding: '0 16px 0 36px',
+              color: '#00f3ff', 
+              fontSize: '14px',
               fontWeight: 500,
               outline: 'none',
-              boxShadow: isMobile ? 'none' : 'inset 0 1px 4px rgba(0,0,0,0.3)',
+              boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.3)',
               boxSizing: 'border-box'
             }}
           />
-          <svg style={{ position: 'absolute', left: '12px', width: '18px', height: '18px', fill: isMobile ? '#666666' : '#00f3ff', opacity: 0.8 }} viewBox="0 0 24 24">
+          <svg style={{ position: 'absolute', left: '12px', width: '16px', height: '16px', fill: '#00f3ff', opacity: 0.8 }} viewBox="0 0 24 24">
             <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
           </svg>
         </div>
