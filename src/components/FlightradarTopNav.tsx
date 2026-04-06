@@ -157,8 +157,8 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
       )}
 
       {/* 3. RIGHT SEARCH ENGINE */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', position: 'relative', height: '100%' }}>
-        <div style={{ position: 'relative', width: isMobile ? '160px' : '300px', height: '32px', display: 'flex', alignItems: 'center' }}>
+      <div style={{ flex: 1, display: 'flex', justifyContent: isMobile ? 'flex-end' : 'center', alignItems: 'center', position: 'relative', height: '100%' }}>
+        <div style={{ position: 'relative', width: isMobile ? '160px' : '300px', height: '32px', display: 'flex', alignItems: 'center', marginRight: isMobile ? 0 : '16px' }}>
           <input 
             type="text" 
             id="search-input"
