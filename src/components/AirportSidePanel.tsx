@@ -88,7 +88,6 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
   if (!displayAirport || (!airport && !isAnimating)) return null;
 
   return (
-  return (
     <div className={`fixed md:absolute z-[1000] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]
       ${isOpen 
         ? 'bottom-0 md:bottom-auto md:top-[76px] left-0 md:left-4' 
@@ -250,7 +249,6 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
           </div>
         </div>
 
-        </div>
       </div>
     </div>
   );
