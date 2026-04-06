@@ -60,7 +60,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
           onClick={() => setIsOpen(true)}
           style={{
             position: 'absolute',
-            bottom: '64px',
+            bottom: '80px',
             left: '50%',
             transform: 'translateX(-50%)',
             backgroundColor: '#ffffff',
