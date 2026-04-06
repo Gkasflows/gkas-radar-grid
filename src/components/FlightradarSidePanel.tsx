@@ -10,9 +10,17 @@ interface FlightradarSidePanelProps {
 // Photo resolution algorithm relocated securely securely back to flightService.ts
 
 export default function FlightradarSidePanel({ flight, onClose, onPointClick }: FlightradarSidePanelProps) {
+  const [isMobile, setIsMobile] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [cachedFlight, setCachedFlight] = useState<LiveFlight | null>(null);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (flight) {
@@ -34,31 +42,59 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
 
   return (
     <div style={{
-      position: 'fixed',
+      position: isMobile ? 'fixed' : 'absolute',
       zIndex: 1000,
-      transition: 'bottom 0.4s cubic-bezier(0.16,1,0.3,1)',
-      bottom: isOpen ? '0px' : '-100%', 
-      left: '0px',
-      width: '100%',
-      height: '40vh',
+      transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
+      ...(isMobile 
+        ? { bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', height: '40vh', borderRadius: '24px 24px 0 0' } 
+        : { top: '76px', left: isOpen ? '16px' : '-320px', width: '320px', height: 'calc(100vh - 92px)', borderRadius: '16px' }
+      ),
       backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '24px 24px 0 0',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
       color: '#fff',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
-      boxShadow: '0 -8px 30px rgba(0,0,0,0.5)',
+      boxShadow: isMobile ? '0 -8px 30px rgba(0,0,0,0.5)' : '0 12px 40px rgba(0,0,0,0.5)',
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
     }}>
+      {/* SLIDE TOGGLE BUTTON (Desktop) */}
+      {!isMobile && (
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            position: 'absolute',
+            right: '-32px',
+            top: '32px',
+            width: '32px',
+            height: '48px',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderLeft: 'none',
+            borderRadius: '0 16px 16px 0',
+            color: '#00f3ff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '4px 0 10px rgba(0,0,0,0.3)'
+          }}
+        >
+          {isOpen ? '◀' : '▶'}
+        </button>
+      )}
+
       {/* Swipe Handle Helper & Close Button */}
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', position: 'absolute', top: 0, zIndex: 50, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)' }}>
-        <div style={{ flex: 1 }}></div>
-        <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕</button>
+      {isMobile && (
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', position: 'relative', background: 'transparent' }}>
+          <div style={{ flex: 1 }}></div>
+          <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕</button>
+          </div>
         </div>
-      </div>
+      )}
       {/* 1. PHOTO AND X BUTTON */}
       <div style={{ 
         height: '180px', 

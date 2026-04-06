@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LiveFlight } from '../services/flightService';
 
 export interface Airport {
@@ -50,8 +50,17 @@ const VirtualList = ({ items, itemHeight, renderItem }: { items: any[], itemHeig
 
 export default function FlightradarRightPanel({ flights, airports, onFlightClick, onAirportClick, selectedFlightId, selectedAirportIata }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<'flights' | 'airports'>('flights');
-  const [isOpen, setIsOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
   
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const [isOpen, setIsOpen] = useState(!isMobile);
+
   // SWIPE DOWN STATE
   const [touchStartY, setTouchStartY] = useState(0);
 
@@ -68,8 +77,8 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
 
   return (
     <>
-      {/* GLOBAL FLOATING "EXPLORE" BUTTON (Bottom center) */}
-      {!isOpen && (
+      {/* MOBILE FLOATING "EXPLORE" BUTTON (Bottom center - Hidden on Desktop) */}
+      {isMobile && !isOpen && (
         <button 
           onClick={() => setIsOpen(true)}
           style={{
@@ -97,43 +106,63 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
       )}
 
       <div style={{
-          position: 'fixed', // Force strict positioning
+          position: isMobile ? 'fixed' : 'absolute',
           zIndex: 900,
           transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
-          bottom: isOpen ? '0px' : '-100%', // Animate globally bottom-sheet
-          left: '0px',
-          width: '100%',
-          height: '40vh',
+          ...(isMobile 
+            ? { bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', height: '40vh', borderRadius: '24px 24px 0 0' } 
+            : { top: '76px', right: isOpen ? '16px' : '-320px', width: '300px', height: 'calc(100vh - 92px)', borderRadius: '16px' }
+          ),
           backgroundColor: 'rgba(15, 23, 42, 0.95)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '24px 24px 0 0',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
           color: '#fff',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          boxShadow: '0 -8px 30px rgba(0,0,0,0.5)',
+          boxShadow: isMobile ? '0 -8px 30px rgba(0,0,0,0.5)' : '0 12px 40px rgba(0,0,0,0.5)',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
       }}>
-      {/* SLIDE TOGGLE BUTTON (Hidden on Mobile) */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        style={{ display: 'none' }}
-      >
-        {isOpen ? '▶' : '◀'}
-      </button>
+      {/* SLIDE TOGGLE BUTTON (Hidden on Mobile, Visible on Desktop) */}
+      {!isMobile && (
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            position: 'absolute',
+            left: '-32px',
+            top: '32px',
+            width: '32px',
+            height: '48px',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRight: 'none',
+            borderRadius: '16px 0 0 16px',
+            color: '#00f3ff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '-4px 0 10px rgba(0,0,0,0.3)'
+          }}
+        >
+          {isOpen ? '▶' : '◀'}
+        </button>
+      )}
 
-      {/* Swipe Handle Helper & Close Button (Now applies to all screens) */}
-      <div 
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', position: 'relative', background: 'transparent' }}
-      >
-        <div style={{ flex: 1 }}></div>
-        <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕ Hide</button>
+      {/* Swipe Handle Helper & Close Button (Mobile Only logically) */}
+      {isMobile && (
+        <div 
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', position: 'relative', background: 'transparent' }}
+        >
+          <div style={{ flex: 1 }}></div>
+          <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕ Hide</button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* TABS */}
       <div style={{ display: 'flex', borderBottom: '1px solid rgba(47, 49, 54, 0.6)', backgroundColor: 'rgba(42, 43, 48, 0.4)' }}>
