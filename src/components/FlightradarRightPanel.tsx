@@ -50,7 +50,6 @@ const VirtualList = ({ items, itemHeight, renderItem }: { items: any[], itemHeig
 
 export default function FlightradarRightPanel({ flights, airports, onFlightClick, onAirportClick, selectedFlightId, selectedAirportIata }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<'flights' | 'airports'>('flights');
-  
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     setIsMobile(window.innerWidth < 768);
@@ -60,7 +59,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
   }, []);
 
   const [isOpen, setIsOpen] = useState(!isMobile);
-
+  
   // SWIPE DOWN STATE
   const [touchStartY, setTouchStartY] = useState(0);
 
@@ -77,181 +76,150 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
 
   return (
     <>
-      {/* MOBILE FLOATING "EXPLORE" BUTTON (Bottom center - Hidden on Desktop) */}
+      {/* MOBILE FLOATING BUTTON */}
       {isMobile && !isOpen && (
         <button 
           onClick={() => setIsOpen(true)}
           style={{
-            position: 'absolute',
-            bottom: '80px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            backgroundColor: '#ffffff',
-            color: '#000000',
-            padding: '12px 24px',
-            borderRadius: '9999px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-            zIndex: 950,
-            fontWeight: 'bold',
-            fontSize: '14px',
-            border: 'none',
-            cursor: 'pointer'
+            position: 'absolute', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+            backgroundColor: '#ffffff', color: '#000000', padding: '12px 24px', borderRadius: '9999px',
+            display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            zIndex: 950, fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer'
           }}
         >
           <span style={{ fontSize: '16px' }}>🗺️</span> Open Tracker List
         </button>
       )}
 
-      <div style={{
-          position: isMobile ? 'fixed' : 'absolute',
-          zIndex: 900,
-          transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
-          ...(isMobile 
-            ? { bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', height: '40vh', borderRadius: '24px 24px 0 0' } 
-            : { top: '76px', right: isOpen ? '16px' : '-320px', width: '300px', height: 'calc(100vh - 92px)', borderRadius: '16px' }
-          ),
-          backgroundColor: 'rgba(15, 23, 42, 0.95)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          color: '#fff',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          boxShadow: isMobile ? '0 -8px 30px rgba(0,0,0,0.5)' : '0 12px 40px rgba(0,0,0,0.5)',
+      <div style={isMobile ? {
+          position: 'fixed', zIndex: 900, transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
+          bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', height: '40vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.95)', borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '24px 24px 0 0', color: '#fff', display: 'flex', flexDirection: 'column',
+          overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
+      } : {
+          position: 'absolute', top: '76px', right: isOpen ? '16px' : '-300px', transition: 'right 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          width: '300px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '16px', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 30px rgba(0,0,0,0.4)',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
       }}>
-      {/* SLIDE TOGGLE BUTTON (Hidden on Mobile, Visible on Desktop) */}
-      {!isMobile && (
-        <button 
-          onClick={() => setIsOpen(!isOpen)}
-          style={{
-            position: 'absolute',
-            left: '-32px',
-            top: '32px',
-            width: '32px',
-            height: '48px',
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRight: 'none',
-            borderRadius: '16px 0 0 16px',
-            color: '#00f3ff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '-4px 0 10px rgba(0,0,0,0.3)'
-          }}
-        >
-          {isOpen ? '▶' : '◀'}
-        </button>
-      )}
-
-      {/* Swipe Handle Helper & Close Button (Mobile Only logically) */}
-      {isMobile && (
-        <div 
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', position: 'relative', background: 'transparent' }}
-        >
-          <div style={{ flex: 1 }}></div>
-          <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕ Hide</button>
+        {/* SLIDE TOGGLE BUTTON Desktop */}
+        {!isMobile && (
+          <div 
+            onClick={() => setIsOpen(!isOpen)}
+            style={{
+              position: 'absolute', left: '-30px', top: '24px', width: '30px', height: '60px',
+              backgroundColor: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRight: 'none', borderRadius: '8px 0 0 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}
+          >
+            <span style={{ color: '#00f3ff', fontSize: '10px' }}>{isOpen ? '▶' : '◀'}</span>
           </div>
+        )}
+
+        {/* SWIPE HANDLE (Mobile Only) */}
+        {isMobile && (
+          <div 
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', position: 'relative', background: 'transparent' }}
+          >
+            <div style={{ flex: 1 }}></div>
+            <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕ Hide</button>
+            </div>
+          </div>
+        )}
+
+        {/* TABS */}
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(47, 49, 54, 0.6)', backgroundColor: 'rgba(42, 43, 48, 0.4)' }}>
+          <button 
+            onClick={() => setActiveTab('flights')}
+            style={{
+              flex: 1, padding: '12px', border: 'none', backgroundColor: 'transparent',
+              borderBottom: activeTab === 'flights' ? '2px solid #00f3ff' : '2px solid transparent',
+              color: activeTab === 'flights' ? '#fff' : '#8E9297',
+              fontWeight: 600, cursor: 'pointer', fontSize: '12px'
+            }}
+          >
+            Active Flights ({flights.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab('airports')}
+            style={{
+              flex: 1, padding: '10px', border: 'none', backgroundColor: 'transparent',
+              borderBottom: activeTab === 'airports' ? '2px solid #00f3ff' : '2px solid transparent',
+              color: activeTab === 'airports' ? '#fff' : '#8E9297',
+              fontWeight: 600, cursor: 'pointer', fontSize: '12px'
+            }}
+          >
+            Global Airports
+          </button>
         </div>
-      )}
 
-      {/* TABS */}
-      <div style={{ display: 'flex', borderBottom: '1px solid rgba(47, 49, 54, 0.6)', backgroundColor: 'rgba(42, 43, 48, 0.4)' }}>
-        <button 
-          onClick={() => setActiveTab('flights')}
-          style={{
-            flex: 1, padding: '12px', border: 'none', backgroundColor: 'transparent',
-            borderBottom: activeTab === 'flights' ? '2px solid #00f3ff' : '2px solid transparent',
-            color: activeTab === 'flights' ? '#fff' : '#8E9297',
-            fontWeight: 600, cursor: 'pointer', fontSize: '12px'
-          }}
-        >
-          Active Flights ({flights.length})
-        </button>
-        <button 
-          onClick={() => setActiveTab('airports')}
-          style={{
-            flex: 1, padding: '10px', border: 'none', backgroundColor: 'transparent',
-            borderBottom: activeTab === 'airports' ? '2px solid #00f3ff' : '2px solid transparent',
-            color: activeTab === 'airports' ? '#fff' : '#8E9297',
-            fontWeight: 600, cursor: 'pointer', fontSize: '12px'
-          }}
-        >
-          Global Airports
-        </button>
-      </div>
+        {/* CONTENT LIST */}
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          {activeTab === 'flights' && (
+            <VirtualList 
+              items={flights} 
+              itemHeight={66} 
+              renderItem={(f: LiveFlight) => (
+                <div 
+                  onClick={() => onFlightClick(f)}
+                  style={{
+                    height: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    backgroundColor: selectedFlightId === f.icao24 ? 'rgba(0, 243, 255, 0.15)' : 'rgba(42, 43, 48, 0.4)',
+                    border: selectedFlightId === f.icao24 ? '1px solid rgba(0, 243, 255, 0.4)' : '1px solid rgba(54, 57, 63, 0.4)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ width: '32px', height: '32px', flexShrink: 0, backgroundColor: 'rgba(54, 57, 63, 0.6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>✈️</div>
+                  <div style={{ overflow: 'hidden' }}>
+                    <div style={{ fontWeight: 600, color: '#fff', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.callsign || 'N/A'}</div>
+                    <div style={{ fontSize: '10px', color: '#8E9297', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.airline || 'Commercial'} | Alt: {Math.round((f.baro_altitude || 0) * 3.28)} ft</div>
+                  </div>
+                </div>
+              )}
+            />
+          )}
 
-      {/* CONTENT LIST */}
-      <div style={{ flex: 1, overflow: 'hidden' }}>
-        {activeTab === 'flights' && (
-          <VirtualList 
-            items={flights} 
-            itemHeight={66} 
-            renderItem={(f: LiveFlight) => (
-              <div 
-                onClick={() => onFlightClick(f)}
-                style={{
-                  height: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  backgroundColor: selectedFlightId === f.icao24 ? 'rgba(0, 243, 255, 0.15)' : 'rgba(42, 43, 48, 0.4)',
-                  border: selectedFlightId === f.icao24 ? '1px solid rgba(0, 243, 255, 0.4)' : '1px solid rgba(54, 57, 63, 0.4)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}
-              >
-                <div style={{ width: '32px', height: '32px', flexShrink: 0, backgroundColor: 'rgba(54, 57, 63, 0.6)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>✈️</div>
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontWeight: 600, color: '#fff', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.callsign || 'N/A'}</div>
-                  <div style={{ fontSize: '10px', color: '#8E9297', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.airline || 'Commercial'} | Alt: {Math.round((f.baro_altitude || 0) * 3.28)} ft</div>
+          {activeTab === 'airports' && (
+            <VirtualList 
+              items={airports} 
+              itemHeight={66} 
+              renderItem={(a: Airport) => (
+                <div 
+                  onClick={() => onAirportClick(a)}
+                  style={{
+                    height: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    backgroundColor: selectedAirportIata === a.iata ? 'rgba(0, 243, 255, 0.15)' : 'rgba(42, 43, 48, 0.4)',
+                    border: selectedAirportIata === a.iata ? '1px solid rgba(0, 243, 255, 0.4)' : '1px solid rgba(54, 57, 63, 0.4)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ width: '32px', height: '32px', flexShrink: 0, backgroundColor: 'rgba(54, 57, 63, 0.6)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 'bold', color: '#00f3ff' }}>
+                    {a.iata}
+                  </div>
+                  <div style={{ overflow: 'hidden' }}>
+                    <div style={{ fontWeight: 600, color: '#fff', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>
+                    <div style={{ fontSize: '10px', color: '#8E9297', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.city}, {a.country}</div>
+                  </div>
                 </div>
-              </div>
-            )}
-          />
-        )}
-
-        {activeTab === 'airports' && (
-          <VirtualList 
-            items={airports} 
-            itemHeight={66} 
-            renderItem={(a: Airport) => (
-              <div 
-                onClick={() => onAirportClick(a)}
-                style={{
-                  height: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  backgroundColor: selectedAirportIata === a.iata ? 'rgba(0, 243, 255, 0.15)' : 'rgba(42, 43, 48, 0.4)',
-                  border: selectedAirportIata === a.iata ? '1px solid rgba(0, 243, 255, 0.4)' : '1px solid rgba(54, 57, 63, 0.4)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}
-              >
-                <div style={{ width: '32px', height: '32px', flexShrink: 0, backgroundColor: 'rgba(54, 57, 63, 0.6)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 'bold', color: '#00f3ff' }}>
-                  {a.iata}
-                </div>
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontWeight: 600, color: '#fff', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>
-                  <div style={{ fontSize: '10px', color: '#8E9297', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.city}, {a.country}</div>
-                </div>
-              </div>
-            )}
-          />
-        )}
-      </div>
+              )}
+            />
+          )}
+        </div>
       </div>
     </>
   );
