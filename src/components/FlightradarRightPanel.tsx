@@ -58,8 +58,10 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [isOpen, setIsOpen] = useState(!isMobile);
-  
+  const [isOpen, setIsOpen] = useState(true);
+  useEffect(() => {
+    if (window.innerWidth < 768) setIsOpen(false);
+  }, []);
   // SWIPE DOWN STATE
   const [touchStartY, setTouchStartY] = useState(0);
 

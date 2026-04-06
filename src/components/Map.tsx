@@ -814,7 +814,8 @@ export default function Map() {
         backdropFilter: 'blur(8px)'
       }}>
         <button
-          onClick={(e) => { if(!zoomDragRef.current.isDragging) handleTrackLocation(); }}
+          onClick={(e) => handleTrackLocation()}
+          onPointerDown={(e) => e.stopPropagation()}
           title="Acquire Satellite GPS Lock"
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
@@ -839,6 +840,7 @@ export default function Map() {
         </button>
         <button
           onClick={zoomIn}
+          onPointerDown={(e) => e.stopPropagation()}
           title="Engage Magnification"
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.15)';
@@ -861,6 +863,7 @@ export default function Map() {
         </button>
         <button
           onClick={zoomOut}
+          onPointerDown={(e) => e.stopPropagation()}
           title="Disengage Magnification"
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.15)';
