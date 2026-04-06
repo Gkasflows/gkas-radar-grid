@@ -33,52 +33,24 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
   if (!displayFlight || (!flight && !isAnimating)) return null;
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: '76px', /* Match top nav offset */
-      left: isOpen ? '16px' : '-320px', /* Float cleanly */
-      transition: 'left 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-      zIndex: 1000,
-    }}>
-      {/* SLIDE TOGGLE BUTTON */}
+    <div className={`fixed md:absolute z-[1000] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]
+      ${isOpen 
+        ? 'bottom-0 md:bottom-auto md:top-[76px] left-0 md:left-4' 
+        : '-bottom-full md:bottom-auto md:top-[76px] left-0 md:-left-[320px]'
+      } w-full md:w-[320px] h-[50vh] md:h-[calc(100vh-92px)] bg-slate-900/95 border-t md:border border-white/10 rounded-t-2xl md:rounded-2xl text-white flex flex-col overflow-hidden shadow-2xl md:shadow-none`}
+    >
+      {/* SLIDE TOGGLE BUTTON (Hidden on Mobile) */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        style={{
-          position: 'absolute',
-          right: '-32px',
-          top: '32px',
-          width: '32px',
-          height: '48px',
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderLeft: 'none',
-          borderRadius: '0 12px 12px 0',
-          color: '#00f3ff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          zIndex: 1000,
-          boxShadow: '4px 0 10px rgba(0,0,0,0.3)',
-          transition: 'color 0.2s',
-        }}
+        className="hidden md:flex absolute -right-8 top-8 w-8 h-12 bg-slate-900/65 border border-white/10 border-l-0 rounded-r-xl text-[#00f3ff] items-center justify-center cursor-pointer shadow-[4px_0_10px_rgba(0,0,0,0.3)] transition-colors"
       >
         {isOpen ? '◀' : '▶'}
       </button>
 
-      {/* MAIN CONTAINER */}
-      <div style={{
-        width: '320px',
-        height: 'calc(100vh - 92px)',
-        backgroundColor: 'rgba(15, 23, 42, 0.95)', // Solidified for performance
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '16px',
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-        overflow: 'hidden'
-      }}>
+      {/* Mobile Swipe Handle Helper */}
+      <div className="md:hidden w-full flex justify-center pt-2 pb-1 absolute top-0 z-50 bg-gradient-to-b from-black/50 to-transparent">
+        <div className="w-12 h-1.5 bg-white/30 rounded-full" onClick={() => setIsOpen(!isOpen)}></div>
+      </div>
       {/* 1. PHOTO AND X BUTTON */}
       <div style={{ 
         height: '180px', 
@@ -275,7 +247,6 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
           Flight data provided by OpenSky Network & GKASFLOWS
         </div>
 
-      </div>
       </div>
     </div>
   );

@@ -37,13 +37,13 @@ const FALLBACK_AIRPORTS: Airport[] = [
 ];
 
 const INITIAL_VIEW_STATE = {
-  longitude: 0,
-  latitude: 20,
-  zoom: 2.0,
+  longitude: 10,
+  latitude: 10,
+  zoom: 1.1,
   pitch: 30, // Reduced base tilt 
   bearing: 0,
   maxZoom: 20,
-  minZoom: 1.5
+  minZoom: 1.0
 };
 
 const calculateFlightHistoryTrail = (flight: LiveFlight | null) => {
@@ -576,10 +576,15 @@ export default function Map() {
       getPosition: (d: LiveFlight) => [d.longitude, d.latitude],
       getAngle: (d: LiveFlight) => 0 - (d.true_track || 0), // svg points UP, we need angle clockwise
       getSize: (d: LiveFlight) => {
-        if (!selectedFlightId) return hoveredFlight?.flight.icao24 === d.icao24 ? 46 : 36;
-        return d.icao24 === selectedFlightId ? 52 : 16; // Massively shrink unselected ghost planes to tiny dots
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        const baseSize = isMobile ? 24 : 36;
+        if (!selectedFlightId) return hoveredFlight?.flight.icao24 === d.icao24 ? baseSize + 10 : baseSize;
+        return d.icao24 === selectedFlightId ? baseSize + 16 : (isMobile ? 10 : 16); 
       },
-      sizeScale: Math.max(0.35, Math.min(1.2, 0.35 + (viewState.zoom - 1.5) * 0.15)), // Seamless, mathematically continuous scaling matching FR24 exactly
+      sizeScale: Math.max(
+        typeof window !== 'undefined' && window.innerWidth < 768 ? 0.15 : 0.35, 
+        Math.min(1.2, (typeof window !== 'undefined' && window.innerWidth < 768 ? 0.15 : 0.35) + (viewState.zoom - 1.5) * 0.15)
+      ),
       getColor: (d: LiveFlight) => {
         if (d.icao24 === selectedFlightId) return [255, 60, 60, 255]; // Selected turns Solid Red
         
@@ -730,21 +735,7 @@ export default function Map() {
       />
 
       {/* HIGH-TECH ZOOM CONTROLS */}
-      <div style={{
-        position: 'absolute',
-        bottom: '24px',
-        right: '340px', // Sits perfectly flush to the left of the FlightradarRightPanel (RightPanel is 300px wide + 24px margin)
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        zIndex: 1000,
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-        borderRadius: '8px',
-        padding: '6px',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(8px)'
-      }}>
+      <div className="absolute bottom-6 right-4 md:right-[340px] flex flex-col gap-[6px] z-[1000] bg-slate-900/95 rounded-lg p-1.5 border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
         <button
           onClick={handleTrackLocation}
           title="Acquire Satellite GPS Lock"

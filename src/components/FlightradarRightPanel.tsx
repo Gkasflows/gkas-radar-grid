@@ -50,57 +50,27 @@ const VirtualList = ({ items, itemHeight, renderItem }: { items: any[], itemHeig
 
 export default function FlightradarRightPanel({ flights, airports, onFlightClick, onAirportClick, selectedFlightId, selectedAirportIata }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<'flights' | 'airports'>('flights');
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: '76px',
-      right: isOpen ? '16px' : '-300px', 
-      transition: 'right 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-      zIndex: 900,
-    }}>
-      {/* SLIDE TOGGLE BUTTON */}
+    <div className={`fixed md:absolute z-[900] transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]
+      ${isOpen 
+        ? 'bottom-0 md:bottom-auto md:top-[76px] right-0 md:right-4' 
+        : '-bottom-[calc(40vh-32px)] md:bottom-auto md:top-[76px] right-0 md:-right-[300px]'
+      } w-full md:w-[300px] h-[40vh] md:h-[calc(100vh-92px)] bg-slate-900/95 border-t md:border border-white/10 rounded-t-2xl md:rounded-2xl text-white flex flex-col overflow-hidden shadow-[0_-8px_30px_rgba(0,0,0,0.5)] md:shadow-[0_12px_40px_rgba(0,0,0,0.5)]`}
+    >
+      {/* SLIDE TOGGLE BUTTON (Hidden on Mobile) */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        style={{
-          position: 'absolute',
-          left: '-32px',
-          top: '32px',
-          width: '32px',
-          height: '48px',
-          backgroundColor: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRight: 'none',
-          borderRadius: '12px 0 0 12px',
-          color: '#00f3ff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          zIndex: 1000,
-          boxShadow: '-4px 0 10px rgba(0,0,0,0.3)',
-          transition: 'color 0.2s',
-        }}
+        className="hidden md:flex absolute -left-8 top-8 w-8 h-12 bg-slate-900/65 backdrop-blur-md border border-white/10 border-r-0 rounded-l-xl text-[#00f3ff] items-center justify-center cursor-pointer shadow-[-4px_0_10px_rgba(0,0,0,0.3)] transition-colors"
       >
         {isOpen ? '▶' : '◀'}
       </button>
 
-      {/* MAIN CONTENT BLOCK */}
-      <div style={{
-          width: '300px',
-          height: 'calc(100vh - 92px)',
-          backgroundColor: 'rgba(15, 23, 42, 0.95)', // Solidified for performance
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '16px',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-          display: 'flex',
-          flexDirection: 'column',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-          color: '#fff',
-          overflow: 'hidden'
-      }}>
+      {/* Mobile Swipe Handle Helper */}
+      <div className="md:hidden w-full flex justify-center pt-2 pb-1 absolute top-0 z-50 bg-gradient-to-b from-black/50 to-transparent">
+        <div className="w-12 h-1.5 bg-white/30 rounded-full" onClick={() => setIsOpen(!isOpen)}></div>
+      </div>
 
       {/* TABS */}
       <div style={{ display: 'flex', borderBottom: '1px solid rgba(47, 49, 54, 0.6)', backgroundColor: 'rgba(42, 43, 48, 0.4)' }}>
@@ -189,7 +159,6 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
             )}
           />
         )}
-      </div>
       </div>
     </div>
   );
