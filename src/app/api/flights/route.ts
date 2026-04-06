@@ -61,11 +61,12 @@ export async function GET() {
       const aircraft = adsbData.ac || [];
       
       for (const plane of aircraft) {
-        if (plane.lat !== undefined && plane.lon !== undefined) {
+        const callsign = plane.flight?.trim();
+        if (plane.lat !== undefined && plane.lon !== undefined && callsign) {
           const icao = String(plane.hex).toLowerCase();
           mergedFlightsMap.set(icao, {
             icao24: icao,
-            callsign: plane.flight?.trim() || 'N/A',
+            callsign: callsign,
             origin_country: 'ADSB_ONE',
             longitude: plane.lon,
             latitude: plane.lat,
@@ -89,7 +90,9 @@ export async function GET() {
         const s = frData[k];
         const icao = String(s[0]).toLowerCase();
         
-        if (s[1] !== null && s[2] !== null) {
+        const callsign = s[16]?.trim() || s[13]?.trim();
+        
+        if (s[1] !== null && s[2] !== null && callsign) {
           mergedFlightsMap.set(icao, { 
             icao24: icao,
             latitude: s[1],
@@ -97,7 +100,7 @@ export async function GET() {
             true_track: s[3],
             baro_altitude: s[4] * 0.3048, 
             velocity: s[5] * 0.514444, 
-            callsign: s[16]?.trim() || s[13]?.trim() || 'N/A',
+            callsign: callsign,
             origin_country: s[8] || 'FR24', 
             vertical_rate: s[15] * 0.00508, 
             category: 0
