@@ -755,22 +755,7 @@ export default function Map() {
       />
 
       {/* HIGH-TECH ZOOM CONTROLS */}
-      <div style={isMobile ? {
-        position: 'absolute',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        right: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        zIndex: 1000,
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-        borderRadius: '8px',
-        padding: '6px',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(8px)'
-      } : {
+      <div style={isMobile ? { display: 'none' } : {
         position: 'absolute',
         bottom: '24px',
         right: '340px', // Right-aligned clearing the desktop right panel naturally
