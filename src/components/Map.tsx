@@ -732,8 +732,53 @@ export default function Map() {
       getRadius: 1800, // Massive 1.8km radius ring locked strictly to their ground coordinate
       stroked: true,
       filled: true
+    }) : null,
+
+    // 6. HIGH-BUDGET TACTICAL TRIANGULATION ARCS (Selected Flight)
+    selectedFlightId && selectedFlight ? new (ArcLayer as any)({
+      id: 'flight-tactical-arc',
+      data: [selectedFlight].map(f => {
+        const dest = globalAirports.find(a => a.iata === f.dest_iata);
+        const orig = globalAirports.find(a => a.iata === f.origin_iata);
+        const targetPoint = dest || orig;
+        if (!targetPoint) return null;
+        return {
+          source: [f.longitude, f.latitude],
+          target: targetPoint.coords,
+          isArrival: !!dest
+        };
+      }).filter(Boolean),
+      getSourcePosition: (d: any) => d.source,
+      getTargetPosition: (d: any) => d.target,
+      getSourceColor: [0, 243, 255, 255], 
+      getTargetColor: (d: any) => d.isArrival ? [16, 185, 129, 255] : [245, 158, 11, 255], 
+      getWidth: 3, 
+      getHeight: 0.5, 
+      tilt: 0
+    }) : null,
+
+    // 7. MULTI-BILLION DOLLAR AIRPORT NEURAL NETWORK 
+    selectedAirportIata && selectedAirport ? new (ArcLayer as any)({
+      id: 'airport-neural-arcs',
+      data: flights.filter(f => f.origin_iata === selectedAirportIata || f.dest_iata === selectedAirportIata).map(f => {
+        const isArrival = f.dest_iata === selectedAirportIata;
+        const port = globalAirports.find(a => a.iata === selectedAirportIata);
+        if (!port) return null;
+        return {
+          source: isArrival ? [f.longitude, f.latitude] : port.coords,
+          target: isArrival ? port.coords : [f.longitude, f.latitude],
+          isArrival
+        };
+      }).filter(Boolean),
+      getSourcePosition: (d: any) => d.source,
+      getTargetPosition: (d: any) => d.target,
+      getSourceColor: [0, 243, 255, 180], 
+      getTargetColor: (d: any) => d.isArrival ? [16, 185, 129, 255] : [245, 158, 11, 255], 
+      getWidth: 2.5,
+      getHeight: 0.3
     }) : null
-  ].filter(Boolean), [filteredFlights, networkFlights, filteredAirports, selectedFlight, selectedAirport, selectedFlightId, userLocation, handleFlyToFlight, handleFlyToAirport, viewState.zoom, searchQuery, isHeatmapActive]);
+
+  ].filter(Boolean), [filteredFlights, networkFlights, filteredAirports, selectedFlight, selectedAirport, selectedFlightId, selectedAirportIata, userLocation, handleFlyToFlight, handleFlyToAirport, viewState.zoom, searchQuery, isHeatmapActive, flights]);
 
   if (!mounted) return null;
 
@@ -824,12 +869,12 @@ export default function Map() {
         flexDirection: 'column',
         gap: '6px',
         zIndex: 1000,
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-        borderRadius: '8px',
-        padding: '6px',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(8px)',
+        backgroundColor: 'rgba(10, 15, 30, 0.45)', // Glassmorphism Core
+        borderRadius: '12px', // Smoother chassis
+        padding: '8px',
+        border: '1px solid rgba(0, 243, 255, 0.25)', // Cyber neon edge
+        boxShadow: '0 8px 30px rgba(0,0,0,0.6), inset 0 0 12px rgba(0,243,255,0.1)', // Complex volumetric depth
+        backdropFilter: 'blur(24px) saturate(150%)', // Multi-billion dollar glass rendering
         cursor: 'grab',
         touchAction: 'none' // Essential to stop natural page scrolling while moving the HUD
       } : {
@@ -838,14 +883,14 @@ export default function Map() {
         right: '340px', // Right-aligned clearing the desktop right panel naturally
         display: 'flex',
         flexDirection: 'column',
-        gap: '6px',
+        gap: '8px',
         zIndex: 1000,
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-        borderRadius: '8px',
-        padding: '6px',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(8px)'
+        backgroundColor: 'rgba(10, 15, 30, 0.45)',
+        borderRadius: '12px',
+        padding: '8px',
+        border: '1px solid rgba(0, 243, 255, 0.25)',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.6), inset 0 0 12px rgba(0,243,255,0.1)',
+        backdropFilter: 'blur(24px) saturate(150%)'
       }}>
         <button
           onClick={(e) => handleTrackLocation()}

@@ -97,12 +97,12 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
       <div style={isMobile ? {
           position: 'fixed', zIndex: 900, transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
           bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', height: '40vh',
-          backgroundColor: 'rgba(15, 23, 42, 0.95)', borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', borderTop: '1px solid rgba(0, 243, 255, 0.25)',
           borderRadius: '24px 24px 0 0', color: '#fff', display: 'flex', flexDirection: 'column',
           overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
       } : {
           position: 'absolute', top: '76px', right: isOpen ? '16px' : '-300px', transition: 'right 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-          width: '300px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid rgba(255, 255, 255, 0.08)',
+          width: '300px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', border: '1px solid rgba(0, 243, 255, 0.25)',
           borderRadius: '16px', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 30px rgba(0,0,0,0.4)',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
       }}>

@@ -19,15 +19,17 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
 
   return (
     <div style={isMobile ? {
-      position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', backgroundColor: 'rgba(15, 23, 42, 0.95)', display: 'flex',
+      position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', 
+      backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', display: 'flex',
       alignItems: 'center', padding: '0 16px', zIndex: 1000, color: '#fff', boxSizing: 'border-box', justifyContent: 'space-between',
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-      borderBottom: '1px solid rgba(0, 243, 255, 0.15)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)'
+      borderBottom: '1px solid rgba(0, 243, 255, 0.25)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)'
     } : {
-      position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', backgroundColor: 'rgba(15, 23, 42, 0.95)', display: 'flex',
+      position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', 
+      backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', display: 'flex',
       alignItems: 'center', padding: '0 24px', zIndex: 1000, color: '#fff', boxSizing: 'border-box', justifyContent: 'space-between',
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-      borderBottom: '1px solid rgba(0, 243, 255, 0.15)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)'
+      borderBottom: '1px solid rgba(0, 243, 255, 0.25)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)'
     }}>
       
       {/* 1. LEFT CONTROLS */}

@@ -73,13 +73,13 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
       position: 'fixed', zIndex: 1000, transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
       bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', 
       height: isExpanded ? '100vh' : '40vh',
-      backgroundColor: 'rgba(15, 23, 42, 0.95)', borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', borderTop: '1px solid rgba(0, 243, 255, 0.25)',
       borderRadius: isExpanded ? '0' : '24px 24px 0 0', display: 'flex', flexDirection: 'column', color: '#fff',
       overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, sans-serif'
     } : {
       position: 'absolute', top: '76px', left: isOpen ? '16px' : '-320px', transition: 'left 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-      zIndex: 1000, width: '320px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+      zIndex: 1000, width: '320px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)',
+      border: '1px solid rgba(0, 243, 255, 0.25)', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
       display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: '"Inter", -apple-system, sans-serif', color: '#fff'
     }}>
       {/* SLIDE TOGGLE BUTTON - Desktop Only */}
