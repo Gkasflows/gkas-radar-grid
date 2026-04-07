@@ -581,7 +581,7 @@ export default function Map() {
           data: undefined,
           image: props.data,
           bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          tintColor: [180, 195, 215, 255] // Significantly brighter cool cinematic filter to preserve globe satellite details!
+          tintColor: [255, 255, 255, 255] // Completely neutral filter so Google Maps hybrid labels render in perfect crisp white!
         });
       }
     }),
