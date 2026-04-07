@@ -1,21 +1,77 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface FlightradarTopNavProps {
+  searchQuery: string;
   onSearch: (term: string) => void;
   flightCount: number;
   isHeatmapActive: boolean;
   toggleHeatmap: () => void;
   onReset: () => void;
+  globalAirports?: any[];
 }
 
-export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset }: FlightradarTopNavProps) {
+export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports }: FlightradarTopNavProps) {
   const [isMobile, setIsMobile] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     setIsMobile(window.innerWidth < 768);
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('gkas_recent_searches');
+      if (saved) setRecentSearches(JSON.parse(saved));
+    } catch(e){}
+  }, []);
+
+  const handleSaveSearch = (query: string) => {
+    if (!query || !query.trim()) return;
+    const newSearches = [query, ...recentSearches.filter(s => s !== query)].slice(0, 6);
+    setRecentSearches(newSearches);
+    localStorage.setItem('gkas_recent_searches', JSON.stringify(newSearches));
+  };
+
+  const handleSelect = (val: string) => {
+    onSearch(val);
+    handleSaveSearch(val);
+    setShowDropdown(false);
+  };
+
+  const handleClear = () => {
+    onSearch('');
+    setShowDropdown(false);
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveSearch(searchQuery);
+      setShowDropdown(false);
+      inputRef.current?.blur();
+    }
+  };
+
+  const suggestions = React.useMemo(() => {
+    if (!searchQuery) return [];
+    const q = searchQuery.toLowerCase();
+    
+    // Core HQ Target
+    const hq = 'the smartan house'.includes(q) || 'smartan'.includes(q) || 'house'.includes(q) ? ['THE SMARTAN HOUSE'] : [];
+      
+    // Geofencing matching local DB string
+    const ports = (globalAirports || [])
+      .filter(a => a.name?.toLowerCase().includes(q) || a.city?.toLowerCase().includes(q) || a.iata?.toLowerCase().includes(q) || a.country?.toLowerCase().includes(q))
+      .slice(0, 5)
+      .map(a => `${a.city || a.name || 'Unknown'} (${a.iata || 'UNK'})`);
+      
+    return [...hq, ...ports];
+  }, [searchQuery, globalAirports]);
 
   return (
     <div style={isMobile ? {
@@ -114,7 +170,6 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
           gap: '12px',
           zIndex: 1000
         }}>
-          {/* HOME BUTTON */}
           <button
             onClick={onReset}
             style={{
@@ -135,7 +190,6 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
             ⌂
           </button>
           
-          {/* HEATMAP BUTTON */}
           <button
             onClick={toggleHeatmap}
             style={{
@@ -158,21 +212,25 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
         </div>
       )}
 
-      {/* 3. RIGHT SEARCH ENGINE */}
+      {/* 3. RIGHT SEARCH ENGINE WITH LIVE AUTO-SUGGESTIONS */}
       <div style={{ flex: 1, display: 'flex', justifyContent: isMobile ? 'flex-end' : 'center', alignItems: 'center', position: 'relative', height: '100%' }}>
-        <div style={{ position: 'relative', width: isMobile ? '160px' : '300px', height: '32px', display: 'flex', alignItems: 'center', marginRight: isMobile ? 0 : '16px' }}>
+        <div style={{ position: 'relative', width: isMobile ? '160px' : '300px', height: '32px', display: 'flex', alignItems: 'center', marginRight: isMobile ? 0 : '48px' }}>
           <input 
+            ref={inputRef}
             type="text" 
             id="search-input"
-            placeholder={isMobile ? "Search..." : "Search Flights, Airports..."}
-            onChange={(e) => onSearch(e.target.value)}
+            value={searchQuery}
+            placeholder={isMobile ? "Search..." : "Search Places..."}
+            onChange={(e) => { onSearch(e.target.value); setShowDropdown(true); }}
+            onFocus={() => setShowDropdown(true)}
+            onKeyDown={handleKeyDown}
             style={{
               width: '100%',
               height: '100%',
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
               border: '1px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '16px',
-              padding: '0 12px 0 32px',
+              padding: '0 28px 0 32px',
               color: '#00f3ff', 
               fontSize: '13px',
               fontWeight: 500,
@@ -181,9 +239,47 @@ export default function FlightradarTopNav({ onSearch, flightCount, isHeatmapActi
               boxSizing: 'border-box'
             }}
           />
-          <svg style={{ position: 'absolute', left: '10px', width: '14px', height: '14px', fill: '#ffffff', opacity: 0.8 }} viewBox="0 0 24 24">
+          {/* SEARCH ICON */}
+          <svg style={{ position: 'absolute', left: '12px', width: '14px', height: '14px', fill: '#ffffff', opacity: 0.7 }} viewBox="0 0 24 24">
             <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
           </svg>
+          
+          {/* SECURE CANCEL BUTTON (X) */}
+          {searchQuery && (
+            <button 
+              onClick={handleClear} 
+              style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', fontWeight: 900, cursor: 'pointer', padding: 0, opacity: 0.8, outline: 'none' }}
+              title="Clear Search"
+            >
+              ✕
+            </button>
+          )}
+
+          {/* DYNAMIC AUTO-SUGGESTIONS PANEL */}
+          {showDropdown && (suggestions.length > 0 || (!searchQuery && recentSearches.length > 0)) && (
+             <div style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: '12px', 
+                width: '100%', backgroundColor: 'rgba(15, 23, 42, 0.98)', backdropFilter: 'blur(16px)',
+                borderRadius: '12px', border: '1px solid rgba(0,243,255,0.3)', boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
+                overflow: 'hidden', zIndex: 1100, display: 'flex', flexDirection: 'column'
+             }}>
+                {searchQuery && suggestions.length > 0 && suggestions.map(s => (
+                   <div key={s} onClick={() => handleSelect(s)} style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '13px', color: '#fff', cursor: 'pointer', fontWeight: 500, letterSpacing: '0.3px', transition: 'background 0.2s', ...((s === 'THE SMARTAN HOUSE') ? {color: '#00f3ff', fontWeight: 800} : {}) }}>
+                      {s === 'THE SMARTAN HOUSE' ? '🏛️' : '📍'} {s}
+                   </div>
+                ))}
+                {!searchQuery && recentSearches.length > 0 && (
+                   <>
+                     <div style={{ padding: '8px 14px', fontSize: '10px', color: '#8E9297', backgroundColor: 'rgba(0,0,0,0.3)', fontWeight: 800, letterSpacing: '0.5px' }}>RECENT SEARCHES</div>
+                     {recentSearches.map(s => (
+                       <div key={s} onClick={() => handleSelect(s)} style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '13px', color: '#00f3ff', cursor: 'pointer', fontWeight: 500 }}>
+                          🕒 {s}
+                       </div>
+                     ))}
+                   </>
+                )}
+             </div>
+          )}
         </div>
       </div>
 

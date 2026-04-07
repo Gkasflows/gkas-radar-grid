@@ -160,35 +160,47 @@ export default function Map() {
       });
   }, []);
 
-  // Global Geographic Auto-Panning Engine (Integrates real physical world maps dynamically)
+  // Global Geographic Auto-Panning Engine & Deep Search integration
   useEffect(() => {
-    if (!searchQuery || searchQuery.length < 3) return;
+    if (!searchQuery || searchQuery.length < 2) return;
     
     const debouncer = setTimeout(async () => {
       // Prevent fetching if they already clicked a flight during typing
       if (selectedFlightId || selectedAirportIata) return; 
 
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1`);
-        const json = await res.json();
-        if (json && json.length > 0) {
-          const targetLat = parseFloat(json[0].lat);
-          const targetLon = parseFloat(json[0].lon);
-          
-          setViewState((prev: any) => ({
-            ...prev,
-            latitude: targetLat,
-            longitude: targetLon,
-            zoom: 5.5, // Perfect wide country scale view
-            pitch: 0,
-            bearing: 0,
-            transitionDuration: 4500, // Cinematic smooth travel
-            transitionInterpolator: new FlyToInterpolator()
-          }));
-        }
-      } catch (e) {
-        console.warn('Geocoding blocked or failed natively.', e);
+      let targetLat = 0, targetLon = 0, targetZoom = 5.5, targetPitch = 0, delay = 4500;
+      const q = searchQuery.toLowerCase();
+
+      if (q === 'smartan house' || q === 'the smartan house' || q === 'smartan') {
+         // Deep injection for local HQ
+         targetLat = 6.4550; // Lagos base
+         targetLon = 3.4064; 
+         targetZoom = 18.5; // Phenomenal close-up zoom 
+         targetPitch = 45; // 3D Tilt orientation
+         delay = 8000;
+      } else {
+         try {
+           const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1`);
+           const json = await res.json();
+           if (json && json.length > 0) {
+             targetLat = parseFloat(json[0].lat);
+             targetLon = parseFloat(json[0].lon);
+           } else return;
+         } catch (e) {
+           return;
+         }
       }
+
+      setViewState((prev: any) => ({
+        ...prev,
+        latitude: targetLat,
+        longitude: targetLon,
+        zoom: targetZoom, 
+        pitch: targetPitch,
+        bearing: 0,
+        transitionDuration: delay, // Cinematic smooth travel
+        transitionInterpolator: new FlyToInterpolator()
+      }));
     }, 1200); // 1.2s delay typing tolerance preventing massive API limits
     
     return () => clearTimeout(debouncer);
@@ -617,6 +629,33 @@ export default function Map() {
       radiusMaxPixels: 20
     }) : null,
 
+    // Layer 5.1: THE SMARTAN HOUSE PERMANENT MARKER (Lagos HQ)
+    new (ScatterplotLayer as any)({
+      id: 'smartan-house-hq-ping',
+      data: [{ coords: [3.4064, 6.4550] }], // Custom location lock
+      getPosition: (d: any) => d.coords,
+      getFillColor: [16, 185, 129, 255], // Emerald Green secure lock
+      getLineColor: [255, 255, 255, 255], // Halo
+      lineWidthMinPixels: 2,
+      getRadius: 150, 
+      stroked: true,
+      filled: true,
+      pickable: true
+    }),
+    new (TextLayer as any)({
+      id: 'smartan-house-hq-label',
+      data: [{ coords: [3.4064, 6.4550], name: 'THE SMARTAN HOUSE' }],
+      getPosition: (d: any) => d.coords,
+      getText: (d: any) => d.name,
+      getSize: 16,
+      getColor: [0, 243, 255, 255], // Cyber cyan tracking text
+      getPixelOffset: [0, -25], // Float nicely above the physical green ring
+      fontFamily: '"Inter", sans-serif',
+      fontWeight: 'bold',
+      background: true,
+      getBackgroundColor: [15, 23, 42, 220] // Stealth background wrapper
+    }),
+
     // Layer 3: High Density IconLayer for ALL PLANES
     new (IconLayer as any)({
       id: 'airplanes-layer',
@@ -753,11 +792,13 @@ export default function Map() {
 
       {/* TOP NAVBAR */}
       <FlightradarTopNav
+        searchQuery={searchQuery}
         onSearch={setSearchQuery}
         flightCount={networkFlights.length}
         isHeatmapActive={isHeatmapActive}
         toggleHeatmap={() => setIsHeatmapActive(prev => !prev)}
         onReset={handleMasterReset}
+        globalAirports={globalAirports}
       />
 
       {/* LEFT PANELS (Mutually exclusive) */}
