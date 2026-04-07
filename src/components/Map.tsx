@@ -4,15 +4,15 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import DeckGL from '@deck.gl/react';
 import { MapView, FlyToInterpolator } from '@deck.gl/core';
 import { TileLayer, GreatCircleLayer } from '@deck.gl/geo-layers';
-import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer } from '@deck.gl/layers';
+import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer, GeoJsonLayer } from '@deck.gl/layers';
 import { fetchLiveFlights, LiveFlight } from '../services/flightService';
 import FlightradarTopNav from './FlightradarTopNav';
 import FlightradarSidePanel from './FlightradarSidePanel';
 import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
 
-// Ultra-Premium Aviation Dark Matter Map (Crisp, High-Contrast Native Dark Mode)
-const FR24_MAP_URL = 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png';
+// Ultra-High-Resolution Command Center Satellite Imaging
+const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
 
 // Airport Pin location SVG (Exact FR24 styling: Cyan-blue teardrop pin with white center dot and dark stroke)
 const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
@@ -25,9 +25,12 @@ const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent
 // Sprite Atlas containing a Yellow, a Red, and a White airplane wrapped in sharp black borders
 const AIRPLANE_ATLAS = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="64" viewBox="0 0 72 24">' +
-  '<path transform="translate(0,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#FFDE1B" stroke="#000000" stroke-width="0.4" stroke-linejoin="round"/>' +
-  '<path transform="translate(24,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#FF3333" stroke="#000000" stroke-width="0.4" stroke-linejoin="round"/>' +
-  '<path transform="translate(48,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ffffff" stroke="#000000" stroke-width="0.4" stroke-linejoin="round"/>' +
+  // State 1: Diamond White Base Plane with Neon Cyan Stroke (Replaces regular Yellow plane)
+  '<path transform="translate(0,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ffffff" stroke="#00f3ff" stroke-width="1.2" stroke-linejoin="round"/>' +
+  // State 2: Electric Magenta Plane with Pink Glow (Replaces Selected Red plane)
+  '<path transform="translate(24,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ff00b3" stroke="#ff99ea" stroke-width="1.2" stroke-linejoin="round"/>' +
+  // State 3: Ghosted Heatmap plane (White heavily transparent)
+  '<path transform="translate(48,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="rgba(255,255,255,0.7)" stroke="none"/>' +
   '</svg>'
 );
 
@@ -565,7 +568,7 @@ export default function Map() {
 
   // LAYERS
   const layers = useMemo(() => [
-    // Layer 1: The Earth (Base global cartography)
+    // Layer 1: High-Definition Night-Vision Satellite Cartography
     new TileLayer({
       data: FR24_MAP_URL,
       minZoom: 0,
@@ -578,9 +581,19 @@ export default function Map() {
           data: undefined,
           image: props.data,
           bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          tintColor: [255, 255, 255, 255] // Deep Dark Matter mapping eliminates the need for computational dimming!
+          tintColor: [80, 95, 120, 255] // Gives the Satellite imagery a stunning deep-navy Night Vision aesthetic!
         });
       }
+    }),
+
+    // Layer 1.1: Glowing Global GeoJSON Country Borders overlaying the Satellite Image
+    new GeoJsonLayer({
+      id: 'glowing-country-borders',
+      data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson',
+      stroked: true,
+      filled: false,
+      lineWidthMinPixels: 2,
+      getLineColor: [0, 243, 255, 160] // Piercing Cyan Neon Glow!
     }),
 
     // Layer 1.5: Global Live Storm/Precipitation Meteorological Grid
