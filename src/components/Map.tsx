@@ -11,8 +11,8 @@ import FlightradarSidePanel from './FlightradarSidePanel';
 import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
 
-// Standard Deep Slate Roadmap (Google maps base lyrs=m)
-const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+// Ultra-Premium Aviation Dark Matter Map (Crisp, High-Contrast Native Dark Mode)
+const FR24_MAP_URL = 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png';
 
 // Airport Pin location SVG (Exact FR24 styling: Cyan-blue teardrop pin with white center dot and dark stroke)
 const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
@@ -578,7 +578,7 @@ export default function Map() {
           data: undefined,
           image: props.data,
           bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          tintColor: [110, 120, 135, 255] // Slightly dimmed sleek slate aesthetic
+          tintColor: [255, 255, 255, 255] // Deep Dark Matter mapping eliminates the need for computational dimming!
         });
       }
     }),
