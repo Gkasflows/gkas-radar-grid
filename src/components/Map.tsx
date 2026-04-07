@@ -11,8 +11,8 @@ import FlightradarSidePanel from './FlightradarSidePanel';
 import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
 
-// FR24 Style Physical Terrain Map (Google maps base lyrs=p)
-const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}';
+// Standard Deep Slate Roadmap (Google maps base lyrs=m)
+const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
 
 // Airport Pin location SVG (Exact FR24 styling: Cyan-blue teardrop pin with white center dot and dark stroke)
 const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
@@ -578,7 +578,7 @@ export default function Map() {
           data: undefined,
           image: props.data,
           bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          tintColor: [155, 165, 155, 255] // FlightRadar24 exact muted terrain shadow
+          tintColor: [140, 150, 165, 255] // Re-applied original deep slate-grey aesthetic
         });
       }
     }),
