@@ -28,7 +28,16 @@ export async function GET() {
   try {
     // ADVANCED GLOBAL TELEMETRY EXTRACTOR
     // 1. OpenSky Network physically grants ~11,000-12,000 live planes effortlessly for free
-    const openSkyPromise = fetch(OPENSKY_URL, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
+    // Security: Inject Native Basic Auth from .env variables to mathematically bypass IP blocking!
+    const user = process.env.OPENSKY_USERNAME;
+    const pass = process.env.OPENSKY_PASSWORD;
+    const authHeader = (user && pass) ? 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64') : '';
+    
+    const openSkyPromise = fetch(OPENSKY_URL, { 
+      signal: controller.signal, 
+      cache: 'no-store',
+      headers: authHeader ? { 'Authorization': authHeader } : undefined
+    }).catch(() => null);
 
     // 2. FR24 implicitly caps bounding boxes to 1,500 planes. To explicitly guarantee the missing 3000-5000 global planes, we dynamically slice the earth into 6 massive continental grids and harvest them safely!
     const fetchRegion = (bounds: string) => fetch(`${BASE_FR24_URL}&bounds=${bounds}`, {
