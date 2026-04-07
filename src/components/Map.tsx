@@ -299,7 +299,7 @@ export default function Map() {
       .catch(e => console.log('Airports load pending:', e));
 
     loadData();
-    const interval = setInterval(loadData, 36000); // Perfectly synced to the Next.js 35s backend proxy limits
+    const interval = setInterval(loadData, 2500); // Ultra-aggressive 2.5 second polling to explicitly match true OpenSky backend realtime velocities!
     return () => {
       mounted = false;
       clearInterval(interval);

@@ -10,12 +10,11 @@ const FR24_HEADERS = {
 };
 
 const BASE_FR24_URL = 'https://data-cloud.flightradar24.com/zones/fcgi/feed.js?faa=1&satellite=1&mlat=1&flarm=1&adsb=1&gnd=0&air=1&vehicles=0&estimated=1&maxage=14400&gliders=0&stats=0';
-// THE HOLY GRAIL: ADSB.ONE physically uniquely explicitly explicitly permits Vercel AWS IP networks naturally, seamlessly dumping 15,000+ perfect planetary planes organically instantly!
-const ADSB_ONE_URL = 'https://api.adsb.one/v2/point/0/0/25000'; 
+const ADSB_ONE_URL = 'https://api.adsb.one/v2/all'; 
 
 let cachedStates: any[] | null = null;
 let lastFetchTime = 0;
-const MIN_FETCH_INTERVAL = 30000; 
+const MIN_FETCH_INTERVAL = 2500; // Hyper-aggressive 2.5 second polling to perfectly match OpenSky tracking velocity!
 
 export async function GET() {
   const now = Date.now();
@@ -28,13 +27,13 @@ export async function GET() {
 
   try {
     // 1. Fetch ADSB.one (10,000+ Planes globally instantly)
-    const adsbPromise = fetch(ADSB_ONE_URL, { signal: controller.signal, next: { revalidate: 35 } }).catch(() => null);
+    const adsbPromise = fetch(ADSB_ONE_URL, { signal: controller.signal, next: { revalidate: 2 } }).catch(() => null);
 
     // 2. Fetch FR24 specifically mapped to Africa (Guarantees ALL 800+ planes in Africa precisely)
     const fr24AfricaPromise = fetch(`${BASE_FR24_URL}&bounds=35,-35,-20,55`, {
       signal: controller.signal,
       headers: FR24_HEADERS,
-      next: { revalidate: 35 }
+      next: { revalidate: 2 }
     }).catch(() => null);
 
     // Completely safely asynchronously wait exactly 350ms physically to dynamically avoid Cloudflare concurrent bursting detection natively.
@@ -44,7 +43,7 @@ export async function GET() {
     const fr24GlobalPromise = fetch(`${BASE_FR24_URL}&bounds=85,-85,-180,180`, {
       signal: controller.signal,
       headers: FR24_HEADERS,
-      next: { revalidate: 35 }
+      next: { revalidate: 2 }
     }).catch(() => null);
 
     // Wait efficiently seamlessly
@@ -113,7 +112,17 @@ export async function GET() {
     await mergeFr24Data(fr24GlobalRes); // Random ~1500 globals natively structurally overlaid
     await mergeFr24Data(fr24AfricaRes); // Explicit ~800 Africa precisely mathematically guaranteed
 
-    const finalFilteredStates = Array.from(mergedFlightsMap.values());
+    let finalFilteredStates = Array.from(mergedFlightsMap.values());
+
+    // MASTER BACKEND MERGE CONTINUITY
+    // If external APIs drop out (suddenly returning only 1,900 planes), we instantly mathematically merge them tightly over the full 15,000 known flights!
+    if (cachedStates && cachedStates.length > 2000 && finalFilteredStates.length < (cachedStates.length * 0.85)) {
+       const rescueMap = new Map();
+       cachedStates.forEach(f => rescueMap.set(f.icao24, f));
+       finalFilteredStates.forEach(f => rescueMap.set(f.icao24, f));
+       finalFilteredStates = Array.from(rescueMap.values());
+    }
+
     finalFilteredStates.sort((a: any, b: any) => a.icao24.localeCompare(b.icao24));
 
     if (finalFilteredStates.length === 0 && cachedStates) {
