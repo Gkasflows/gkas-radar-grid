@@ -581,7 +581,7 @@ export default function Map() {
           data: undefined,
           image: props.data,
           bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          tintColor: [80, 95, 120, 255] // Gives the Satellite imagery a stunning deep-navy Night Vision aesthetic!
+          tintColor: [180, 195, 215, 255] // Significantly brighter cool cinematic filter to preserve globe satellite details!
         });
       }
     }),
@@ -593,28 +593,8 @@ export default function Map() {
       stroked: true,
       filled: false,
       lineWidthMinPixels: 2,
-      getLineColor: [0, 243, 255, 160] // Piercing Cyan Neon Glow!
+      getLineColor: [0, 243, 255, 255] // Absolute maximum solid Cyber Cyan Neon precisely tracing borders!
     }),
-
-    // Layer 1.5: Global Live Storm/Precipitation Meteorological Grid
-    radarPath ? new TileLayer({
-      id: 'weather-radar-layer',
-      data: `${radarPath}/256/{z}/{x}/{y}/2/1_1.png`, // Scheme 2 (Universal Blue/Cyan radar)
-      minZoom: 0,
-      maxZoom: 7, // Hardware clamped to native RainViewer limits to trigger automatic tile interpolation
-      tileSize: 256,
-      opacity: 0.65, // Let the storms glow above the dark earth smoothly
-      renderSubLayers: props => {
-        const { boundingBox } = props.tile;
-        return new (BitmapLayer as any)(props, {
-          id: props.id + '-weather-bitmap',
-          data: undefined,
-          image: props.data,
-          bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          transparentColor: [0, 0, 0, 0] // RainViewer uses PNG transparency natively
-        });
-      }
-    }) : null,
 
     // Layer 2: Mathematical Altitude-Encoded History Trail mimicking FR24
     selectedFlight ? new (LineLayer as any)({
