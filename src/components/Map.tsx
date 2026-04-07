@@ -578,7 +578,7 @@ export default function Map() {
           data: undefined,
           image: props.data,
           bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          tintColor: [60, 68, 80, 255] // Extremely Dimmed Deep Slate aesthetic for maximum UI pop
+          tintColor: [110, 120, 135, 255] // Slightly dimmed sleek slate aesthetic
         });
       }
     }),
