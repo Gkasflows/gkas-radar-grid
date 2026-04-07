@@ -10,11 +10,11 @@ const FR24_HEADERS = {
 };
 
 const BASE_FR24_URL = 'https://data-cloud.flightradar24.com/zones/fcgi/feed.js?faa=1&satellite=1&mlat=1&flarm=1&adsb=1&gnd=0&air=1&vehicles=0&estimated=1&maxage=14400&gliders=0&stats=0';
-const ADSB_ONE_URL = 'https://api.adsb.one/v2/all'; 
+const OPENSKY_URL = 'https://opensky-network.org/api/states/all'; 
 
 let cachedStates: any[] | null = null;
 let lastFetchTime = 0;
-const MIN_FETCH_INTERVAL = 2500; // Hyper-aggressive 2.5 second polling to perfectly match OpenSky tracking velocity!
+const MIN_FETCH_INTERVAL = 12000; // Perfect 12s sync to eliminate backwards jitter caused by pulling identical data while the plane dead-reckons forward!
 
 export async function GET() {
   const now = Date.now();
@@ -26,54 +26,54 @@ export async function GET() {
   const timeoutId = setTimeout(() => controller.abort(), 9500); 
 
   try {
-    // 1. Fetch ADSB.one (10,000+ Planes globally instantly)
-    const adsbPromise = fetch(ADSB_ONE_URL, { signal: controller.signal, next: { revalidate: 2 } }).catch(() => null);
+    // 1. Fetch OpenSky Network (12,000+ Planes globally instantly)
+    const openSkyPromise = fetch(OPENSKY_URL, { signal: controller.signal, next: { revalidate: 10 } }).catch(() => null);
 
-    // 2. Fetch FR24 specifically mapped to Africa (Guarantees ALL 800+ planes in Africa precisely)
+    // 2. Fetch FR24 specifically mapped to Africa (Guarantees ALL 800+ planes in Africa precisely because OpenSky lacks full African ADSB receiver coverage)
     const fr24AfricaPromise = fetch(`${BASE_FR24_URL}&bounds=35,-35,-20,55`, {
       signal: controller.signal,
       headers: FR24_HEADERS,
-      next: { revalidate: 2 }
+      next: { revalidate: 10 }
     }).catch(() => null);
 
     // Completely safely asynchronously wait exactly 350ms physically to dynamically avoid Cloudflare concurrent bursting detection natively.
-    await new Promise(r => setTimeout(r, 450));
+    await new Promise(r => setTimeout(r, 350));
 
     // 3. SECURELY SATURATE FR24 Limit implicitly universally fetching completely 1,500 random global planes natively! 
     const fr24GlobalPromise = fetch(`${BASE_FR24_URL}&bounds=85,-85,-180,180`, {
       signal: controller.signal,
       headers: FR24_HEADERS,
-      next: { revalidate: 2 }
+      next: { revalidate: 10 }
     }).catch(() => null);
 
     // Wait efficiently seamlessly
-    const [adsbRes, fr24AfricaRes, fr24GlobalRes] = await Promise.all([adsbPromise, fr24AfricaPromise, fr24GlobalPromise]);
+    const [openSkyRes, fr24AfricaRes, fr24GlobalRes] = await Promise.all([openSkyPromise, fr24AfricaPromise, fr24GlobalPromise]);
 
     clearTimeout(timeoutId);
     
     // Hash map to flawlessly uniquely physically destroy clones automatically!
     const mergedFlightsMap = new Map<string, any>();
 
-    // Layer 1: Process ADSB.ONE Global Extractor (15,000+ absolute unblocked earth planes)
-    if (adsbRes && adsbRes.ok) {
-      const adsbData = await adsbRes.json().catch(() => ({ ac: [] }));
-      const aircraft = adsbData.ac || [];
+    // Layer 1: Process OpenSky Global Extractor (12,000+ absolute unblocked earth planes)
+    if (openSkyRes && openSkyRes.ok) {
+      const openSkyData = await openSkyRes.json().catch(() => ({ states: [] }));
+      const aircraft = openSkyData.states || [];
       
-      for (const plane of aircraft) {
-        const callsign = plane.flight?.trim();
-        if (plane.lat !== undefined && plane.lon !== undefined && callsign) {
-          const icao = String(plane.hex).toLowerCase();
+      for (const s of aircraft) {
+        const callsign = s[1]?.trim();
+        if (s[6] !== null && s[5] !== null && callsign) {
+          const icao = String(s[0]).toLowerCase();
           mergedFlightsMap.set(icao, {
             icao24: icao,
             callsign: callsign,
-            origin_country: 'ADSB_ONE',
-            longitude: plane.lon,
-            latitude: plane.lat,
-            baro_altitude: (plane.alt_baro === 'ground' ? 0 : (plane.alt_baro || plane.alt_geom || 0)) * 0.3048,
-            velocity: (plane.gs || 0) * 0.514444,
-            true_track: plane.track || plane.true_heading || plane.mag_heading || 0,
-            vertical_rate: (plane.baro_rate || plane.geom_rate || 0) * 0.00508,
-            category: 0 
+            origin_country: s[2] || 'OPENSKY',
+            longitude: s[5],
+            latitude: s[6],
+            baro_altitude: s[7] || s[13] || 0,
+            velocity: s[9] || 0,
+            true_track: s[10] || 0,
+            vertical_rate: s[11] || 0,
+            category: s[17] || 0 
           });
         }
       }

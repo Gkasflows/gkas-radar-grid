@@ -299,7 +299,7 @@ export default function Map() {
       .catch(e => console.log('Airports load pending:', e));
 
     loadData();
-    const interval = setInterval(loadData, 2500); // Ultra-aggressive 2.5 second polling to explicitly match true OpenSky backend realtime velocities!
+    const interval = setInterval(loadData, 12000); // Perfect 12 second polling to explicitly match true OpenSky backend realtime velocities preventing jitter!
     return () => {
       mounted = false;
       clearInterval(interval);
