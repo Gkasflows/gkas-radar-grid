@@ -202,8 +202,27 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
       } as LiveFlight;
     });
 
-    if (flights.length > 0) {
-      lastSuccessfulFlights = flights; 
+    let finalFlights = flights;
+
+    // Advanced Anomaly/Throttling Detection Array Guard
+    // OpenSky periodically rate-limits APIs gracefully by returning random regional subsets (1900 flights instead of 11,000).
+    // If payload crashes by >25% instantly, we logically assume a temporary throttle block. 
+    // We flawlessly merge the 1900 live updates INTO the master 11,000 global array so planes NEVER disappear visually!
+    if (lastSuccessfulFlights.length > 3000 && flights.length < (lastSuccessfulFlights.length * 0.75)) {
+      console.warn(`[GKASFLOWS FlightService]: OpenSky throttle anomaly detected (Received ${flights.length} flights, expected ~${lastSuccessfulFlights.length}). Engaging Auto-Merge rescue protocol.`);
+      
+      const persistentMap = new Map<string, LiveFlight>();
+      // 1. Rebuild the frozen massive 11,000 global planes grid locking their exact last-known velocity vectors natively
+      lastSuccessfulFlights.forEach(f => persistentMap.set(f.icao24, f));
+      
+      // 2. Aggressively smash the newly-fetched ~1900 highly-accurate coordinate updates over them!
+      flights.forEach(f => persistentMap.set(f.icao24, f));
+      
+      finalFlights = Array.from(persistentMap.values());
+    }
+
+    if (finalFlights.length > 0) {
+      lastSuccessfulFlights = finalFlights; 
     }
     return lastSuccessfulFlights;
 
