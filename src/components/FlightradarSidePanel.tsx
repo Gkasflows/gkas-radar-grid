@@ -5,13 +5,11 @@ interface FlightradarSidePanelProps {
   flight: LiveFlight | null;
   onClose: () => void;
   onPointClick?: (lat: number, lon: number, iata: string) => void;
-  is3DViewActive?: boolean;
-  onToggle3DView?: () => void;
 }
 
 // Photo resolution algorithm relocated securely securely back to flightService.ts
 
-export default function FlightradarSidePanel({ flight, onClose, onPointClick, is3DViewActive, onToggle3DView }: FlightradarSidePanelProps) {
+export default function FlightradarSidePanel({ flight, onClose, onPointClick }: FlightradarSidePanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -142,23 +140,8 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, is
             <div style={{ fontSize: '11px', fontWeight: 600 }}>{displayFlight.model || 'AIRCRAFT'} • {displayFlight.type}</div>
             <div style={{ fontSize: '20px', fontWeight: 700 }}>{displayFlight.icao24.toUpperCase()}</div>
           </div>
-          <button 
-            onClick={() => onToggle3DView && onToggle3DView()}
-            style={{ 
-              backgroundColor: is3DViewActive ? 'rgba(0,243,255,0.3)' : 'rgba(255,255,255,0.2)', 
-              backdropFilter: 'blur(4px)', 
-              border: is3DViewActive ? '1px solid #00f3ff' : '1px solid rgba(255,255,255,0.4)', 
-              borderRadius: '4px', 
-              padding: '4px 10px', 
-              color: is3DViewActive ? '#00f3ff' : '#fff', 
-              fontSize: '11px', 
-              cursor: 'pointer', 
-              fontWeight: 800,
-              transition: 'all 0.2s',
-              boxShadow: is3DViewActive ? '0 0 10px rgba(0,243,255,0.4)' : 'none'
-            }}
-          >
-            {is3DViewActive ? 'Exit 3D' : '3D View'}
+          <button style={{ backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '4px', padding: '4px 10px', color: '#fff', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}>
+            3D View
           </button>
         </div>
       </div>
