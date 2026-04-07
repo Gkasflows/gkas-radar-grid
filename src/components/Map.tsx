@@ -578,7 +578,7 @@ export default function Map() {
           data: undefined,
           image: props.data,
           bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          tintColor: [140, 150, 165, 255] // Re-applied the exact slate-grey light dampening
+          tintColor: [210, 195, 175, 255] // FlightRadar24 Warm Sepia / Eyecare Effect applied deeply!
         });
       }
     }),
