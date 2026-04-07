@@ -5,6 +5,7 @@ import DeckGL from '@deck.gl/react';
 import { MapView, FlyToInterpolator } from '@deck.gl/core';
 import { TileLayer, GreatCircleLayer } from '@deck.gl/geo-layers';
 import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer, GeoJsonLayer } from '@deck.gl/layers';
+import { ScenegraphLayer } from '@deck.gl/mesh-layers';
 import { fetchLiveFlights, LiveFlight } from '../services/flightService';
 import FlightradarTopNav from './FlightradarTopNav';
 import FlightradarSidePanel from './FlightradarSidePanel';
@@ -143,6 +144,7 @@ export default function Map() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLocationActive, setIsLocationActive] = useState(false);
   const [isHeatmapActive, setIsHeatmapActive] = useState(false);
+  const [is3DViewActive, setIs3DViewActive] = useState(false);
   const [radarPath, setRadarPath] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
@@ -208,6 +210,25 @@ export default function Map() {
     
     return () => clearTimeout(debouncer);
   }, [searchQuery, selectedFlightId, selectedAirportIata]);
+
+  // 3D SIMULATOR ENGINE (CHASE CAM)
+  useEffect(() => {
+    if (is3DViewActive && selectedFlightId && networkFlights) {
+       const flight = networkFlights.find(f => f.icao24 === selectedFlightId);
+       if (flight && flight.longitude && flight.latitude) {
+         setViewState((prev: any) => ({
+           ...prev,
+           longitude: flight.longitude,
+           latitude: flight.latitude,
+           zoom: 15.5,
+           pitch: 75,
+           bearing: flight.true_track || 0,
+           transitionDuration: 1500, // Cinematic swoop
+           transitionInterpolator: new FlyToInterpolator()
+         }));
+       }
+    }
+  }, [is3DViewActive, selectedFlightId, networkFlights]);
 
   const lastSelectedFlightId = useRef<string | null>(null);
   const isAnimatingRef = useRef<boolean>(false);
@@ -603,8 +624,18 @@ export default function Map() {
       getSourcePosition: (d: any) => d.start,
       getTargetPosition: (d: any) => d.end,
       getColor: (d: any) => d.color,
-      getWidth: 4,
       widthMinPixels: 4
+    }) : null,
+
+    // Layer 2.5: Physical 3D Object Simulator Rendering
+    (is3DViewActive && selectedFlight) ? new (ScenegraphLayer as any)({
+      id: '3d-plane-simulator',
+      data: [selectedFlight],
+      scenegraph: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/examples/scenegraph-layer/airplane.glb',
+      getPosition: (d: any) => [d.longitude, d.latitude, d.baro_altitude ? Math.max(d.baro_altitude, 100) : 100],
+      getOrientation: (d: any) => [0, -d.true_track || 0, 90], 
+      sizeScale: 400, // Physically scaled to visually dominate the sky at low zoom!
+      _lighting: 'pbr'
     }) : null,
 
     // Layer 5: User GPS True Red Radar Pin
@@ -740,7 +771,7 @@ export default function Map() {
       stroked: true,
       filled: true
     }) : null
-  ].filter(Boolean), [filteredFlights, networkFlights, filteredAirports, selectedFlight, selectedAirport, selectedFlightId, selectedAirportIata, userLocation, handleFlyToFlight, handleFlyToAirport, viewState.zoom, searchQuery, isHeatmapActive, flights]);
+  ].filter(Boolean), [filteredFlights, networkFlights, filteredAirports, selectedFlight, selectedAirport, selectedFlightId, selectedAirportIata, userLocation, handleFlyToFlight, handleFlyToAirport, viewState.zoom, searchQuery, isHeatmapActive, is3DViewActive, flights]);
 
   if (!mounted) return null;
 
@@ -772,7 +803,12 @@ export default function Map() {
       {/* LEFT PANELS (Mutually exclusive) */}
       <FlightradarSidePanel
         flight={selectedFlight}
-        onClose={() => setSelectedFlightId(null)}
+        is3DViewActive={is3DViewActive}
+        onToggle3DView={() => setIs3DViewActive(prev => !prev)}
+        onClose={() => {
+          setSelectedFlightId(null);
+          setIs3DViewActive(false); // Reset 3D mode on close
+        }}
         onPointClick={(lat, lon, iata) => {
           // Temporarily pause the 10s auto-follow tracking mechanism for a lavish 15 seconds to let the user explore the airport
           isAnimatingRef.current = true;
