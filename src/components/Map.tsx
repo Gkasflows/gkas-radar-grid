@@ -592,8 +592,8 @@ export default function Map() {
       data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson', // Low-res exactly strips the thousands of messy island "dots" over the ocean!
       stroked: true,
       filled: false,
-      lineWidthMinPixels: 2.5,
-      getLineColor: [255, 170, 0, 210] // Luxurious Tactical Gold/Amber glow completely separated from Cyan tracking lines!
+      lineWidthMinPixels: 1.5,
+      getLineColor: [140, 160, 200, 180] // High Aesthetic Ice-Blue/Silver sleek vector trace!
     }),
 
     // Layer 2: Mathematical Altitude-Encoded History Trail mimicking FR24
