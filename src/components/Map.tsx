@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import DeckGL from '@deck.gl/react';
-import { MapView, _GlobeView as GlobeView, FlyToInterpolator, AmbientLight, _SunLight as SunLight, LightingEffect } from '@deck.gl/core';
+import { MapView, FlyToInterpolator } from '@deck.gl/core';
 import { TileLayer, GreatCircleLayer } from '@deck.gl/geo-layers';
 import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { fetchLiveFlights, LiveFlight } from '../services/flightService';
@@ -737,25 +737,10 @@ export default function Map() {
 
   if (!mounted) return null;
 
-  // HIGH-BUDGET LIGHTING (Day/Night Terminator)
-  const lightingEffect = useMemo(() => {
-    const ambientLight = new AmbientLight({ color: [255, 255, 255], intensity: 0.5 });
-    const sunLight = new SunLight({ 
-      timestamp: Date.now(), // Real physical sun position at this exact second!
-      color: [255, 255, 255], 
-      intensity: 2.5 
-    });
-    return new LightingEffect({ ambientLight, sunLight });
-  }, []);
-
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#000000' }}>
-      {/* DEEP SPACE BACKGROUND */}
-      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'radial-gradient(circle at center, #0a0f18 0%, #000000 100%)', zIndex: 0 }} />
-      
+    <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
       <DeckGL
-        views={new GlobeView({ id: 'map', resolution: 10 })}
-        effects={[lightingEffect]}
+        views={new MapView({ id: 'map', repeat: true })}
         viewState={viewState}
         onViewStateChange={({ viewState }) => {
           setViewState(viewState);
