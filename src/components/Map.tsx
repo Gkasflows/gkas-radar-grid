@@ -589,11 +589,11 @@ export default function Map() {
     // Layer 1.1: Glowing Global GeoJSON Country Borders overlaying the Satellite Image
     new GeoJsonLayer({
       id: 'glowing-country-borders',
-      data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson',
+      data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson', // Low-res exactly strips the thousands of messy island "dots" over the ocean!
       stroked: true,
       filled: false,
-      lineWidthMinPixels: 2,
-      getLineColor: [0, 243, 255, 255] // Absolute maximum solid Cyber Cyan Neon precisely tracing borders!
+      lineWidthMinPixels: 2.5,
+      getLineColor: [255, 170, 0, 210] // Luxurious Tactical Gold/Amber glow completely separated from Cyan tracking lines!
     }),
 
     // Layer 2: Mathematical Altitude-Encoded History Trail mimicking FR24
