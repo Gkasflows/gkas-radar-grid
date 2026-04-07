@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import DeckGL from '@deck.gl/react';
 import { MapView, FlyToInterpolator } from '@deck.gl/core';
-import { TileLayer, GreatCircleLayer } from '@deck.gl/geo-layers';
-import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer } from '@deck.gl/layers';
+import { TileLayer, TerrainLayer, GreatCircleLayer } from '@deck.gl/geo-layers';
+import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer, ColumnLayer } from '@deck.gl/layers';
 import { fetchLiveFlights, LiveFlight } from '../services/flightService';
 import FlightradarTopNav from './FlightradarTopNav';
 import FlightradarSidePanel from './FlightradarSidePanel';
@@ -553,22 +553,24 @@ export default function Map() {
 
   // LAYERS
   const layers = useMemo(() => [
-    // Layer 1: The Earth (Base global cartography)
-    new TileLayer({
-      data: FR24_MAP_URL,
+    // Layer 1: Identical Real-World Mapping Wrapped onto Physical 3D Mountains
+    new TerrainLayer({
+      id: 'global-terrain',
+      elevationDecoder: {
+        rScaler: 256,
+        gScaler: 1,
+        bScaler: 1 / 256,
+        offset: -32768
+      },
+      // Fast, free Mapzen Global Elevation Mesh
+      elevationData: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+      // Textures map correctly using the precise real-world FR24 layout
+      texture: FR24_MAP_URL,
       minZoom: 0,
-      maxZoom: 19,
-      tileSize: 256,
-      renderSubLayers: props => {
-        const { boundingBox } = props.tile;
-        return new (BitmapLayer as any)(props, {
-          id: props.id + '-bitmap',
-          data: undefined,
-          image: props.data,
-          bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          tintColor: [140, 150, 165, 255] // Re-applied the exact slate-grey light dampening
-        });
-      }
+      maxZoom: 14,
+      wireframe: false,
+      color: [140, 150, 165],
+      material: { diffuse: 0.9, ambient: 0.2 } // Adds basic physical shadowing based on default view lighting
     }),
 
     // Layer 1.5: Global Live Storm/Precipitation Meteorological Grid
@@ -631,7 +633,7 @@ export default function Map() {
         if (isHeatmapActive) return 'white';
         return 'yellow';
       },
-      getPosition: (d: LiveFlight) => [d.longitude, d.latitude],
+      getPosition: (d: LiveFlight) => [d.longitude, d.latitude, d.baro_altitude ? Math.max(d.baro_altitude, 1500) : 1500], // Render planes physically above the 3D terrain
       getAngle: (d: LiveFlight) => 0 - (d.true_track || 0), // svg points UP, we need angle clockwise
       getSize: (d: LiveFlight) => {
         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -684,19 +686,18 @@ export default function Map() {
       onClick: ({ object }: any) => { if (object) handleFlyToFlight(object); }
     }),
 
-    // Layer 4: Airports layer (hide when completely zoomed out to avoid crowding)
-    viewState.zoom >= 5.5 || searchQuery ? new (IconLayer as any)({
-      id: 'airports-layer',
+    // Layer 4: 3D Architectural Terminals for Airports globally
+    viewState.zoom >= 5.5 || searchQuery ? new (ColumnLayer as any)({
+      id: 'airport-3d-buildings',
       data: filteredAirports,
-      getIcon: () => 'marker',
-      iconAtlas: AIRPORT_PIN_SVG,
-      iconMapping: {
-        marker: { x: 0, y: 0, width: 32, height: 32, anchorX: 16, anchorY: 30, mask: false }
-      },
+      diskResolution: 32, // Smooth circular terminals
+      radius: 400, // 400 meter massive building footprint
+      extruded: true,
+      elevationScale: 100, // Towering 100m structures explicitly into the Z-axis
       getPosition: (d: Airport) => [d.coords[0], d.coords[1]],
-      getSize: 28,  // Scale up from 14 so the teardrop pin is perfectly legible
-
-      getColor: [255, 255, 255], 
+      getFillColor: [15, 23, 42, 255], // Deep Navy slate concrete structure
+      getLineColor: [0, 243, 255, 255], // Glowing cyan rims
+      getElevation: () => 1, // 100m physical extrusion 
       pickable: true,
       onClick: ({ object }: any) => { if (object) handleFlyToAirport(object); },
       onHover: ({ object, x, y }: any) => {
