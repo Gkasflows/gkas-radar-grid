@@ -8,9 +8,10 @@ interface FlightradarTopNavProps {
   toggleHeatmap: () => void;
   onReset: () => void;
   globalAirports?: any[];
+  globalFlights?: any[];
 }
 
-export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports }: FlightradarTopNavProps) {
+export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports, globalFlights }: FlightradarTopNavProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -63,21 +64,62 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
     }
   };
 
+  // Dynamic Nominatim Geographic Search Integration Directly in Dropdown
+  const [geoLocations, setGeoLocations] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim().length < 3) {
+      setGeoLocations([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=3`);
+        const json = await res.json();
+        if (json && json.length > 0) {
+          setGeoLocations(json.map((j: any) => ({
+             type: 'location',
+             title: j.display_name.split(',')[0],
+             subtitle: j.display_name.split(',').slice(1).join(',').trim(),
+             icon: '🌍',
+             searchValue: j.display_name
+          })));
+        }
+      } catch (e) {
+        // fail silently for rate limits
+      }
+    }, 600); // 600ms debounce
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const suggestions = React.useMemo(() => {
     if (!searchQuery) return [];
     const q = searchQuery.toLowerCase();
+    const results: any[] = [];
     
     // Core HQ Target
-    const hq = 'the smartan house'.includes(q) || 'smartan'.includes(q) || 'house'.includes(q) ? ['THE SMARTAN HOUSE'] : [];
+    if ('the smartan house'.includes(q) || 'smartan'.includes(q) || 'house'.includes(q)) {
+      results.push({ type: 'hq', title: 'THE SMARTAN HOUSE', subtitle: 'Global Tracking Headquarters', icon: '🏛️', searchValue: 'THE SMARTAN HOUSE' });
+    }
       
     // Geofencing matching local DB string
     const ports = (globalAirports || [])
       .filter(a => a.name?.toLowerCase().includes(q) || a.city?.toLowerCase().includes(q) || a.iata?.toLowerCase().includes(q) || a.country?.toLowerCase().includes(q))
-      .slice(0, 5)
-      .map(a => `${a.city || a.name || 'Unknown'} (${a.iata || 'UNK'})`);
+      .slice(0, 3)
+      .map(a => ({ type: 'airport', title: `${a.city || a.name || 'Unknown'} (${a.iata || 'UNK'})`, subtitle: a.country || a.name, icon: '📍', searchValue: a.iata || a.city }));
+    results.push(...ports);
+
+    // Live Flights Matching
+    const flights = (globalFlights || [])
+      .filter(f => f.callsign?.toLowerCase().includes(q) || f.airline?.toLowerCase().includes(q) || f.icao24?.toLowerCase().includes(q))
+      .slice(0, 3)
+      .map(f => ({ type: 'flight', title: `Flight ${f.callsign || f.icao24}`, subtitle: `${f.origin || 'Unknown'} → ${f.destination || 'Unknown'}`, icon: '✈️', searchValue: f.callsign || f.icao24 }));
+    results.push(...flights);
       
-    return [...hq, ...ports];
-  }, [searchQuery, globalAirports]);
+    return results;
+  }, [searchQuery, globalAirports, globalFlights]);
+
+  const allSuggestions = [...suggestions, ...geoLocations].slice(0, 8); // Max 8 items rendered smoothly
 
   return (
     <div style={isMobile ? {
@@ -274,16 +316,19 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
           )}
 
           {/* DYNAMIC AUTO-SUGGESTIONS PANEL */}
-          {showDropdown && (suggestions.length > 0 || (!searchQuery && recentSearches.length > 0)) && (
+          {showDropdown && (allSuggestions.length > 0 || (!searchQuery && recentSearches.length > 0)) && (
              <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: '12px', 
                 width: '100%', backgroundColor: 'rgba(15, 23, 42, 0.98)', backdropFilter: 'blur(16px)',
                 borderRadius: '12px', border: '1px solid rgba(0,243,255,0.3)', boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
                 overflow: 'hidden', zIndex: 1100, display: 'flex', flexDirection: 'column'
              }}>
-                {searchQuery && suggestions.length > 0 && suggestions.map(s => (
-                   <div key={s} onClick={() => handleSelect(s)} style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '13px', color: '#fff', cursor: 'pointer', fontWeight: 500, letterSpacing: '0.3px', transition: 'background 0.2s', ...((s === 'THE SMARTAN HOUSE') ? {color: '#00f3ff', fontWeight: 800} : {}) }}>
-                      {s === 'THE SMARTAN HOUSE' ? '🏛️' : '📍'} {s}
+                {searchQuery && allSuggestions.length > 0 && allSuggestions.map((s, idx) => (
+                   <div key={idx} onClick={() => handleSelect(s.searchValue)} style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'background 0.2s', ...(s.type === 'hq' ? {color: '#00f3ff'} : {color: '#ccc'}) }}>
+                      <div style={{ display: 'flex', alignItems: 'center', fontSize: '13px', fontWeight: 600 }}>
+                        <span style={{ marginRight: '6px' }}>{s.icon}</span> {s.title}
+                      </div>
+                      {s.subtitle && <div style={{ fontSize: '10px', color: '#8E9297', marginLeft: '24px', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.subtitle}</div>}
                    </div>
                 ))}
                 {!searchQuery && recentSearches.length > 0 && (

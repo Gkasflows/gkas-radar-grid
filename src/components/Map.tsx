@@ -774,6 +774,7 @@ export default function Map() {
         toggleHeatmap={() => setIsHeatmapActive(prev => !prev)}
         onReset={handleMasterReset}
         globalAirports={globalAirports}
+        globalFlights={networkFlights}
       />
 
       {/* LEFT PANELS (Mutually exclusive) */}
