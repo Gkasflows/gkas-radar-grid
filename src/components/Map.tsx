@@ -629,32 +629,7 @@ export default function Map() {
       radiusMaxPixels: 20
     }) : null,
 
-    // Layer 5.1: THE SMARTAN HOUSE PERMANENT MARKER (Lagos HQ)
-    new (ScatterplotLayer as any)({
-      id: 'smartan-house-hq-ping',
-      data: [{ coords: [3.4064, 6.4550] }], // Custom location lock
-      getPosition: (d: any) => d.coords,
-      getFillColor: [16, 185, 129, 255], // Emerald Green secure lock
-      getLineColor: [255, 255, 255, 255], // Halo
-      lineWidthMinPixels: 2,
-      getRadius: 150, 
-      stroked: true,
-      filled: true,
-      pickable: true
-    }),
-    new (TextLayer as any)({
-      id: 'smartan-house-hq-label',
-      data: [{ coords: [3.4064, 6.4550], name: 'THE SMARTAN HOUSE' }],
-      getPosition: (d: any) => d.coords,
-      getText: (d: any) => d.name,
-      getSize: 16,
-      getColor: [0, 243, 255, 255], // Cyber cyan tracking text
-      getPixelOffset: [0, -25], // Float nicely above the physical green ring
-      fontFamily: '"Inter", sans-serif',
-      fontWeight: 'bold',
-      background: true,
-      getBackgroundColor: [15, 23, 42, 220] // Stealth background wrapper
-    }),
+
 
     // Layer 3: High Density IconLayer for ALL PLANES
     new (IconLayer as any)({

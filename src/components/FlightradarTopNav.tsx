@@ -43,10 +43,16 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
     setShowDropdown(false);
   };
 
+  const handleDeleteSearch = (e: React.MouseEvent, target: string) => {
+    e.stopPropagation();
+    const newSearches = recentSearches.filter(s => s !== target);
+    setRecentSearches(newSearches);
+    localStorage.setItem('gkas_recent_searches', JSON.stringify(newSearches));
+  };
+
   const handleClear = () => {
     onSearch('');
     setShowDropdown(false);
-    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -221,8 +227,20 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
             id="search-input"
             value={searchQuery}
             placeholder={isMobile ? "Search..." : "Search Places..."}
-            onChange={(e) => { onSearch(e.target.value); setShowDropdown(true); }}
-            onFocus={() => setShowDropdown(true)}
+            onChange={(e) => { 
+              const val = e.target.value;
+              onSearch(val); 
+              if (val.trim().length > 0) {
+                 setShowDropdown(true);
+              } else {
+                 setShowDropdown(false);
+              }
+            }}
+            onFocus={() => {
+              if (searchQuery.trim().length > 0 || recentSearches.length > 0) {
+                setShowDropdown(true);
+              }
+            }}
             onKeyDown={handleKeyDown}
             style={{
               width: '100%',
@@ -272,8 +290,15 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
                    <>
                      <div style={{ padding: '8px 14px', fontSize: '10px', color: '#8E9297', backgroundColor: 'rgba(0,0,0,0.3)', fontWeight: 800, letterSpacing: '0.5px' }}>RECENT SEARCHES</div>
                      {recentSearches.map(s => (
-                       <div key={s} onClick={() => handleSelect(s)} style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '13px', color: '#00f3ff', cursor: 'pointer', fontWeight: 500 }}>
-                          🕒 {s}
+                       <div key={s} onClick={() => handleSelect(s)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                          <span style={{ fontSize: '13px', color: '#00f3ff', cursor: 'pointer', fontWeight: 500 }}>🕒 {s}</span>
+                          <button 
+                            onClick={(e) => handleDeleteSearch(e, s)} 
+                            style={{ background: 'transparent', border: 'none', color: '#8E9297', cursor: 'pointer', fontSize: '12px', padding: '0 4px' }}
+                            title="Remove from history"
+                          >
+                            ✕
+                          </button>
                        </div>
                      ))}
                    </>
