@@ -16,6 +16,23 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
   const [showDropdown, setShowDropdown] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [currentTime, setCurrentTime] = useState('');
+  const [isUtc, setIsUtc] = useState(true);
+
+  // Live Auto-Switching Clock Engine
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      if (isUtc) {
+        setCurrentTime(now.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' }));
+      } else {
+        setCurrentTime(now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+      }
+    };
+    updateTime(); // Instant init
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, [isUtc]);
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768);
@@ -260,9 +277,23 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
         </div>
       )}
 
-      {/* 3. RIGHT SEARCH ENGINE WITH LIVE AUTO-SUGGESTIONS */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: isMobile ? 'flex-end' : 'center', alignItems: 'center', position: 'relative', height: '100%' }}>
-        <div style={{ position: 'relative', width: isMobile ? '160px' : '300px', height: '32px', display: 'flex', alignItems: 'center', marginRight: isMobile ? 0 : '48px' }}>
+      {/* 3. RIGHT SEARCH ENGINE WITH LIVE AUTO-SUGGESTIONS & TIMING CLOCK */}
+      <div style={{ flex: 1, display: 'flex', justifyContent: isMobile ? 'flex-end' : 'flex-end', alignItems: 'center', position: 'relative', height: '100%', paddingRight: isMobile ? 0 : '48px' }}>
+        
+        {/* ZONED LIVE AUTO-CLOCK */}
+        {!isMobile && (
+          <div 
+            title="Click to toggle UTC / Local Time"
+            onClick={() => setIsUtc(!isUtc)} 
+            style={{ marginRight: '24px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0', cursor: 'pointer', fontFamily: '"SF Mono", "Consolas", monospace', userSelect: 'none', transition: 'color 0.2s' }}
+            onMouseOver={(e) => (e.currentTarget.style.color = '#00f3ff')}
+            onMouseOut={(e) => (e.currentTarget.style.color = '#e2e8f0')}
+          >
+            {currentTime} <span style={{ opacity: 0.6 }}>{isUtc ? 'UTC' : 'LOC'}</span>
+          </div>
+        )}
+
+        <div style={{ position: 'relative', width: isMobile ? '160px' : '300px', height: '32px', display: 'flex', alignItems: 'center' }}>
           <input 
             ref={inputRef}
             type="text" 
