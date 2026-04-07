@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import DeckGL from '@deck.gl/react';
 import { MapView, FlyToInterpolator } from '@deck.gl/core';
-import { TileLayer, GreatCircleLayer } from '@deck.gl/geo-layers';
+import { TileLayer, TerrainLayer, GreatCircleLayer } from '@deck.gl/geo-layers';
 import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { fetchLiveFlights, LiveFlight } from '../services/flightService';
 import FlightradarTopNav from './FlightradarTopNav';
@@ -553,22 +553,23 @@ export default function Map() {
 
   // LAYERS
   const layers = useMemo(() => [
-    // Layer 1: The Earth (Base global cartography)
-    new TileLayer({
-      data: FR24_MAP_URL,
+    // Layer 1: High-Budget 3D Topographical Terrain Engine (Cyber Stealth Base)
+    new TerrainLayer({
+      id: 'cyber-terrain',
+      elevationDecoder: {
+        rScaler: 256,
+        gScaler: 1,
+        bScaler: 1 / 256,
+        offset: -32768
+      },
+      // Amazon S3 Global Elevation Mesh Mapzen API
+      elevationData: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+      // High-resolution cartography ultra-stealth raster (dark layout without names)
+      texture: 'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png',
       minZoom: 0,
-      maxZoom: 19,
-      tileSize: 256,
-      renderSubLayers: props => {
-        const { boundingBox } = props.tile;
-        return new (BitmapLayer as any)(props, {
-          id: props.id + '-bitmap',
-          data: undefined,
-          image: props.data,
-          bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          tintColor: [140, 150, 165, 255] // Re-applied the exact slate-grey light dampening
-        });
-      }
+      maxZoom: 14,
+      wireframe: false,
+      color: [15, 23, 42] // Fallback edge color blending perfectly with the ocean void
     }),
 
     // Layer 1.5: Global Live Storm/Precipitation Meteorological Grid
@@ -631,7 +632,7 @@ export default function Map() {
         if (isHeatmapActive) return 'white';
         return 'yellow';
       },
-      getPosition: (d: LiveFlight) => [d.longitude, d.latitude],
+      getPosition: (d: LiveFlight) => [d.longitude, d.latitude, d.baro_altitude ? Math.max(d.baro_altitude, 1500) : 1500], // Extrudes natively over 3D mountains!
       getAngle: (d: LiveFlight) => 0 - (d.true_track || 0), // svg points UP, we need angle clockwise
       getSize: (d: LiveFlight) => {
         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
