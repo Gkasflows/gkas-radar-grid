@@ -12,7 +12,7 @@ import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
 
 // Ultra-High-Resolution Command Center Satellite Imaging
-const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
+const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Hybrid: Satellite + Detailed Cartography Labels
 
 // Airport Pin location SVG (Exact FR24 styling: Cyan-blue teardrop pin with white center dot and dark stroke)
 const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
