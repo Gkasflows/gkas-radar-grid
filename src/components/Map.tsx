@@ -299,7 +299,7 @@ export default function Map() {
       .catch(e => console.log('Airports load pending:', e));
 
     loadData();
-    const interval = setInterval(loadData, 15000); // 15s staggered browser cadence mathematically guaranteeing we always retrieve the newest physical vector from the 10s backend cache.
+    const interval = setInterval(loadData, 45000); // 45 second long polling gives planes a massive uninterrupted glide window before position reset
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -307,8 +307,44 @@ export default function Map() {
     };
   }, []);
 
-  // 2. We explicitly ripped out the massive 15,000-loop CPU dead-reckoning engine previously here!
-  // Instead, we seamlessly push 100% of the movement physical interpolation math natively onto the Graphics Card (DeckGL GPU Shaders) via 'transitions'.
+  // 2. 60FPS Propulsion Engine (Smooth continuous movement of every single dot)
+  useEffect(() => {
+    let animationFrameId: number;
+    let lastTime = performance.now();
+
+    const loop = (currentTime: number) => {
+      const deltaTime = (currentTime - lastTime) / 1000;
+      
+      // Throttle heavy CPU dead-reckoning to exactly 1 update per second (1Hz).
+      if (deltaTime < 1.0) {
+        animationFrameId = requestAnimationFrame(loop);
+        return;
+      }
+      
+      lastTime = currentTime;
+
+      setFlights(prev => prev.map(f => {
+        if (!f.velocity || !f.true_track) return f;
+
+        // Exact real-time geographic calculation
+        const distanceKm = (f.velocity * 3.6) * (deltaTime / 3600);
+        const distanceLat = distanceKm / 111.32;
+        const distanceLon = distanceKm / (111.32 * Math.cos(f.latitude * (Math.PI / 180)));
+
+        const headingRad = f.true_track * (Math.PI / 180);
+
+        return {
+          ...f,
+          latitude: f.latitude + distanceLat * Math.cos(headingRad),
+          longitude: f.longitude + distanceLon * Math.sin(headingRad)
+        };
+      }));
+
+      animationFrameId = requestAnimationFrame(loop);
+    };
+    animationFrameId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, []);
 
   // Hardware Sound System
   const playRadarBlip = useCallback(() => {
@@ -600,18 +636,8 @@ export default function Map() {
         if (isHeatmapActive) return 'white';
         return 'yellow';
       },
-      getPosition: (d: LiveFlight) => [d.longitude, d.latitude], // Flat hyper-fast radar mode
-      getAngle: (d: LiveFlight) => 0 - (d.true_track || 0), // svg points UP, we need angle clockwise
-      transitions: {
-        getPosition: {
-          duration: 15000, 
-          easing: (t: any) => t // Flawless GPU-accelerated Linear Flight Trajectory directly matching our 15s refresh ping!
-        },
-        getAngle: {
-          duration: 15000,
-          easing: (t: any) => t 
-        }
-      },
+      getPosition: (d: LiveFlight) => [d.longitude, d.latitude],
+      getAngle: (d: LiveFlight) => 0 - (d.true_track || 0),
       getSize: (d: LiveFlight) => {
         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
         const baseSize = isMobile ? 24 : 36;
