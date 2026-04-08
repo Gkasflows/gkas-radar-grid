@@ -6,9 +6,9 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
   const [phase, setPhase] = useState(0); // 0=intro, 1=glow, 2=fadeout
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase(1), 600);   // Start glow pulse
-    const t2 = setTimeout(() => setPhase(2), 3800);   // Begin fade-out
-    const t3 = setTimeout(() => onComplete(), 4600);   // Fully remove
+    const t1 = setTimeout(() => setPhase(1), 800);     // Slower initial start pulse
+    const t2 = setTimeout(() => setPhase(2), 5200);    // Begin majestic 3D cinematic fly-through
+    const t3 = setTimeout(() => onComplete(), 6600);   // Fully remove after transition physically finishes
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onComplete]);
 
@@ -21,9 +21,11 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background: '#050810',
+      background: phase === 2 ? 'transparent' : '#050810',
       opacity: phase === 2 ? 0 : 1,
-      transition: 'opacity 0.8s ease-out',
+      transform: phase === 2 ? 'scale(2.5)' : 'scale(1)',
+      filter: phase === 2 ? 'blur(40px)' : 'blur(0px)',
+      transition: 'all 1.4s cubic-bezier(0.8, 0, 0.1, 1)',
       overflow: 'hidden'
     }}>
       {/* Animated Grid Background */}
