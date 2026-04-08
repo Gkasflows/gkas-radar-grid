@@ -307,45 +307,8 @@ export default function Map() {
     };
   }, []);
 
-  // 2. 60FPS Propulsion Engine (Smooth continuous movement of every single dot)
-  useEffect(() => {
-    let animationFrameId: number;
-    let lastTime = performance.now();
-
-    const loop = (currentTime: number) => {
-      const deltaTime = (currentTime - lastTime) / 1000;
-      
-      // PERFORMANCE FIX: Throttle heavy CPU dead-reckoning to exactly 1 update per second (1Hz).
-      // We will allow the Graphics Card (DeckGL) to physically handle all 60fps micro-movements across that 1 second duration internally!
-      if (deltaTime < 1.0) {
-        animationFrameId = requestAnimationFrame(loop);
-        return;
-      }
-      
-      lastTime = currentTime;
-
-      setFlights(prev => prev.map(f => {
-        if (!f.velocity || !f.true_track) return f;
-
-        // Exact real-time geographic calculation
-        const distanceKm = (f.velocity * 3.6) * (deltaTime / 3600);
-        const distanceLat = distanceKm / 111.32;
-        const distanceLon = distanceKm / (111.32 * Math.cos(f.latitude * (Math.PI / 180)));
-
-        const headingRad = f.true_track * (Math.PI / 180);
-
-        return {
-          ...f,
-          latitude: f.latitude + distanceLat * Math.cos(headingRad),
-          longitude: f.longitude + distanceLon * Math.sin(headingRad)
-        };
-      }));
-
-      animationFrameId = requestAnimationFrame(loop);
-    };
-    animationFrameId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, []);
+  // 2. We explicitly ripped out the massive 15,000-loop CPU dead-reckoning engine previously here!
+  // Instead, we seamlessly push 100% of the movement physical interpolation math natively onto the Graphics Card (DeckGL GPU Shaders) via 'transitions'.
 
   // Hardware Sound System
   const playRadarBlip = useCallback(() => {
@@ -639,6 +602,16 @@ export default function Map() {
       },
       getPosition: (d: LiveFlight) => [d.longitude, d.latitude], // Flat hyper-fast radar mode
       getAngle: (d: LiveFlight) => 0 - (d.true_track || 0), // svg points UP, we need angle clockwise
+      transitions: {
+        getPosition: {
+          duration: 15000, 
+          easing: (t: any) => t // Flawless GPU-accelerated Linear Flight Trajectory directly matching our 15s refresh ping!
+        },
+        getAngle: {
+          duration: 15000,
+          easing: (t: any) => t 
+        }
+      },
       getSize: (d: LiveFlight) => {
         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
         const baseSize = isMobile ? 24 : 36;
@@ -678,11 +651,6 @@ export default function Map() {
         getSize: [selectedFlightId, hoveredFlight?.flight.icao24]
       },
       pickable: true,
-      transitions: {
-        // Offload 100% of 60FPS animation rendering onto the user's graphics card, linearly smoothing the 1s calculation gaps!
-        getPosition: { duration: 1000, easing: (t: number) => t }, 
-        getAngle: { duration: 900 }
-      },
       onHover: ({ object, x, y }: any) => {
         if (object) setHoveredFlight({ flight: object, x, y });
         else setHoveredFlight(null);
