@@ -6,23 +6,11 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
   const [phase, setPhase] = useState(0); 
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase(1), 100);    // Initialize immediately
-    const t2 = setTimeout(() => setPhase(2), 5200);   // Begin massive cinematic fade out
-    const t3 = setTimeout(() => onComplete(), 6800);  // Unmount after transition
+    const t1 = setTimeout(() => setPhase(1), 100);    // Start the plane flight
+    const t2 = setTimeout(() => setPhase(2), 4000);   // Begin smooth transition to map
+    const t3 = setTimeout(() => onComplete(), 5600);  // Unmount completely
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onComplete]);
-
-  // Tactical data uplink generator for the corner HUD
-  const [coords, setCoords] = useState("00.0000°N, 000.0000°E");
-  useEffect(() => {
-    let frame: number;
-    const animate = () => {
-      setCoords(`${(Math.random() * 90).toFixed(4)}°N, ${(Math.random() * 180).toFixed(4)}°E`);
-      frame = requestAnimationFrame(animate);
-    };
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, []);
 
   return (
     <div style={{
@@ -33,138 +21,93 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background: phase === 2 ? 'transparent' : '#000000',
+      background: phase === 2 ? 'transparent' : '#050810',
       opacity: phase === 2 ? 0 : 1,
-      transform: phase === 2 ? 'scale(1.15)' : 'scale(1)',
-      filter: phase === 2 ? 'blur(20px)' : 'blur(0px)',
-      transition: 'all 1.6s cubic-bezier(0.8, 0, 0.2, 1)',
+      transform: phase === 2 ? 'scale(1.1)' : 'scale(1)',
+      filter: phase === 2 ? 'blur(15px)' : 'blur(0px)',
+      transition: 'all 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
       overflow: 'hidden',
-      color: '#fff',
       fontFamily: "'Inter', system-ui, sans-serif"
     }}>
-      {/* Massive Cinematic Ambient Deep-Space Glow */}
-      <div style={{
-        position: 'absolute',
-        width: '120vw',
-        height: '120vh',
-        background: 'radial-gradient(circle at 50% 50%, rgba(15, 25, 45, 0.4) 0%, transparent 65%)',
-        opacity: phase >= 1 ? 1 : 0,
-        transition: 'opacity 3s ease'
-      }} />
 
-      {/* Gigantic slow-rotating architectural radar ring representing global uplink */}
+      {/* The Sleek Airplane Fly-By */}
       <div style={{
         position: 'absolute',
-        width: '140vh',
-        height: '140vh',
-        border: '1px solid rgba(255,255,255,0.03)',
-        borderRadius: '50%',
-        animation: 'spin 80s linear infinite',
+        top: 'calc(50% - 10px)',
+        left: '-150px', // Start extremely far left
+        width: '50px',
+        height: '50px',
+        zIndex: 50,
+        animation: phase >= 1 ? 'flyAcross 3.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards' : 'none',
       }}>
-        {/* Subtle structural crosshairs */}
-        <div style={{ position: 'absolute', top: 0, left: '50%', width: '1px', height: '100%', background: 'linear-gradient(to bottom, rgba(255,255,255,0.08), transparent, rgba(255,255,255,0.08))' }} />
-        <div style={{ position: 'absolute', top: '50%', left: 0, width: '100%', height: '1px', background: 'linear-gradient(to right, rgba(255,255,255,0.08), transparent, rgba(255,255,255,0.08))' }} />
+        {/* Modern Airliner Jet Silhouette SVG rotated to fly straight Right */}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style={{ 
+          width: '100%', 
+          height: '100%', 
+          transform: 'rotate(90deg)', 
+          filter: 'drop-shadow(0 0 10px rgba(0, 243, 255, 0.8))' 
+        }}>
+          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ffffff" />
+        </svg>
+
+        {/* The glowing exhaust trail following the plane */}
+        <div style={{
+          position: 'absolute',
+          top: '24px',
+          right: '48px', // Trail shoots out the massive back
+          width: '400px',
+          height: '2px',
+          background: 'linear-gradient(to left, rgba(0,243,255,1), rgba(255,0,179,0.5), transparent)',
+          boxShadow: '0 0 10px rgba(0,243,255,0.4)',
+          borderRadius: '2px'
+        }} />
       </div>
 
-      <div style={{
-        position: 'absolute',
-        width: '60vh',
-        height: '60vh',
-        border: '1px solid rgba(255,255,255,0.02)',
-        borderRadius: '50%',
-        animation: 'spin 40s linear infinite reverse',
-      }} />
-
-      {/* Central Monolithic UI */}
-      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{ overflow: 'hidden', paddingBottom: '10px' }}>
-          {/* Logo Cinematic Upward Mask Reveal */}
-          <div style={{
-            fontSize: 'clamp(36px, 5vw, 64px)',
-            fontWeight: 200,
-            letterSpacing: '24px',
-            color: '#fff',
-            transform: phase >= 1 ? 'translateY(0)' : 'translateY(100px)',
-            opacity: phase >= 1 ? 1 : 0,
-            transition: 'all 2.2s cubic-bezier(0.16, 1, 0.3, 1)',
-            textShadow: '0 0 40px rgba(255,255,255,0.3)'
-          }}>
-            GKAS<span style={{ fontWeight: 800 }}>FLOWS</span>
-          </div>
+      {/* Main Logo Container */}
+      <div style={{ 
+        position: 'relative', 
+        zIndex: 10, 
+        textAlign: 'center',
+        opacity: phase >= 1 ? 1 : 0,
+        // Delay the fade-in slightly so the plane reveals it as it passes!
+        transition: 'opacity 1.5s ease 1s, transform 1.5s ease 1s',
+        transform: phase >= 1 ? 'translateY(0)' : 'translateY(15px)'
+      }}>
+        {/* The Beautiful Re-added Colorful Logo */}
+        <div style={{
+          fontSize: 'clamp(42px, 8vw, 76px)',
+          fontWeight: 900,
+          letterSpacing: '12px',
+          color: '#ffffff',
+          textShadow: '0 0 40px rgba(0,243,255,0.2), 0 0 80px rgba(0,243,255,0.1)',
+          lineHeight: 1,
+        }}>
+          GKAS<span style={{
+            background: 'linear-gradient(135deg, #00f3ff, #0090ff, #ff00b3)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>FLOWS</span>
         </div>
-        
-        {/* Razor-thin horizontal glass divider */}
-        <div style={{
-           marginTop: '10px',
-           height: '1px',
-           width: phase >= 1 ? '120%' : '0%',
-           background: 'rgba(255,255,255,0.15)',
-           transition: 'width 2.5s cubic-bezier(0.16, 1, 0.3, 1) 0.6s',
-           boxShadow: '0 0 10px rgba(255,255,255,0.2)'
-        }} />
 
-        {/* Minimal Subtitle */}
+        {/* Smooth Clean Subtitle */}
         <div style={{
-          marginTop: '24px',
-          fontSize: '11px',
+          marginTop: '20px',
+          fontSize: '12px',
           fontWeight: 600,
           letterSpacing: '10px',
-          color: 'rgba(255,255,255,0.35)',
+          color: 'rgba(255,255,255,0.5)',
           textTransform: 'uppercase',
-          opacity: phase >= 1 ? 1 : 0,
-          transform: phase >= 1 ? 'translateY(0)' : 'translateY(-10px)',
-          transition: 'all 2s ease 1.2s'
+          position: 'relative',
         }}>
-          Planetary Flight Architecture
+          Global Tactical Radar
         </div>
-      </div>
-
-      {/* Top Left Enterprise HUD Elements */}
-      <div style={{ 
-        position: 'absolute', 
-        top: '40px', 
-        left: '40px', 
-        fontSize: '10px', 
-        color: 'rgba(255,255,255,0.3)', 
-        letterSpacing: '3px', 
-        fontFamily: 'monospace', 
-        opacity: phase >= 1 ? 1 : 0, 
-        transition: 'opacity 2.5s ease 1s' 
-      }}>
-        <div style={{ display: 'flex', gap: '20px' }}>
-            <span>SYS.CORE</span>
-            <span style={{ color: 'rgba(255,255,255,0.8)' }}>[ONLINE]</span>
-        </div>
-        <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-            <span>DATALINK</span>
-            <span style={{ color: 'rgba(255,255,255,0.8)' }}>[SECURE]</span>
-        </div>
-        <div style={{ marginTop: '30px', color: 'rgba(255,255,255,0.15)' }}>
-            SEQ: {coords}
-        </div>
-      </div>
-
-      {/* Bottom Right Enterprise Signoff */}
-      <div style={{ 
-        position: 'absolute', 
-        bottom: '40px', 
-        right: '40px', 
-        fontSize: '10px', 
-        color: 'rgba(255,255,255,0.2)', 
-        letterSpacing: '4px', 
-        fontFamily: 'monospace', 
-        opacity: phase >= 1 ? 1 : 0, 
-        transition: 'opacity 2.5s ease 1.5s', 
-        textAlign: 'right' 
-      }}>
-        <div>KERNEL v9.4.12_PROD</div>
-        <div style={{ marginTop: '10px' }}>GKAS AEROSPACE DIVISION</div>
       </div>
 
       <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+        @keyframes flyAcross {
+          0% { left: -300px; }
+          100% { left: calc(100vw + 300px); }
         }
       `}</style>
     </div>
