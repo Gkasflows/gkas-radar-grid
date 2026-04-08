@@ -14,7 +14,7 @@ const ADSB_ONE_URL = 'https://api.adsb.one/v2/point/0/0/25000';
 
 let cachedStates: any[] | null = null;
 let lastFetchTime = 0;
-const MIN_FETCH_INTERVAL = 12000; // Perfect 12s sync to eliminate backwards jitter caused by pulling identical data while the plane dead-reckons forward!
+const MIN_FETCH_INTERVAL = 10000; // Drops cache at exactly 10s securely, preventing stale overlapping!
 
 export async function GET() {
   const now = Date.now();
