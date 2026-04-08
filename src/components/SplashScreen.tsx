@@ -117,15 +117,15 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
         opacity: phase >= 1 ? 1 : 0,
         transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
       }}>
-        {/* GKAS */}
+        {/* GKASFLOWS Animated Text Reveal */}
         <div style={{
           fontSize: 'clamp(42px, 8vw, 72px)',
           fontWeight: 900,
-          letterSpacing: '12px',
           color: '#ffffff',
           textShadow: '0 0 40px rgba(0,243,255,0.3), 0 0 80px rgba(0,243,255,0.1)',
           lineHeight: 1,
-          fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif"
+          fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
+          animation: 'trackingInFade 1.8s cubic-bezier(0.2, 0, 0.1, 1) forwards'
         }}>
           GKAS<span style={{
             background: 'linear-gradient(135deg, #00f3ff, #0090ff, #ff00b3)',
@@ -218,6 +218,21 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
         );
       })}
 
+      {/* Orbiting Plane that flies to top-left corner */}
+      <div style={{
+        position: 'absolute',
+        width: '32px',
+        height: '32px',
+        animation: 'planeOrbitToCorner 4.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+        zIndex: 50,
+        opacity: phase >= 1 ? 1 : 0,
+        transition: 'opacity 0.5s ease'
+      }}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 0 8px #00f3ff)' }}>
+          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ffffff" />
+        </svg>
+      </div>
+
       {/* CSS Keyframes */}
       <style>{`
         @keyframes gridScroll {
@@ -239,6 +254,28 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
         @keyframes dotPulse {
           0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
           40% { opacity: 1; transform: scale(1.3); }
+        }
+        @keyframes trackingInFade {
+          0% { letter-spacing: 40px; opacity: 0; filter: blur(12px); transform: scale(1.1); }
+          100% { letter-spacing: 12px; opacity: 1; filter: blur(0px); transform: scale(1); }
+        }
+        @keyframes planeOrbitToCorner {
+          0% {
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(0deg) translateY(-220px) rotate(90deg);
+          }
+          60% {
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(360deg) translateY(-220px) rotate(90deg);
+          }
+          75% {
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(495deg) translateY(-220px) rotate(90deg);
+          }
+          100% {
+            top: 36px; left: 36px;
+            transform: translate(-50%, -50%) rotate(495deg) translateY(0px) rotate(90deg);
+          }
         }
       `}</style>
     </div>
