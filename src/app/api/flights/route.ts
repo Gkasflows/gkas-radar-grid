@@ -10,7 +10,9 @@ const FR24_HEADERS = {
 };
 
 const BASE_FR24_URL = 'https://data-cloud.flightradar24.com/zones/fcgi/feed.js?faa=1&satellite=1&mlat=1&flarm=1&adsb=1&gnd=0&air=1&vehicles=0&estimated=1&maxage=14400&gliders=0&stats=0';
-const ADSB_ONE_URL = 'https://api.adsb.one/v2/point/0/0/25000'; 
+const ADSB_ONE_URL = 'https://api.adsb.one/v2/point/0/0/25000';
+// ADS-B Exchange (airplanes.live) - Completely separate volunteer antenna network for extra unique planes!
+const ADSBX_BASE = 'https://api.airplanes.live/v2/point'; 
 
 let cachedStates: any[] | null = null;
 let lastFetchTime = 0;
@@ -26,24 +28,32 @@ export async function GET() {
   const timeoutId = setTimeout(() => controller.abort(), 9500); 
 
   try {
-    // 1. Fetch ADSB.one (Works natively from Vercel natively without IP Bans)
+    // SOURCE 1: ADSB.one (Primary global antenna network)
     const adsbPromise = fetch(ADSB_ONE_URL, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
 
-    // 2. Fetch FR24 specifically mapped to Africa (Guarantees ALL 800+ planes in Africa precisely)
+    // SOURCE 2: airplanes.live (ADS-B Exchange - completely separate antenna network)
+    // 3 strategic geographic points covering Europe, North America, and East Asia to maximize unique plane capture
+    const adsbxEU = fetch(`${ADSBX_BASE}/50/10/250`, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
+    const adsbxNA = fetch(`${ADSBX_BASE}/40/-95/250`, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
+    const adsbxAS = fetch(`${ADSBX_BASE}/35/120/250`, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
+
+    // SOURCE 3: FR24 Africa (Guarantees ALL 800+ planes in Africa precisely)
     const fr24AfricaPromise = fetch(`${BASE_FR24_URL}&bounds=35,-35,-20,55`, {
       signal: controller.signal, headers: FR24_HEADERS, cache: 'no-store'
     }).catch(() => null);
 
-    // Completely safely asynchronously wait exactly 350ms physically to dynamically avoid Cloudflare concurrent bursting detection natively.
-    await new Promise(r => setTimeout(r, 450));
+    // Stagger slightly to avoid concurrent burst detection
+    await new Promise(r => setTimeout(r, 300));
 
-    // 3. SECURELY SATURATE FR24 Limit implicitly universally fetching completely 1,500 random global planes natively! 
+    // SOURCE 4: FR24 Global overlay
     const fr24GlobalPromise = fetch(`${BASE_FR24_URL}&bounds=85,-85,-180,180`, {
       signal: controller.signal, headers: FR24_HEADERS, cache: 'no-store'
     }).catch(() => null);
 
-    // Wait efficiently seamlessly
-    const [adsbRes, fr24AfricaRes, fr24GlobalRes] = await Promise.all([adsbPromise, fr24AfricaPromise, fr24GlobalPromise]);
+    // Wait for all sources simultaneously
+    const [adsbRes, adsbxEURes, adsbxNARes, adsbxASRes, fr24AfricaRes, fr24GlobalRes] = await Promise.all([
+      adsbPromise, adsbxEU, adsbxNA, adsbxAS, fr24AfricaPromise, fr24GlobalPromise
+    ]);
 
     clearTimeout(timeoutId);
     
@@ -75,7 +85,37 @@ export async function GET() {
       }
     }
 
-    // Layer 2 & Layer 3 Array Aggregation Helper implicitly mathematically merges exact telemetry explicitly 
+    // SOURCE 2 PROCESSOR: airplanes.live (ADS-B Exchange) - Same data format as ADSB.one
+    const processAdsbx = async (res: Response | null) => {
+      if (!res || !res.ok) return;
+      const data = await res.json().catch(() => ({ ac: [] }));
+      const aircraft = data.ac || [];
+      for (const plane of aircraft) {
+        const callsign = plane.flight?.trim();
+        if (plane.lat !== undefined && plane.lon !== undefined && callsign) {
+          const icao = String(plane.hex).toLowerCase();
+          if (!mergedFlightsMap.has(icao)) { // Only add if NOT already seen from ADSB.one (preserves primary source priority)
+            mergedFlightsMap.set(icao, {
+              icao24: icao,
+              callsign: callsign,
+              origin_country: 'ADSBX',
+              longitude: plane.lon,
+              latitude: plane.lat,
+              baro_altitude: (plane.alt_baro === 'ground' ? 0 : (plane.alt_baro || plane.alt_geom || 0)) * 0.3048,
+              velocity: (plane.gs || 0) * 0.514444,
+              true_track: plane.track || plane.true_heading || plane.mag_heading || 0,
+              vertical_rate: (plane.baro_rate || plane.geom_rate || 0) * 0.00508,
+              category: 0
+            });
+          }
+        }
+      }
+    };
+    await processAdsbx(adsbxEURes);
+    await processAdsbx(adsbxNARes);
+    await processAdsbx(adsbxASRes);
+
+    // FR24 Array Aggregation Helper
     const mergeFr24Data = async (res: Response | null) => {
       if (!res || !res.ok) return;
       const frData = await res.json().catch(() => ({}));
