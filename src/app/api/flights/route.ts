@@ -32,28 +32,36 @@ export async function GET() {
     const adsbPromise = fetch(ADSB_ONE_URL, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
 
     // SOURCE 2: airplanes.live (ADS-B Exchange - completely separate antenna network)
-    // 3 strategic geographic points covering Europe, North America, and East Asia to maximize unique plane capture
-    const adsbxEU = fetch(`${ADSBX_BASE}/50/10/250`, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
-    const adsbxNA = fetch(`${ADSBX_BASE}/40/-95/250`, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
-    const adsbxAS = fetch(`${ADSBX_BASE}/35/120/250`, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
+    // 10 strategic geographic points covering every major flight corridor on earth
+    const adsbxFetch = (lat: number, lon: number) => 
+      fetch(`${ADSBX_BASE}/${lat}/${lon}/250`, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
 
-    // SOURCE 3: FR24 Africa (Guarantees ALL 800+ planes in Africa precisely)
-    const fr24AfricaPromise = fetch(`${BASE_FR24_URL}&bounds=35,-35,-20,55`, {
-      signal: controller.signal, headers: FR24_HEADERS, cache: 'no-store'
-    }).catch(() => null);
+    // Batch 1: Europe, East USA, West USA, East Asia, Middle East
+    const [adsbx1, adsbx2, adsbx3, adsbx4, adsbx5] = await Promise.all([
+      adsbxFetch(50, 10),    // Central Europe
+      adsbxFetch(40, -75),   // US East Coast
+      adsbxFetch(35, -120),  // US West Coast
+      adsbxFetch(35, 140),   // Japan/East Asia
+      adsbxFetch(25, 55),    // Middle East/Gulf
+    ]);
 
-    // Stagger slightly to avoid concurrent burst detection
+    // Brief stagger to avoid rate limiting
     await new Promise(r => setTimeout(r, 300));
 
-    // SOURCE 4: FR24 Global overlay
-    const fr24GlobalPromise = fetch(`${BASE_FR24_URL}&bounds=85,-85,-180,180`, {
-      signal: controller.signal, headers: FR24_HEADERS, cache: 'no-store'
-    }).catch(() => null);
-
-    // Wait for all sources simultaneously
-    const [adsbRes, adsbxEURes, adsbxNARes, adsbxASRes, fr24AfricaRes, fr24GlobalRes] = await Promise.all([
-      adsbPromise, adsbxEU, adsbxNA, adsbxAS, fr24AfricaPromise, fr24GlobalPromise
+    // Batch 2: India, Southeast Asia, South America, Australia, West Africa + FR24
+    const [adsbx6, adsbx7, adsbx8, adsbx9, adsbx10, fr24AfricaRes, fr24GlobalRes] = await Promise.all([
+      adsbxFetch(20, 78),    // India
+      adsbxFetch(5, 105),    // Southeast Asia
+      adsbxFetch(-23, -46),  // Brazil/South America
+      adsbxFetch(-33, 151),  // Australia
+      adsbxFetch(7, 3),      // West Africa/Nigeria
+      // SOURCE 3: FR24 Africa (Guarantees ALL 800+ planes in Africa precisely)
+      fetch(`${BASE_FR24_URL}&bounds=35,-35,-20,55`, { signal: controller.signal, headers: FR24_HEADERS, cache: 'no-store' }).catch(() => null),
+      // SOURCE 4: FR24 Global overlay
+      fetch(`${BASE_FR24_URL}&bounds=85,-85,-180,180`, { signal: controller.signal, headers: FR24_HEADERS, cache: 'no-store' }).catch(() => null),
     ]);
+
+    const adsbRes = await adsbPromise;
 
     clearTimeout(timeoutId);
     
@@ -111,9 +119,16 @@ export async function GET() {
         }
       }
     };
-    await processAdsbx(adsbxEURes);
-    await processAdsbx(adsbxNARes);
-    await processAdsbx(adsbxASRes);
+    await processAdsbx(adsbx1);
+    await processAdsbx(adsbx2);
+    await processAdsbx(adsbx3);
+    await processAdsbx(adsbx4);
+    await processAdsbx(adsbx5);
+    await processAdsbx(adsbx6);
+    await processAdsbx(adsbx7);
+    await processAdsbx(adsbx8);
+    await processAdsbx(adsbx9);
+    await processAdsbx(adsbx10);
 
     // FR24 Array Aggregation Helper
     const mergeFr24Data = async (res: Response | null) => {
