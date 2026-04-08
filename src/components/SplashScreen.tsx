@@ -3,14 +3,26 @@
 import React, { useState, useEffect } from 'react';
 
 export default function SplashScreen({ onComplete }: { onComplete: () => void }) {
-  const [phase, setPhase] = useState(0); // 0=intro, 1=glow, 2=fadeout
+  const [phase, setPhase] = useState(0); 
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase(1), 800);     // Slower initial start pulse
-    const t2 = setTimeout(() => setPhase(2), 5200);    // Begin majestic 3D cinematic fly-through
-    const t3 = setTimeout(() => onComplete(), 6600);   // Fully remove after transition physically finishes
+    const t1 = setTimeout(() => setPhase(1), 100);    // Initialize immediately
+    const t2 = setTimeout(() => setPhase(2), 5200);   // Begin massive cinematic fade out
+    const t3 = setTimeout(() => onComplete(), 6800);  // Unmount after transition
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onComplete]);
+
+  // Tactical data uplink generator for the corner HUD
+  const [coords, setCoords] = useState("00.0000°N, 000.0000°E");
+  useEffect(() => {
+    let frame: number;
+    const animate = () => {
+      setCoords(`${(Math.random() * 90).toFixed(4)}°N, ${(Math.random() * 180).toFixed(4)}°E`);
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   return (
     <div style={{
@@ -21,261 +33,138 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background: phase === 2 ? 'transparent' : '#050810',
+      background: phase === 2 ? 'transparent' : '#000000',
       opacity: phase === 2 ? 0 : 1,
-      transform: phase === 2 ? 'scale(2.5)' : 'scale(1)',
-      filter: phase === 2 ? 'blur(40px)' : 'blur(0px)',
-      transition: 'all 1.4s cubic-bezier(0.8, 0, 0.1, 1)',
-      overflow: 'hidden'
+      transform: phase === 2 ? 'scale(1.15)' : 'scale(1)',
+      filter: phase === 2 ? 'blur(20px)' : 'blur(0px)',
+      transition: 'all 1.6s cubic-bezier(0.8, 0, 0.2, 1)',
+      overflow: 'hidden',
+      color: '#fff',
+      fontFamily: "'Inter', system-ui, sans-serif"
     }}>
-      {/* Animated Grid Background */}
+      {/* Massive Cinematic Ambient Deep-Space Glow */}
       <div style={{
         position: 'absolute',
-        inset: 0,
-        backgroundImage: `
-          linear-gradient(rgba(0,243,255,0.04) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0,243,255,0.04) 1px, transparent 1px)
-        `,
-        backgroundSize: '60px 60px',
-        animation: 'gridScroll 8s linear infinite'
+        width: '120vw',
+        height: '120vh',
+        background: 'radial-gradient(circle at 50% 50%, rgba(15, 25, 45, 0.4) 0%, transparent 65%)',
+        opacity: phase >= 1 ? 1 : 0,
+        transition: 'opacity 3s ease'
       }} />
 
-      {/* Radial Glow Pulse */}
+      {/* Gigantic slow-rotating architectural radar ring representing global uplink */}
       <div style={{
         position: 'absolute',
-        width: '600px',
-        height: '600px',
+        width: '140vh',
+        height: '140vh',
+        border: '1px solid rgba(255,255,255,0.03)',
         borderRadius: '50%',
-        background: phase >= 1
-          ? 'radial-gradient(circle, rgba(0,243,255,0.12) 0%, rgba(0,100,255,0.06) 40%, transparent 70%)'
-          : 'transparent',
-        transition: 'all 1.5s ease',
-        animation: phase >= 1 ? 'breathe 3s ease-in-out infinite' : 'none'
+        animation: 'spin 80s linear infinite',
+      }}>
+        {/* Subtle structural crosshairs */}
+        <div style={{ position: 'absolute', top: 0, left: '50%', width: '1px', height: '100%', background: 'linear-gradient(to bottom, rgba(255,255,255,0.08), transparent, rgba(255,255,255,0.08))' }} />
+        <div style={{ position: 'absolute', top: '50%', left: 0, width: '100%', height: '1px', background: 'linear-gradient(to right, rgba(255,255,255,0.08), transparent, rgba(255,255,255,0.08))' }} />
+      </div>
+
+      <div style={{
+        position: 'absolute',
+        width: '60vh',
+        height: '60vh',
+        border: '1px solid rgba(255,255,255,0.02)',
+        borderRadius: '50%',
+        animation: 'spin 40s linear infinite reverse',
       }} />
 
-      {/* Horizontal Scan Line */}
-      <div style={{
-        position: 'absolute',
-        width: '100%',
-        height: '2px',
-        background: 'linear-gradient(90deg, transparent 0%, rgba(0,243,255,0.3) 30%, rgba(0,243,255,0.8) 50%, rgba(0,243,255,0.3) 70%, transparent 100%)',
-        animation: 'scanLine 2.5s ease-in-out infinite',
-        boxShadow: '0 0 20px rgba(0,243,255,0.4), 0 0 60px rgba(0,243,255,0.15)'
-      }} />
-
-      {/* Orbiting Ring */}
-      <div style={{
-        position: 'absolute',
-        width: '320px',
-        height: '320px',
-        borderRadius: '50%',
-        border: '1px solid rgba(0,243,255,0.08)',
-        animation: 'orbitSpin 12s linear infinite',
-        opacity: phase >= 1 ? 1 : 0,
-        transition: 'opacity 1s ease'
-      }}>
-        <div style={{
-          position: 'absolute',
-          top: '-4px',
-          left: '50%',
-          width: '8px',
-          height: '8px',
-          borderRadius: '50%',
-          background: '#00f3ff',
-          boxShadow: '0 0 12px #00f3ff, 0 0 30px rgba(0,243,255,0.5)'
-        }} />
-      </div>
-
-      {/* Second Orbiting Ring */}
-      <div style={{
-        position: 'absolute',
-        width: '420px',
-        height: '420px',
-        borderRadius: '50%',
-        border: '1px solid rgba(0,243,255,0.04)',
-        animation: 'orbitSpin 18s linear infinite reverse',
-        opacity: phase >= 1 ? 0.7 : 0,
-        transition: 'opacity 1.2s ease'
-      }}>
-        <div style={{
-          position: 'absolute',
-          bottom: '-3px',
-          left: '30%',
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          background: '#ff00b3',
-          boxShadow: '0 0 10px #ff00b3, 0 0 25px rgba(255,0,179,0.4)'
-        }} />
-      </div>
-
-      {/* Main Logo Text */}
-      <div style={{
-        position: 'relative',
-        textAlign: 'center',
-        transform: phase >= 1 ? 'scale(1)' : 'scale(0.85)',
-        opacity: phase >= 1 ? 1 : 0,
-        transition: 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
-      }}>
-        {/* GKASFLOWS Animated Text Reveal */}
-        <div style={{
-          fontSize: 'clamp(42px, 8vw, 72px)',
-          fontWeight: 900,
-          color: '#ffffff',
-          textShadow: '0 0 40px rgba(0,243,255,0.3), 0 0 80px rgba(0,243,255,0.1)',
-          lineHeight: 1,
-          fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-          animation: 'trackingInFade 1.8s cubic-bezier(0.2, 0, 0.1, 1) forwards'
-        }}>
-          GKAS<span style={{
-            background: 'linear-gradient(135deg, #00f3ff, #0090ff, #ff00b3)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>FLOWS</span>
+      {/* Central Monolithic UI */}
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ overflow: 'hidden', paddingBottom: '10px' }}>
+          {/* Logo Cinematic Upward Mask Reveal */}
+          <div style={{
+            fontSize: 'clamp(36px, 5vw, 64px)',
+            fontWeight: 200,
+            letterSpacing: '24px',
+            color: '#fff',
+            transform: phase >= 1 ? 'translateY(0)' : 'translateY(100px)',
+            opacity: phase >= 1 ? 1 : 0,
+            transition: 'all 2.2s cubic-bezier(0.16, 1, 0.3, 1)',
+            textShadow: '0 0 40px rgba(255,255,255,0.3)'
+          }}>
+            GKAS<span style={{ fontWeight: 800 }}>FLOWS</span>
+          </div>
         </div>
-
-        {/* Subtitle */}
+        
+        {/* Razor-thin horizontal glass divider */}
         <div style={{
-          fontSize: 'clamp(10px, 1.5vw, 13px)',
-          fontWeight: 600,
-          letterSpacing: '6px',
-          color: 'rgba(142, 146, 151, 0.8)',
-          marginTop: '16px',
-          textTransform: 'uppercase',
-          opacity: phase >= 1 ? 1 : 0,
-          transform: phase >= 1 ? 'translateY(0)' : 'translateY(10px)',
-          transition: 'all 0.6s ease 0.4s'
-        }}>
-          GLOBAL TACTICAL RADAR
-        </div>
-
-        {/* Animated Underline */}
-        <div style={{
-          margin: '20px auto 0',
-          height: '2px',
-          width: phase >= 1 ? '200px' : '0px',
-          background: 'linear-gradient(90deg, transparent, #00f3ff, #ff00b3, transparent)',
-          transition: 'width 1s ease 0.3s',
-          borderRadius: '2px',
-          boxShadow: '0 0 15px rgba(0,243,255,0.4)'
+           marginTop: '10px',
+           height: '1px',
+           width: phase >= 1 ? '120%' : '0%',
+           background: 'rgba(255,255,255,0.15)',
+           transition: 'width 2.5s cubic-bezier(0.16, 1, 0.3, 1) 0.6s',
+           boxShadow: '0 0 10px rgba(255,255,255,0.2)'
         }} />
-      </div>
 
-      {/* Loading Indicator */}
-      <div style={{
-        position: 'absolute',
-        bottom: '60px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '14px',
-        opacity: phase >= 1 ? 1 : 0,
-        transition: 'opacity 0.5s ease 0.8s'
-      }}>
-        {/* Dot Loader */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {[0, 1, 2].map(i => (
-            <div key={i} style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: '#00f3ff',
-              animation: `dotPulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-              boxShadow: '0 0 8px rgba(0,243,255,0.6)'
-            }} />
-          ))}
-        </div>
+        {/* Minimal Subtitle */}
         <div style={{
+          marginTop: '24px',
           fontSize: '11px',
           fontWeight: 600,
-          letterSpacing: '3px',
-          color: 'rgba(142,146,151,0.5)',
-          textTransform: 'uppercase'
+          letterSpacing: '10px',
+          color: 'rgba(255,255,255,0.35)',
+          textTransform: 'uppercase',
+          opacity: phase >= 1 ? 1 : 0,
+          transform: phase >= 1 ? 'translateY(0)' : 'translateY(-10px)',
+          transition: 'all 2s ease 1.2s'
         }}>
-          INITIALIZING GLOBAL RADAR
+          Planetary Flight Architecture
         </div>
       </div>
 
-      {/* Corner Decorations */}
-      {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map(corner => {
-        const isTop = corner.includes('top');
-        const isLeft = corner.includes('left');
-        return (
-          <div key={corner} style={{
-            position: 'absolute',
-            [isTop ? 'top' : 'bottom']: '24px',
-            [isLeft ? 'left' : 'right']: '24px',
-            width: '40px',
-            height: '40px',
-            borderTop: isTop ? '2px solid rgba(0,243,255,0.2)' : 'none',
-            borderBottom: !isTop ? '2px solid rgba(0,243,255,0.2)' : 'none',
-            borderLeft: isLeft ? '2px solid rgba(0,243,255,0.2)' : 'none',
-            borderRight: !isLeft ? '2px solid rgba(0,243,255,0.2)' : 'none',
-            opacity: phase >= 1 ? 1 : 0,
-            transition: 'opacity 0.5s ease 0.6s'
-          }} />
-        );
-      })}
-
-      {/* Orbiting Plane that flies to top-left corner */}
-      <div style={{
-        position: 'absolute',
-        width: '32px',
-        height: '32px',
-        animation: 'planeOrbitToCorner 4.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-        zIndex: 50,
-        opacity: phase >= 1 ? 1 : 0,
-        transition: 'opacity 0.5s ease'
+      {/* Top Left Enterprise HUD Elements */}
+      <div style={{ 
+        position: 'absolute', 
+        top: '40px', 
+        left: '40px', 
+        fontSize: '10px', 
+        color: 'rgba(255,255,255,0.3)', 
+        letterSpacing: '3px', 
+        fontFamily: 'monospace', 
+        opacity: phase >= 1 ? 1 : 0, 
+        transition: 'opacity 2.5s ease 1s' 
       }}>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 0 8px #00f3ff)' }}>
-          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ffffff" />
-        </svg>
+        <div style={{ display: 'flex', gap: '20px' }}>
+            <span>SYS.CORE</span>
+            <span style={{ color: 'rgba(255,255,255,0.8)' }}>[ONLINE]</span>
+        </div>
+        <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
+            <span>DATALINK</span>
+            <span style={{ color: 'rgba(255,255,255,0.8)' }}>[SECURE]</span>
+        </div>
+        <div style={{ marginTop: '30px', color: 'rgba(255,255,255,0.15)' }}>
+            SEQ: {coords}
+        </div>
       </div>
 
-      {/* CSS Keyframes */}
+      {/* Bottom Right Enterprise Signoff */}
+      <div style={{ 
+        position: 'absolute', 
+        bottom: '40px', 
+        right: '40px', 
+        fontSize: '10px', 
+        color: 'rgba(255,255,255,0.2)', 
+        letterSpacing: '4px', 
+        fontFamily: 'monospace', 
+        opacity: phase >= 1 ? 1 : 0, 
+        transition: 'opacity 2.5s ease 1.5s', 
+        textAlign: 'right' 
+      }}>
+        <div>KERNEL v9.4.12_PROD</div>
+        <div style={{ marginTop: '10px' }}>GKAS AEROSPACE DIVISION</div>
+      </div>
+
       <style>{`
-        @keyframes gridScroll {
-          0% { transform: translate(0, 0); }
-          100% { transform: translate(60px, 60px); }
-        }
-        @keyframes breathe {
-          0%, 100% { transform: scale(1); opacity: 0.6; }
-          50% { transform: scale(1.15); opacity: 1; }
-        }
-        @keyframes scanLine {
-          0% { top: -2px; }
-          100% { top: 100%; }
-        }
-        @keyframes orbitSpin {
+        @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
-        }
-        @keyframes dotPulse {
-          0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-          40% { opacity: 1; transform: scale(1.3); }
-        }
-        @keyframes trackingInFade {
-          0% { letter-spacing: 40px; opacity: 0; filter: blur(12px); transform: scale(1.1); }
-          100% { letter-spacing: 12px; opacity: 1; filter: blur(0px); transform: scale(1); }
-        }
-        @keyframes planeOrbitToCorner {
-          0% {
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%) rotate(0deg) translateY(-220px) rotate(90deg);
-          }
-          60% {
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%) rotate(360deg) translateY(-220px) rotate(90deg);
-          }
-          75% {
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%) rotate(495deg) translateY(-220px) rotate(90deg);
-          }
-          100% {
-            top: 36px; left: 36px;
-            transform: translate(-50%, -50%) rotate(495deg) translateY(0px) rotate(90deg);
-          }
         }
       `}</style>
     </div>
