@@ -146,6 +146,13 @@ export default function Map() {
   const [radarPath, setRadarPath] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
+  // GLOBAL PLAYBACK SYSTEM
+  const [isPlaybackMode, setIsPlaybackMode] = useState(false);
+  const [playbackIndex, setPlaybackIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const flightSnapshots = useRef<{ timestamp: number; flights: LiveFlight[] }[]>([]);
+  const MAX_SNAPSHOTS = 120; // Store up to 120 snapshots (120 * 45s = 90 minutes of history)
+
   // Native UI drag state for zoom buttons
   const [zoomPos, setZoomPos] = useState({ bottom: 150, right: 16 });
   const zoomDragRef = useRef({ isDragging: false, startX: 0, startY: 0, initialBottom: 150, initialRight: 16 });
@@ -278,6 +285,11 @@ export default function Map() {
       if (mounted && data) {
         setFlights(data);
         setNetworkFlights(data);
+        // PLAYBACK: Record timestamped snapshot for global rewind
+        flightSnapshots.current.push({ timestamp: Date.now(), flights: data });
+        if (flightSnapshots.current.length > MAX_SNAPSHOTS) flightSnapshots.current.shift();
+        // If NOT in playback mode, keep slider synced to latest
+        if (!isPlaybackMode) setPlaybackIndex(flightSnapshots.current.length - 1);
         // Persist the perfect new massive data-grid quietly into physical browser memory for the next time they open the app!
         try { localStorage.setItem('gkas_flight_snapshot', JSON.stringify(data)); } catch(e) { console.warn("Cache too large"); }
       }
@@ -345,6 +357,27 @@ export default function Map() {
     animationFrameId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animationFrameId);
   }, []);
+
+  // PLAYBACK AUTO-ADVANCE ENGINE
+  useEffect(() => {
+    if (!isPlaying || !isPlaybackMode) return;
+    const playTimer = setInterval(() => {
+      setPlaybackIndex(prev => {
+        const next = prev + 1;
+        if (next >= flightSnapshots.current.length) {
+          setIsPlaying(false); // Stop at end
+          return prev;
+        }
+        const snapshot = flightSnapshots.current[next];
+        if (snapshot) {
+          setFlights(snapshot.flights);
+          setNetworkFlights(snapshot.flights);
+        }
+        return next;
+      });
+    }, 1000); // Advance 1 snapshot per second during playback (fast-forward effect)
+    return () => clearInterval(playTimer);
+  }, [isPlaying, isPlaybackMode]);
 
   // Hardware Sound System
   const playRadarBlip = useCallback(() => {
@@ -989,6 +1022,145 @@ export default function Map() {
             </div>
             <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>{hoveredAirport.airport.city}, {hoveredAirport.airport.country}</div>
           </div>
+        </div>
+      )}
+
+      {/* GLOBAL PLAYBACK TIMELINE SLIDER */}
+      {flightSnapshots.current.length > 1 && (
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: isPlaybackMode ? '72px' : '36px',
+          background: isPlaybackMode 
+            ? 'linear-gradient(180deg, rgba(10,12,18,0.0) 0%, rgba(10,12,18,0.95) 30%)'
+            : 'linear-gradient(180deg, transparent 0%, rgba(10,12,18,0.7) 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          padding: '0 24px 8px 24px',
+          zIndex: 900,
+          transition: 'height 0.3s ease, background 0.3s ease'
+        }}>
+          {/* Toggle Button */}
+          <button 
+            onClick={() => {
+              if (isPlaybackMode) {
+                // Exit playback: restore live data
+                setIsPlaybackMode(false);
+                setIsPlaying(false);
+                const latest = flightSnapshots.current[flightSnapshots.current.length - 1];
+                if (latest) {
+                  setFlights(latest.flights);
+                  setNetworkFlights(latest.flights);
+                }
+                setPlaybackIndex(flightSnapshots.current.length - 1);
+              } else {
+                setIsPlaybackMode(true);
+              }
+            }}
+            style={{
+              position: 'absolute',
+              top: isPlaybackMode ? '4px' : '-28px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: isPlaybackMode ? 'rgba(255,0,100,0.9)' : 'rgba(20,24,35,0.85)',
+              border: `1px solid ${isPlaybackMode ? 'rgba(255,100,150,0.5)' : 'rgba(100,110,140,0.4)'}`,
+              color: '#fff',
+              padding: '4px 16px',
+              borderRadius: '16px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              letterSpacing: '1px',
+              backdropFilter: 'blur(10px)',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            {isPlaybackMode ? '✕ EXIT PLAYBACK' : '⏪ PLAYBACK'}
+          </button>
+
+          {/* Playback Controls & Slider */}
+          {isPlaybackMode && (
+            <div style={{ width: '100%', maxWidth: '900px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Play/Pause Button */}
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}
+              >
+                {isPlaying ? '⏸' : '▶'}
+              </button>
+
+              {/* Timestamp Label (Left) */}
+              <div style={{ color: '#8E9297', fontSize: '11px', fontWeight: 600, minWidth: '55px', textAlign: 'center', fontFamily: 'monospace' }}>
+                {flightSnapshots.current[playbackIndex]
+                  ? new Date(flightSnapshots.current[playbackIndex].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                  : '--:--:--'
+                }
+              </div>
+
+              {/* Slider */}
+              <input
+                type="range"
+                min={0}
+                max={flightSnapshots.current.length - 1}
+                value={playbackIndex}
+                onChange={(e) => {
+                  const idx = parseInt(e.target.value);
+                  setPlaybackIndex(idx);
+                  const snapshot = flightSnapshots.current[idx];
+                  if (snapshot) {
+                    setFlights(snapshot.flights);
+                    setNetworkFlights(snapshot.flights);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  height: '4px',
+                  appearance: 'none',
+                  background: `linear-gradient(to right, #00f3ff 0%, #00f3ff ${(playbackIndex / Math.max(1, flightSnapshots.current.length - 1)) * 100}%, rgba(255,255,255,0.15) ${(playbackIndex / Math.max(1, flightSnapshots.current.length - 1)) * 100}%, rgba(255,255,255,0.15) 100%)`,
+                  borderRadius: '4px',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              />
+
+              {/* LIVE Label (Right) */}
+              <div style={{
+                color: playbackIndex === flightSnapshots.current.length - 1 ? '#00ff88' : '#8E9297',
+                fontSize: '11px',
+                fontWeight: 800,
+                letterSpacing: '1px',
+                minWidth: '40px',
+                textAlign: 'center'
+              }}>
+                {playbackIndex === flightSnapshots.current.length - 1 ? '● LIVE' : 'PAST'}
+              </div>
+
+              {/* Flight Count */}
+              <div style={{ color: '#4F545C', fontSize: '10px', fontWeight: 600, minWidth: '60px', textAlign: 'right' }}>
+                {flightSnapshots.current[playbackIndex]?.flights.length || 0} flights
+              </div>
+            </div>
+          )}
         </div>
       )}
 
