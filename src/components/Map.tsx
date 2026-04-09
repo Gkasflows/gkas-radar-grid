@@ -1070,13 +1070,12 @@ export default function Map() {
             }}
             style={{
               position: 'absolute',
-              top: isPlaybackMode ? '4px' : '-28px',
-              left: '50%',
-              transform: 'translateX(-50%)',
+              top: isPlaybackMode ? '4px' : '-36px', // Lifted slightly higher logically
+              left: '24px', // Hard offset to the left hemisphere
               background: isPlaybackMode ? 'rgba(255,0,100,0.9)' : 'rgba(20,24,35,0.85)',
               border: `1px solid ${isPlaybackMode ? 'rgba(255,100,150,0.5)' : 'rgba(100,110,140,0.4)'}`,
               color: '#fff',
-              padding: '4px 16px',
+              padding: '6px 18px', // Slightly larger hit target bounds for mobile
               borderRadius: '16px',
               fontSize: '11px',
               fontWeight: 700,
