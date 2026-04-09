@@ -1057,7 +1057,7 @@ export default function Map() {
           bottom: 0,
           left: 0,
           right: 0,
-          height: isPlaybackMode ? '72px' : '36px',
+          height: isPlaybackMode ? '100px' : '36px',
           background: isPlaybackMode 
             ? 'linear-gradient(180deg, rgba(10,12,18,0.0) 0%, rgba(10,12,18,0.95) 30%)'
             : 'linear-gradient(180deg, transparent 0%, rgba(10,12,18,0.7) 100%)',
@@ -1065,7 +1065,7 @@ export default function Map() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          padding: '0 24px 20px 24px', // Increased bottom padding to lift it heavily off the bottom screen edge
+          padding: '0 24px 36px 24px', // Extra massive bottom padding to clear mobile safe area system bars
           zIndex: 900,
           transition: 'height 0.3s ease, background 0.3s ease'
         }}>
@@ -1088,7 +1088,7 @@ export default function Map() {
             }}
             style={{
               position: 'absolute',
-              top: isPlaybackMode ? '4px' : '-65px', // Lifted significantly up to clear the bottom bounds
+              top: isPlaybackMode ? '-40px' : '-65px', // Keeps it permanently floating above the container bounds
               left: '50%',
               transform: 'translateX(-50%)', // Centered beautifully below the Tracker list button
               background: isPlaybackMode ? 'rgba(255,0,100,0.9)' : 'rgba(20,24,35,0.85)',
