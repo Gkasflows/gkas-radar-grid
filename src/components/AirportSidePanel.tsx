@@ -128,7 +128,7 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
       overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, sans-serif'
     } : {
       position: 'absolute', top: '76px', left: '16px',
-      transform: `translateX(${isOpen ? '0' : '-370px'})`,
+      transform: `translateX(${isOpen ? '0' : '-356px'})`,
       transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
       zIndex: 1000, width: '340px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)',
       border: '1px solid rgba(0, 243, 255, 0.25)', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
@@ -139,14 +139,14 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
         <div 
           onClick={() => setIsOpen(!isOpen)}
           style={{
-            position: 'absolute', right: '-24px', top: '50%', transform: 'translateY(-50%)', width: '24px', height: '100px',
-            backgroundColor: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0, 243, 255, 0.4)',
-            borderLeft: 'none', borderRadius: '0 12px 12px 0', color: '#00f3ff', display: 'flex',
+            position: 'absolute', right: '-36px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '140px',
+            backgroundColor: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0, 243, 255, 0.4)',
+            borderLeft: 'none', borderRadius: '0 16px 16px 0', color: '#00f3ff', display: 'flex',
             alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 1000,
-            boxShadow: '4px 0 15px rgba(0,243,255,0.2)', transition: 'background 0.2s', fontSize: '12px'
+            boxShadow: '4px 0 15px rgba(0,243,255,0.2)', transition: 'background 0.2s', fontSize: '14px'
           }}
           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.2)'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(15, 23, 42, 0.85)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(15, 23, 42, 0.95)'}
         >
           {isOpen ? '◀' : '▶'}
         </div>

@@ -102,7 +102,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
           overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
       } : {
           position: 'absolute', top: '76px', right: '16px',
-          transform: `translateX(${isOpen ? '0' : '330px'})`,
+          transform: `translateX(${isOpen ? '0' : '316px'})`,
           transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
           width: '300px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', border: '1px solid rgba(0, 243, 255, 0.25)',
           borderRadius: '16px', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'visible', boxShadow: '0 4px 30px rgba(0,0,0,0.4)',
@@ -113,13 +113,13 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
           <div 
             onClick={() => setIsOpen(!isOpen)}
             style={{
-              position: 'absolute', left: '-24px', top: '50%', transform: 'translateY(-50%)', width: '24px', height: '100px',
-              backgroundColor: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0, 243, 255, 0.4)',
-              borderRight: 'none', borderRadius: '12px 0 0 12px', color: '#00f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-              zIndex: 1000, boxShadow: '-4px 0 15px rgba(0,243,255,0.2)', transition: 'background 0.2s', fontSize: '12px'
+              position: 'absolute', left: '-36px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '140px',
+              backgroundColor: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0, 243, 255, 0.4)',
+              borderRight: 'none', borderRadius: '16px 0 0 16px', color: '#00f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              zIndex: 1000, boxShadow: '-4px 0 15px rgba(0,243,255,0.2)', transition: 'background 0.2s', fontSize: '14px'
             }}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.2)'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(15, 23, 42, 0.85)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(15, 23, 42, 0.95)'}
           >
             {isOpen ? '▶' : '◀'}
           </div>
