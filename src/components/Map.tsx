@@ -989,6 +989,7 @@ export default function Map() {
         selectedFlightId={selectedFlightId}
         selectedAirportIata={selectedAirportIata}
         onToggle={(open) => setIsRightPanelOpen(open)}
+        isPlaybackMode={isPlaybackMode}
       />
 
       {/* FLIGHT HOVER TOOLTIP */}
@@ -1054,7 +1055,7 @@ export default function Map() {
       {flightSnapshots.current.length > 1 && (
         <div className="mobile-playback-hidden" style={{
           position: 'absolute',
-          bottom: 0,
+          bottom: isMobile ? '24px' : 0,
           left: 0,
           right: 0,
           height: isPlaybackMode ? '100px' : '36px',
@@ -1065,7 +1066,7 @@ export default function Map() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          padding: '0 24px 36px 24px', // Extra massive bottom padding to clear mobile safe area system bars
+          padding: '24px 24px 10px 24px', // Standard internal padding
           zIndex: 900,
           transition: 'height 0.3s ease, background 0.3s ease'
         }}>
@@ -1088,7 +1089,7 @@ export default function Map() {
             }}
             style={{
               position: 'absolute',
-              top: isPlaybackMode ? '-40px' : '-65px', // Keeps it permanently floating above the container bounds
+              top: isPlaybackMode ? '-35px' : '-65px', // Hovers dependably
               left: '50%',
               transform: 'translateX(-50%)', // Centered beautifully below the Tracker list button
               background: isPlaybackMode ? 'rgba(255,0,100,0.9)' : 'rgba(20,24,35,0.85)',
