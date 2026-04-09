@@ -139,6 +139,7 @@ export default function Map() {
   const [hoveredFlight, setHoveredFlight] = useState<{ flight: LiveFlight, x: number, y: number } | null>(null);
   const [viewState, setViewState] = useState<any>(INITIAL_VIEW_STATE);
   const [mounted, setMounted] = useState(false);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLocationActive, setIsLocationActive] = useState(false);
@@ -771,6 +772,16 @@ export default function Map() {
   if (!mounted) return null;
 
   return (
+    <>
+    <style>{`
+      @media (max-width: 768px) {
+        .mobile-playback-hidden { 
+          opacity: ${isRightPanelOpen ? 0 : 1} !important; 
+          pointer-events: ${isRightPanelOpen ? 'none' : 'auto'} !important; 
+          transform: translateY(${isRightPanelOpen ? '20px' : '0px'}) !important;
+        }
+      }
+    `}</style>
     <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
       <DeckGL
         views={new MapView({ id: 'map', repeat: true })}
@@ -971,6 +982,7 @@ export default function Map() {
         onAirportClick={handleFlyToAirport}
         selectedFlightId={selectedFlightId}
         selectedAirportIata={selectedAirportIata}
+        onToggle={(open) => setIsRightPanelOpen(open)}
       />
 
       {/* FLIGHT HOVER TOOLTIP */}
@@ -1034,7 +1046,7 @@ export default function Map() {
 
       {/* GLOBAL PLAYBACK TIMELINE SLIDER */}
       {flightSnapshots.current.length > 1 && (
-        <div style={{
+        <div className="mobile-playback-hidden" style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
@@ -1083,7 +1095,7 @@ export default function Map() {
               cursor: 'pointer',
               letterSpacing: '1px',
               backdropFilter: 'blur(10px)',
-              transition: 'all 0.3s ease',
+              transition: 'all 0.4s ease, opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
               display: 'flex',
               alignItems: 'center',
               gap: '6px'
@@ -1170,7 +1182,7 @@ export default function Map() {
           )}
         </div>
       )}
-
     </div>
+    </>
   );
 }

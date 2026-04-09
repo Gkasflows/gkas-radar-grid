@@ -17,6 +17,7 @@ interface RightPanelProps {
   onAirportClick: (airport: Airport) => void;
   selectedFlightId: string | null;
   selectedAirportIata: string | null;
+  onToggle?: (isOpen: boolean) => void;
 }
 // NATIVE VIRTUAL DOM SCROLL ENGINE (Zero External Dependencies)
 // Completely bypasses Next.js Turbopack transpilation failures while effortlessly handling 10,000+ items at 60 FPS.
@@ -48,14 +49,20 @@ const VirtualList = ({ items, itemHeight, renderItem }: { items: any[], itemHeig
   );
 };
 
-export default function FlightradarRightPanel({ flights, airports, onFlightClick, onAirportClick, selectedFlightId, selectedAirportIata }: RightPanelProps) {
+export default function FlightradarRightPanel({ flights, airports, onFlightClick, onAirportClick, selectedFlightId, selectedAirportIata, onToggle }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<'flights' | 'airports'>('flights');
   const [isMobile, setIsMobile] = useState(false);
 
 
   const [isOpen, setIsOpen] = useState(true);
+  const handleToggle = (state: boolean) => {
+     setIsOpen(state);
+     if (onToggle) onToggle(state);
+  };
+
   useEffect(() => {
-    if (window.innerWidth < 768) setIsOpen(false);
+    if (window.innerWidth < 768) handleToggle(false);
+    else if (onToggle) onToggle(true);
   }, []);
   // SWIPE DOWN STATE
   const [touchStartY, setTouchStartY] = useState(0);
@@ -67,7 +74,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
   const handleTouchEnd = (e: React.TouchEvent) => {
     const touchEndY = e.changedTouches[0].clientY;
     if (touchEndY - touchStartY > 20) { // Fluid 20px downward swipe
-      setIsOpen(false);
+      handleToggle(false);
     }
   };
 
@@ -120,7 +127,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
       <div className="right-panel-mobile">
         {!isOpen && (
           <button 
-            onClick={() => setIsOpen(true)}
+            onClick={() => handleToggle(true)}
             style={{
               position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
               backgroundColor: 'rgba(15, 23, 42, 0.95)', color: '#00f3ff', padding: '12px 24px', borderRadius: '9999px',
@@ -140,7 +147,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
       }}>
         {/* SLIDE TOGGLE BUTTON Desktop */}
         <div className="right-panel-desktop"
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={() => handleToggle(!isOpen)}
             style={{
               position: 'absolute', left: '-36px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '140px',
               backgroundColor: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0, 243, 255, 0.4)',
@@ -162,7 +169,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
             <div style={{ flex: 1 }}></div>
             <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
             <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕ Hide</button>
+              <button onClick={() => handleToggle(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕ Hide</button>
             </div>
         </div>
 
