@@ -101,9 +101,11 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
           borderRadius: '24px 24px 0 0', color: '#fff', display: 'flex', flexDirection: 'column',
           overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
       } : {
-          position: 'absolute', top: '76px', right: isOpen ? '16px' : '-300px', transition: 'right 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          position: 'absolute', top: '76px', right: '16px',
+          transform: `translateX(${isOpen ? '0' : '330px'})`,
+          transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
           width: '300px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', border: '1px solid rgba(0, 243, 255, 0.25)',
-          borderRadius: '16px', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 30px rgba(0,0,0,0.4)',
+          borderRadius: '16px', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'visible', boxShadow: '0 4px 30px rgba(0,0,0,0.4)',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
       }}>
         {/* SLIDE TOGGLE BUTTON Desktop */}
@@ -111,12 +113,15 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
           <div 
             onClick={() => setIsOpen(!isOpen)}
             style={{
-              position: 'absolute', left: '-30px', top: '24px', width: '30px', height: '60px',
-              backgroundColor: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRight: 'none', borderRadius: '8px 0 0 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              position: 'absolute', left: '-24px', top: '50%', transform: 'translateY(-50%)', width: '24px', height: '100px',
+              backgroundColor: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0, 243, 255, 0.4)',
+              borderRight: 'none', borderRadius: '12px 0 0 12px', color: '#00f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              zIndex: 1000, boxShadow: '-4px 0 15px rgba(0,243,255,0.2)', transition: 'background 0.2s', fontSize: '12px'
             }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.2)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(15, 23, 42, 0.85)'}
           >
-            <span style={{ color: '#00f3ff', fontSize: '10px' }}>{isOpen ? '▶' : '◀'}</span>
+            {isOpen ? '▶' : '◀'}
           </div>
         )}
 

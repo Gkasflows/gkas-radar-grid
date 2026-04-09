@@ -127,25 +127,29 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
       borderRadius: isExpanded ? '0' : '24px 24px 0 0', display: 'flex', flexDirection: 'column', color: '#fff',
       overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, sans-serif'
     } : {
-      position: 'absolute', top: '76px', left: isOpen ? '16px' : '-340px', transition: 'left 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+      position: 'absolute', top: '76px', left: '16px',
+      transform: `translateX(${isOpen ? '0' : '-370px'})`,
+      transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
       zIndex: 1000, width: '340px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)',
       border: '1px solid rgba(0, 243, 255, 0.25)', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-      display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: '"Inter", -apple-system, sans-serif', color: '#fff'
+      display: 'flex', flexDirection: 'column', overflow: 'visible', fontFamily: '"Inter", -apple-system, sans-serif', color: '#fff'
     }}>
       {/* SLIDE TOGGLE BUTTON Desktop */}
       {!isMobile && (
-        <button 
+        <div 
           onClick={() => setIsOpen(!isOpen)}
           style={{
-            position: 'absolute', right: '-32px', top: '32px', width: '32px', height: '48px',
-            backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.08)', borderLeft: 'none', borderRadius: '0 12px 12px 0',
-            color: '#00f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            zIndex: 1000, boxShadow: '4px 0 10px rgba(0,0,0,0.3)'
+            position: 'absolute', right: '-24px', top: '50%', transform: 'translateY(-50%)', width: '24px', height: '100px',
+            backgroundColor: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0, 243, 255, 0.4)',
+            borderLeft: 'none', borderRadius: '0 12px 12px 0', color: '#00f3ff', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 1000,
+            boxShadow: '4px 0 15px rgba(0,243,255,0.2)', transition: 'background 0.2s', fontSize: '12px'
           }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.2)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(15, 23, 42, 0.85)'}
         >
           {isOpen ? '◀' : '▶'}
-        </button>
+        </div>
       )}
 
       {/* MOBILE GRIP */}
