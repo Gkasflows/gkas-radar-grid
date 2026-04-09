@@ -80,8 +80,6 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
       if (isExpanded) setIsExpanded(false);
       else {
          setIsOpen(false);
-         // Important: Dispatch closure perfectly reliably without visual crash
-         setTimeout(onClose, 300); 
       }
     }
   };
@@ -195,7 +193,7 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
           <div style={{ flex: 1 }}></div>
           <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '9999px', margin: '0 auto', boxShadow: '0 1px 4px rgba(0,0,0,0.5)' }}></div>
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => { setIsOpen(false); setTimeout(onClose, 300); }} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>✕ Hide</button>
+            <button onClick={() => { setIsOpen(false); }} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>✕ Hide</button>
           </div>
         </div>
       )}

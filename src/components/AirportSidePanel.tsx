@@ -93,7 +93,6 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
       if (isExpanded) setIsExpanded(false);
       else {
         setIsOpen(false);
-        setTimeout(onClose, 400);
       }
     }
   };
@@ -224,7 +223,7 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
           <div style={{ flex: 1 }}></div>
           <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '9999px', margin: '0 auto', boxShadow: '0 1px 4px rgba(0,0,0,0.5)' }}></div>
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => { setIsOpen(false); setTimeout(onClose, 400); }} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>✕ Hide</button>
+            <button onClick={() => { setIsOpen(false); }} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>✕ Hide</button>
           </div>
         </div>
       )}
