@@ -75,7 +75,7 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
   // Tactical Radar Sector Scanning Logic
   const localTraffic = React.useMemo(() => {
     if (!displayAirport || !displayAirport.coords) return [];
-    const MAX_DEG = 1.8; // ~ 108 Nautical Miles Radar Radius 
+    const MAX_DEG = 15.0; // ~ 900 Nautical Miles (Wide Sector Monitoring)
     const RADAR_SIZE = 140; // Pixels
     
     const cLat = displayAirport.coords[0];

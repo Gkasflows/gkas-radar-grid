@@ -66,7 +66,7 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
   // Tactical Radar Local Traffic Core Rendering Logic
   const localTraffic = React.useMemo(() => {
     if (!displayFlight || !displayFlight.latitude || !displayFlight.longitude) return [];
-    const MAX_DEG = 1.8; // ~ 108 Nautical Miles Radar Radius 
+    const MAX_DEG = 12.0; // ~ 720 Nautical Miles (Deep AWACS Regional Sweep) 
     const RADAR_SIZE = 140; // Pixels
     
     // Sort array by actual ground-distance locally avoiding heavy haversine for 10,000 objects
