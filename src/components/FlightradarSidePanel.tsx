@@ -20,6 +20,31 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
   const [touchStartY, setTouchStartY] = useState(0);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [realPlanePhoto, setRealPlanePhoto] = useState<string | null>(null);
+  const [photographer, setPhotographer] = useState<string | null>(null);
+
+  // Fetch true exact plane image from Planespotters API
+  useEffect(() => {
+    if (!flight?.icao24) return;
+    
+    // Reset state before fetching
+    setRealPlanePhoto(null);
+    setPhotographer(null);
+
+    fetch(`https://api.planespotters.net/pub/photos/hex/${flight.icao24}`)
+      .then(res => res.json())
+      .then(data => {
+         if (data && data.photos && data.photos.length > 0) {
+            const photo = data.photos[0];
+            setRealPlanePhoto(photo.thumbnail_large.src);
+            setPhotographer(photo.photographer);
+         }
+      })
+      .catch(err => {
+         console.warn("Planespotters API Error:", err);
+      });
+  }, [flight?.icao24]);
+
   useEffect(() => {
     setIsMobile(window.innerWidth < 768);
   }, []);
@@ -179,7 +204,7 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
         height: '180px', 
         width: '100%', 
         backgroundColor: '#2A2B30',
-        backgroundImage: `url("${displayFlight.imageUrl}")`,
+        backgroundImage: `url("${realPlanePhoto || displayFlight.imageUrl}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         position: 'relative'
@@ -197,6 +222,19 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
             ✕
           </button>
         )}
+        
+        {/* Photographer Attribution Block */}
+        {photographer && (
+           <div style={{
+             position: 'absolute', top: '16px', left: '16px',
+             backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+             borderRadius: '4px', padding: '2px 6px', fontSize: '9px',
+             color: 'rgba(255,255,255,0.8)', fontWeight: 500
+           }}>
+             © {photographer}
+           </div>
+        )}
+
         <div style={{
           position: 'absolute', bottom: '12px', left: '16px', right: '16px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
