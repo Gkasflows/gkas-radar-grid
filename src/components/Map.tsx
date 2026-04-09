@@ -152,7 +152,7 @@ export default function Map() {
   const [playbackIndex, setPlaybackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const flightSnapshots = useRef<{ timestamp: number; flights: LiveFlight[] }[]>([]);
-  const MAX_SNAPSHOTS = 120; // Store up to 120 snapshots (120 * 45s = 90 minutes of history)
+  const MAX_SNAPSHOTS = typeof window !== 'undefined' && window.innerWidth < 768 ? 30 : 120; // Mobile: 30 snapshots (~22min), Desktop: 120 (~90min)
 
   // Native UI drag state for zoom buttons
   const [zoomPos, setZoomPos] = useState({ bottom: 150, right: 16 });
@@ -291,8 +291,11 @@ export default function Map() {
         if (flightSnapshots.current.length > MAX_SNAPSHOTS) flightSnapshots.current.shift();
         // If NOT in playback mode, keep slider synced to latest
         if (!isPlaybackMode) setPlaybackIndex(flightSnapshots.current.length - 1);
-        // Persist the perfect new massive data-grid quietly into physical browser memory for the next time they open the app!
-        try { localStorage.setItem('gkas_flight_snapshot', JSON.stringify(data)); } catch(e) { console.warn("Cache too large"); }
+        // Persist data quietly into browser memory for instant next load
+        // On mobile, skip localStorage writes to reduce jank
+        if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+          try { localStorage.setItem('gkas_flight_snapshot', JSON.stringify(data)); } catch(e) { console.warn("Cache too large"); }
+        }
       }
     };
 
@@ -320,16 +323,17 @@ export default function Map() {
     };
   }, []);
 
-  // 2. 60FPS Propulsion Engine (Smooth continuous movement of every single dot)
+  // 2. Propulsion Engine (Smooth continuous movement of every single dot)
+  // Mobile: throttle to 3-second updates to save CPU. Desktop: 1-second updates.
   useEffect(() => {
     let animationFrameId: number;
     let lastTime = performance.now();
+    const TICK_RATE = typeof window !== 'undefined' && window.innerWidth < 768 ? 3.0 : 1.0;
 
     const loop = (currentTime: number) => {
       const deltaTime = (currentTime - lastTime) / 1000;
       
-      // Throttle heavy CPU dead-reckoning to exactly 1 update per second (1Hz).
-      if (deltaTime < 1.0) {
+      if (deltaTime < TICK_RATE) {
         animationFrameId = requestAnimationFrame(loop);
         return;
       }
@@ -711,7 +715,7 @@ export default function Map() {
         getSize: [selectedFlightId, hoveredFlight?.flight.icao24]
       },
       pickable: true,
-      onHover: ({ object, x, y }: any) => {
+      onHover: isMobile ? undefined : ({ object, x, y }: any) => {
         if (object) setHoveredFlight({ flight: object, x, y });
         else setHoveredFlight(null);
       },
@@ -733,7 +737,7 @@ export default function Map() {
       getColor: [255, 255, 255], 
       pickable: true,
       onClick: ({ object }: any) => { if (object) handleFlyToAirport(object); },
-      onHover: ({ object, x, y }: any) => {
+      onHover: isMobile ? undefined : ({ object, x, y }: any) => {
         if (object) setHoveredAirport({ airport: object, x, y });
         else setHoveredAirport(null);
       }
