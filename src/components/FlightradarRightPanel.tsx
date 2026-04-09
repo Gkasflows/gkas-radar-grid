@@ -51,12 +51,7 @@ const VirtualList = ({ items, itemHeight, renderItem }: { items: any[], itemHeig
 export default function FlightradarRightPanel({ flights, airports, onFlightClick, onAirportClick, selectedFlightId, selectedAirportIata }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<'flights' | 'airports'>('flights');
   const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+
 
   const [isOpen, setIsOpen] = useState(true);
   useEffect(() => {
@@ -78,39 +73,73 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
 
   return (
     <>
-      {/* MOBILE FLOATING BUTTON */}
-      {isMobile && !isOpen && (
-        <button 
-          onClick={() => setIsOpen(true)}
-          style={{
-            position: 'absolute', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(15, 23, 42, 0.95)', color: '#00f3ff', padding: '12px 24px', borderRadius: '9999px',
-            display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-            zIndex: 950, fontWeight: 'bold', fontSize: '14px', border: '1px solid rgba(0, 243, 255, 0.3)', cursor: 'pointer',
-            backdropFilter: 'blur(8px)'
-          }}
-        >
-          <span style={{ fontSize: '16px' }}>🗺️</span> Open Tracker List
-        </button>
-      )}
+      <style>{`
+        @media (max-width: 768px) {
+          .right-panel-desktop { display: none !important; }
+          .right-panel-mobile { display: flex !important; }
+          
+          .right-panel-container {
+            position: fixed !important;
+            z-index: 900 !important;
+            transition: all 0.4s cubic-bezier(0.16,1,0.3,1) !important;
+            bottom: ${isOpen ? '0px' : '-100%'} !important;
+            left: 0px !important;
+            width: 100% !important;
+            height: 40vh !important;
+            background-color: rgba(10, 15, 30, 0.45) !important;
+            backdrop-filter: blur(24px) saturate(150%) !important;
+            border-top: 1px solid rgba(0, 243, 255, 0.25) !important;
+            border-radius: 24px 24px 0 0 !important;
+            /* reset desktop transform */
+            top: auto !important;
+            right: auto !important;
+            transform: none !important;
+          }
+        }
+        @media (min-width: 769px) {
+          .right-panel-mobile { display: none !important; }
+          
+          .right-panel-container {
+            position: absolute !important;
+            top: 76px !important;
+            right: 16px !important;
+            transform: translateX(${isOpen ? '0' : '316px'}) !important;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            width: 300px !important;
+            height: calc(100vh - 92px) !important;
+            background-color: rgba(10, 15, 30, 0.45) !important;
+            backdrop-filter: blur(24px) saturate(150%) !important;
+            border: 1px solid rgba(0, 243, 255, 0.25) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.4) !important;
+          }
+        }
+      `}</style>
 
-      <div style={isMobile ? {
-          position: 'fixed', zIndex: 900, transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
-          bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', height: '40vh',
-          backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', borderTop: '1px solid rgba(0, 243, 255, 0.25)',
-          borderRadius: '24px 24px 0 0', color: '#fff', display: 'flex', flexDirection: 'column',
-          overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
-      } : {
-          position: 'absolute', top: '76px', right: '16px',
-          transform: `translateX(${isOpen ? '0' : '316px'})`,
-          transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-          width: '300px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', border: '1px solid rgba(0, 243, 255, 0.25)',
-          borderRadius: '16px', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'visible', boxShadow: '0 4px 30px rgba(0,0,0,0.4)',
+      {/* MOBILE FLOATING BUTTON */}
+      <div className="right-panel-mobile">
+        {!isOpen && (
+          <button 
+            onClick={() => setIsOpen(true)}
+            style={{
+              position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)',
+              backgroundColor: 'rgba(15, 23, 42, 0.95)', color: '#00f3ff', padding: '12px 24px', borderRadius: '9999px',
+              display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+              zIndex: 950, fontWeight: 'bold', fontSize: '14px', border: '1px solid rgba(0, 243, 255, 0.3)', cursor: 'pointer',
+              backdropFilter: 'blur(8px)'
+            }}
+          >
+            <span style={{ fontSize: '16px' }}>🗺️</span> Open Tracker List
+          </button>
+        )}
+      </div>
+
+      <div className="right-panel-container" style={{
+          color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'visible',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
       }}>
         {/* SLIDE TOGGLE BUTTON Desktop */}
-        {!isMobile && (
-          <div 
+        <div className="right-panel-desktop"
             onClick={() => setIsOpen(!isOpen)}
             style={{
               position: 'absolute', left: '-36px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '140px',
@@ -120,25 +149,22 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
             }}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.2)'}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(15, 23, 42, 0.95)'}
-          >
+        >
             {isOpen ? '▶' : '◀'}
-          </div>
-        )}
+        </div>
 
         {/* SWIPE HANDLE (Mobile Only) */}
-        {isMobile && (
-          <div 
+        <div className="right-panel-mobile"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', position: 'relative', background: 'transparent' }}
-          >
+        >
             <div style={{ flex: 1 }}></div>
             <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: '9999px', margin: '0 auto' }}></div>
             <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setIsOpen(false)} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕ Hide</button>
             </div>
-          </div>
-        )}
+        </div>
 
         {/* TABS */}
         <div style={{ display: 'flex', borderBottom: '1px solid rgba(47, 49, 54, 0.6)', backgroundColor: 'rgba(42, 43, 48, 0.4)' }}>

@@ -12,7 +12,6 @@ interface FlightradarTopNavProps {
 }
 
 export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports, globalFlights }: FlightradarTopNavProps) {
-  const [isMobile, setIsMobile] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -34,12 +33,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
     return () => clearInterval(interval);
   }, [isUtc]);
 
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+
 
   useEffect(() => {
     try {
@@ -139,13 +133,22 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
   const allSuggestions = [...suggestions, ...geoLocations].slice(0, 8); // Max 8 items rendered smoothly
 
   return (
-    <div style={isMobile ? {
-      position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', 
-      backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', display: 'flex',
-      alignItems: 'center', padding: '0 16px', zIndex: 1000, color: '#fff', boxSizing: 'border-box', justifyContent: 'space-between',
-      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-      borderBottom: '1px solid rgba(0, 243, 255, 0.25)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)'
-    } : {
+    <>
+    <style>{`
+      @media (max-width: 768px) {
+        .desktop-only-nav { display: none !important; }
+        .mobile-only-nav { display: flex !important; }
+        .brand-logo-text { font-size: 16px !important; }
+        .top-nav-parent { padding: 0 16px !important; }
+        .clock-container { display: none !important; }
+        .search-container { width: 150px !important; }
+      }
+      @media (min-width: 769px) {
+        .mobile-only-nav { display: none !important; }
+        .search-container { width: 300px !important; }
+      }
+    `}</style>
+    <div className="top-nav-parent" style={{
       position: 'absolute', top: 0, left: 0, width: '100%', height: '60px', 
       backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', display: 'flex',
       alignItems: 'center', padding: '0 24px', zIndex: 1000, color: '#fff', boxSizing: 'border-box', justifyContent: 'space-between',
@@ -154,7 +157,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
     }}>
       
       {/* 1. LEFT CONTROLS */}
-      <div style={{ flex: 1, display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: '12px' }}>
+      <div className="desktop-only-nav" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button
           onClick={onReset}
           title="Reset map view and clear all tracked data"
@@ -211,30 +214,27 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
           userSelect: 'none'
         }}
       >
-        <span style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 900, letterSpacing: '-0.5px' }}>
+        <span className="brand-logo-text" style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '-0.5px' }}>
           GKAS<span style={{ color: '#00f3ff' }}>FLOWS</span> 
         </span>
-        {!isMobile && (
-          <span style={{
-            marginLeft: '8px', fontSize: '10px', fontWeight: 700, backgroundColor: 'rgba(0, 243, 255, 0.1)',
-            color: '#00f3ff', padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px'
-          }}>
-            LIVE BETA
-          </span>
-        )}
+        <span className="desktop-only-nav" style={{
+          marginLeft: '8px', fontSize: '10px', fontWeight: 700, backgroundColor: 'rgba(0, 243, 255, 0.1)',
+          color: '#00f3ff', padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px'
+        }}>
+          LIVE BETA
+        </span>
       </div>
 
       {/* MOBILE FLOATING CONTROLS (Home & Heatmap) */}
-      {isMobile && (
-        <div style={{
-          position: 'fixed',
-          top: '80px',
-          right: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          zIndex: 1000
-        }}>
+      <div className="mobile-only-nav" style={{
+        position: 'fixed',
+        top: '80px',
+        right: '16px',
+        display: 'none',
+        flexDirection: 'column',
+        gap: '12px',
+        zIndex: 1000
+      }}>
           <button
             onClick={onReset}
             style={{
@@ -275,31 +275,29 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
             {isHeatmapActive ? '🔥' : '📍'}
           </button>
         </div>
-      )}
 
       {/* 3. RIGHT SEARCH ENGINE WITH LIVE AUTO-SUGGESTIONS & TIMING CLOCK */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: isMobile ? 'flex-end' : 'flex-end', alignItems: 'center', position: 'relative', height: '100%', paddingRight: isMobile ? 0 : '48px' }}>
+      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', position: 'relative', height: '100%' }}>
         
         {/* ZONED LIVE AUTO-CLOCK */}
-        {!isMobile && (
-          <div 
-            title="Click to toggle UTC / Local Time"
-            onClick={() => setIsUtc(!isUtc)} 
-            style={{ marginRight: '24px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0', cursor: 'pointer', fontFamily: '"SF Mono", "Consolas", monospace', userSelect: 'none', transition: 'color 0.2s' }}
-            onMouseOver={(e) => (e.currentTarget.style.color = '#00f3ff')}
-            onMouseOut={(e) => (e.currentTarget.style.color = '#e2e8f0')}
-          >
-            {currentTime} <span style={{ opacity: 0.6 }}>{isUtc ? 'UTC' : 'LOC'}</span>
-          </div>
-        )}
+        <div 
+          className="clock-container"
+          title="Click to toggle UTC / Local Time"
+          onClick={() => setIsUtc(!isUtc)} 
+          style={{ marginRight: '24px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0', cursor: 'pointer', fontFamily: '"SF Mono", "Consolas", monospace', userSelect: 'none', transition: 'color 0.2s' }}
+          onMouseOver={(e) => (e.currentTarget.style.color = '#00f3ff')}
+          onMouseOut={(e) => (e.currentTarget.style.color = '#e2e8f0')}
+        >
+          {currentTime} <span style={{ opacity: 0.6 }}>{isUtc ? 'UTC' : 'LOC'}</span>
+        </div>
 
-        <div style={{ position: 'relative', width: isMobile ? '160px' : '300px', height: '32px', display: 'flex', alignItems: 'center' }}>
+        <div className="search-container" style={{ position: 'relative', height: '32px', display: 'flex', alignItems: 'center' }}>
           <input 
             ref={inputRef}
             type="text" 
             id="search-input"
             value={searchQuery}
-            placeholder={isMobile ? "Search..." : "Search Places..."}
+            placeholder="Search..."
             onChange={(e) => { 
               const val = e.target.value;
               onSearch(val); 
@@ -385,5 +383,6 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
       </div>
 
     </div>
+    </>
   );
 }
