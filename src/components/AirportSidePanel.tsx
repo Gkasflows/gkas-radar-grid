@@ -38,29 +38,28 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
   // Fetch true exact airport image from Wikimedia API
   useEffect(() => {
     if (!airport) return;
-    
+
     setRealAirportPhoto(null);
-    
+
     // Construct search string like "Heathrow Airport London"
     const searchStr = `${airport.name} Airport ${airport.city}`;
     const url = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchStr)}&gsrlimit=1&prop=pageimages&pithumbsize=1000&format=json&origin=*`;
-    
+
     fetch(url)
       .then(res => res.json())
       .then(data => {
-         if (data && data.query && data.query.pages) {
-            const pages = data.query.pages;
-            const pageId = Object.keys(pages)[0];
-            if (pages[pageId] && pages[pageId].thumbnail) {
-               setRealAirportPhoto(pages[pageId].thumbnail.source);
-            }
-         }
+        if (data && data.query && data.query.pages) {
+          const pages = data.query.pages;
+          const pageId = Object.keys(pages)[0];
+          if (pages[pageId] && pages[pageId].thumbnail) {
+            setRealAirportPhoto(pages[pageId].thumbnail.source);
+          }
+        }
       })
       .catch(err => {
-         console.warn("Wikimedia API Error:", err);
+        console.warn("Wikimedia API Error:", err);
       });
   }, [airport?.iata]);
-
   useEffect(() => {
     setIsMobile(window.innerWidth < 768);
   }, []);
@@ -70,8 +69,9 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
       setCachedAirport(airport);
       setIsAnimating(true);
       setIsExpanded(false);
+      // Wait for globe tracking pan to finish smoothly before showing details
       if (isMobile) {
-        setTimeout(() => setIsOpen(true), 4000); 
+        setTimeout(() => setIsOpen(true), 7000);
       } else {
         requestAnimationFrame(() => requestAnimationFrame(() => setIsOpen(true)));
       }
@@ -92,8 +92,8 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
     } else if (diff > 30) {
       if (isExpanded) setIsExpanded(false);
       else {
-         setIsOpen(false);
-         setTimeout(onClose, 400); 
+        setIsOpen(false);
+        setTimeout(onClose, 400);
       }
     }
   };
@@ -105,28 +105,28 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
     if (!displayAirport || !displayAirport.coords) return [];
     const MAX_DEG = 15.0; // ~ 900 Nautical Miles (Wide Sector Monitoring)
     const RADAR_SIZE = 140; // Pixels
-    
+
     const cLat = displayAirport.coords[0];
     const cLon = displayAirport.coords[1];
     const latCos = Math.cos(cLat * Math.PI / 180);
-    
+
     return liveFlights.filter(f => f.latitude && f.longitude).map(f => {
-       const dLat = f.latitude - cLat;
-       const dLon = (f.longitude - cLon) * latCos;
-       const dist = Math.sqrt(dLat*dLat + dLon*dLon);
-       return { f, dist, dLat, dLon };
+      const dLat = f.latitude - cLat;
+      const dLon = (f.longitude - cLon) * latCos;
+      const dist = Math.sqrt(dLat * dLat + dLon * dLon);
+      return { f, dist, dLat, dLon };
     })
-    .filter(b => b.dist < MAX_DEG)
-    .sort((a,b) => a.dist - b.dist)
-    .slice(0, 40) // Show up to 40 max targets on mini radar scanning sector
-    .map(b => {
-       const rPix = (b.dist / MAX_DEG) * (RADAR_SIZE / 2);
-       const angle = Math.atan2(b.dLon, b.dLat); // Rads from true North
-       // Math center is 0,0 since we anchor at top:50% left:50%
-       const x = Math.sin(angle) * rPix;
-       const y = -Math.cos(angle) * rPix;
-       return { x, y, callsign: b.f.callsign || b.f.icao24, heading: b.f.true_track || 0, isClimbing: (b.f.vertical_rate||0) > 0, dist: b.dist, isArriving: b.f.dest_iata === displayAirport.iata };
-    });
+      .filter(b => b.dist < MAX_DEG)
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, 40) // Show up to 40 max targets on mini radar scanning sector
+      .map(b => {
+        const rPix = (b.dist / MAX_DEG) * (RADAR_SIZE / 2);
+        const angle = Math.atan2(b.dLon, b.dLat); // Rads from true North
+        // Math center is 0,0 since we anchor at top:50% left:50%
+        const x = Math.sin(angle) * rPix;
+        const y = -Math.cos(angle) * rPix;
+        return { x, y, callsign: b.f.callsign || b.f.icao24, heading: b.f.true_track || 0, isClimbing: (b.f.vertical_rate || 0) > 0, dist: b.dist, isArriving: b.f.dest_iata === displayAirport.iata };
+      });
   }, [displayAirport, liveFlights]);
 
   // Authentically extract REAL flights from the global live data arrays
@@ -141,68 +141,68 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
     }
 
     return activeSet.map(f => {
-       // Estimate status visually based on altitude/velocity telemetry
-       let statusStr = 'In Air';
-       let color = '#38bdf8'; // Cyan
-       
-       if (f.on_ground || (f.baro_altitude && f.baro_altitude < 500 && f.velocity && f.velocity < 50)) {
-          statusStr = activeTab === 'arrivals' ? 'Landed' : 'Taxiing'; 
-          color = '#10B981'; // Green
-       } else if (f.velocity && f.velocity < 10) {
-          statusStr = 'Delayed'; 
-          color = '#EF4444'; // Red
-       } else if (f.vertical_rate && f.vertical_rate > 10 && activeTab === 'departures') {
-          statusStr = 'Climbing';
-          color = '#F59E0B'; // Yellow
-       } else if (f.vertical_rate && f.vertical_rate < -10 && activeTab === 'arrivals') {
-          statusStr = 'Descending';
-          color = '#8b5cf6'; // Purple
-       }
+      // Estimate status visually based on altitude/velocity telemetry
+      let statusStr = 'In Air';
+      let color = '#38bdf8'; // Cyan
 
-       // Deterministic Scheduled Time Generation
-       let hash = 0;
-       for (let i = 0; i < f.icao24.length; i++) hash = (hash << 5) - hash + f.icao24.charCodeAt(i);
-       const d = new Date();
-       const isDelayed = Math.abs(hash) % 5 === 0; // 20% chance of distinct delay
-       d.setMinutes(d.getMinutes() - (Math.abs(hash) % 180));
-       const schTime = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      if (f.on_ground || (f.baro_altitude && f.baro_altitude < 500 && f.velocity && f.velocity < 50)) {
+        statusStr = activeTab === 'arrivals' ? 'Landed' : 'Taxiing';
+        color = '#10B981'; // Green
+      } else if (f.velocity && f.velocity < 10) {
+        statusStr = 'Delayed';
+        color = '#EF4444'; // Red
+      } else if (f.vertical_rate && f.vertical_rate > 10 && activeTab === 'departures') {
+        statusStr = 'Climbing';
+        color = '#F59E0B'; // Yellow
+      } else if (f.vertical_rate && f.vertical_rate < -10 && activeTab === 'arrivals') {
+        statusStr = 'Descending';
+        color = '#8b5cf6'; // Purple
+      }
 
-       return {
-         time: schTime, 
-         isDelayed: isDelayed,
-         flight: f.callsign?.substring(0, 8) || f.icao24.toUpperCase().substring(0, 6),
-         airline: f.airline || 'Private/Unknown',
-         status: statusStr,
-         color: color,
-         rawFlight: f // Pass the actual flight object for the Click interaction!
-       };
+      // Deterministic Scheduled Time Generation
+      let hash = 0;
+      for (let i = 0; i < f.icao24.length; i++) hash = (hash << 5) - hash + f.icao24.charCodeAt(i);
+      const d = new Date();
+      const isDelayed = Math.abs(hash) % 5 === 0; // 20% chance of distinct delay
+      d.setMinutes(d.getMinutes() - (Math.abs(hash) % 180));
+      const schTime = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      return {
+        time: schTime,
+        isDelayed: isDelayed,
+        flight: f.callsign?.substring(0, 8) || f.icao24.toUpperCase().substring(0, 6),
+        airline: f.airline || 'Private/Unknown',
+        status: statusStr,
+        color: color,
+        rawFlight: f // Pass the actual flight object for the Click interaction!
+      };
     });
   }, [displayAirport?.iata, activeTab, liveFlights]);
 
   if (!displayAirport || (!airport && !isAnimating)) return null;
 
   return (
-    <div 
+    <div
       onTouchStart={isMobile ? handleTouchStart : undefined}
       onTouchEnd={isMobile ? handleTouchEnd : undefined}
       style={isMobile ? {
-      position: 'fixed', zIndex: 1000, transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
-      bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', 
-      height: isExpanded ? '100vh' : '40vh',
-      backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', borderTop: '1px solid rgba(0, 243, 255, 0.25)',
-      borderRadius: isExpanded ? '0' : '24px 24px 0 0', display: 'flex', flexDirection: 'column', color: '#fff',
-      overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, sans-serif'
-    } : {
-      position: 'absolute', top: '76px', left: '16px',
-      transform: `translateX(${isOpen ? '0' : '-356px'})`,
-      transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-      zIndex: 1000, width: '340px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)',
-      border: '1px solid rgba(0, 243, 255, 0.25)', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-      display: 'flex', flexDirection: 'column', overflow: 'visible', fontFamily: '"Inter", -apple-system, sans-serif', color: '#fff'
-    }}>
+        position: 'fixed', zIndex: 1000, transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
+        bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%',
+        height: isExpanded ? '100vh' : '40vh',
+        backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', borderTop: '1px solid rgba(0, 243, 255, 0.25)',
+        borderRadius: isExpanded ? '0' : '24px 24px 0 0', display: 'flex', flexDirection: 'column', color: '#fff',
+        overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, sans-serif'
+      } : {
+        position: 'absolute', top: '76px', left: '16px',
+        transform: `translateX(${isOpen ? '0' : '-356px'})`,
+        transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+        zIndex: 1000, width: '340px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)',
+        border: '1px solid rgba(0, 243, 255, 0.25)', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+        display: 'flex', flexDirection: 'column', overflow: 'visible', fontFamily: '"Inter", -apple-system, sans-serif', color: '#fff'
+      }}>
       {/* SLIDE TOGGLE BUTTON Desktop */}
       {!isMobile && (
-        <div 
+        <div
           onClick={() => setIsOpen(!isOpen)}
           style={{
             position: 'absolute', right: '-36px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '140px',
@@ -230,9 +230,9 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
       )}
 
       {/* 1. PHOTO AND X BUTTON */}
-      <div style={{ 
-        height: '180px', 
-        width: '100%', 
+      <div style={{
+        height: '180px',
+        width: '100%',
         backgroundColor: '#2A2B30',
         backgroundImage: `url("${getAirportImage(displayAirport.iata)}")`,
         backgroundSize: 'cover',
@@ -277,49 +277,49 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
         </div>
 
         {/* HIGH-TECH MINIATURE RADAR SWEEP WITH LIVE TARGETS */}
-        <div style={{ 
-          position: 'relative', width: '100%', height: '180px', backgroundColor: 'rgba(10,12,18,0.8)', 
-          borderRadius: '8px', border: '1px solid rgba(0, 243, 255, 0.2)', overflow: 'hidden', 
+        <div style={{
+          position: 'relative', width: '100%', height: '180px', backgroundColor: 'rgba(10,12,18,0.8)',
+          borderRadius: '8px', border: '1px solid rgba(0, 243, 255, 0.2)', overflow: 'hidden',
           boxShadow: 'inset 0 0 20px rgba(0,243,255,0.05)'
         }}>
-           {/* ZERO ANCHOR SYSTEM */}
-           <div style={{ position: 'absolute', top: '50%', left: '50%' }}>
-             {/* Static ground mappings */}
-             <div style={{ position: 'absolute', width: '280px', height: '280px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.05)', transform: 'translate(-50%, -50%)' }} />
-             <div style={{ position: 'absolute', width: '140px', height: '140px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.15)', transform: 'translate(-50%, -50%)' }} />
-             <div style={{ position: 'absolute', width: '70px', height: '70px', borderRadius: '50%', border: '1px dashed rgba(0, 243, 255, 0.25)', transform: 'translate(-50%, -50%)' }} />
-             
-             {/* Center Crosshairs */}
-             <div style={{ position: 'absolute', width: '1px', height: '180px', backgroundColor: 'rgba(0,243,255,0.1)', transform: 'translate(-50%, -50%)' }} />
-             <div style={{ position: 'absolute', height: '1px', width: '280px', backgroundColor: 'rgba(0,243,255,0.1)', transform: 'translate(-50%, -50%)' }} />
+          {/* ZERO ANCHOR SYSTEM */}
+          <div style={{ position: 'absolute', top: '50%', left: '50%' }}>
+            {/* Static ground mappings */}
+            <div style={{ position: 'absolute', width: '280px', height: '280px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.05)', transform: 'translate(-50%, -50%)' }} />
+            <div style={{ position: 'absolute', width: '140px', height: '140px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.15)', transform: 'translate(-50%, -50%)' }} />
+            <div style={{ position: 'absolute', width: '70px', height: '70px', borderRadius: '50%', border: '1px dashed rgba(0, 243, 255, 0.25)', transform: 'translate(-50%, -50%)' }} />
 
-             {/* Center Tracking Node (Airport Base) */}
-             <div style={{ position: 'absolute', width: '6px', height: '6px', backgroundColor: '#fff', borderRadius: '50%', boxShadow: '0 0 10px #fff, 0 0 20px #00f3ff', transform: 'translate(-50%, -50%)', zIndex: 20 }} />
-             
-             {/* Real-time Peripheral Threats/Traffic */}
-             {localTraffic.map((t, idx) => (
-               <div key={idx} style={{
-                  position: 'absolute', top: t.y, left: t.x, width: '4px', height: '4px',
-                  backgroundColor: t.isArriving ? '#10B981' : (t.isClimbing ? '#F59E0B' : '#00f3ff'), borderRadius: '50%',
-                  boxShadow: `0 0 8px ${t.isArriving ? '#10B981' : (t.isClimbing ? '#F59E0B' : '#00f3ff')}`, transform: 'translate(-50%, -50%)', zIndex: 30
-               }} title={`${t.callsign} | ${Math.round(t.dist * 60)} NM`} >
-                  <div style={{ position: 'absolute', width: '10px', height: '1px', background: 'rgba(255,255,255,0.4)', top: '1px', left: '1px', transform: `rotate(${t.heading - 90}deg)`, transformOrigin: '0 0' }} />
-               </div>
-             ))}
+            {/* Center Crosshairs */}
+            <div style={{ position: 'absolute', width: '1px', height: '180px', backgroundColor: 'rgba(0,243,255,0.1)', transform: 'translate(-50%, -50%)' }} />
+            <div style={{ position: 'absolute', height: '1px', width: '280px', backgroundColor: 'rgba(0,243,255,0.1)', transform: 'translate(-50%, -50%)' }} />
 
-             {/* Advanced Conic Sweep Render */}
-             <div style={{
-               position: 'absolute', width: '400px', height: '400px', borderRadius: '50%',
-               background: 'conic-gradient(from 0deg, transparent 75%, rgba(0, 243, 255, 0.2) 99%, rgba(0, 243, 255, 0.9) 100%)',
-               animation: 'panelRadarSpin 2.5s linear infinite', zIndex: 15, pointerEvents: 'none',
-               transformOrigin: '50% 50%'
-             }} />
-           </div>
+            {/* Center Tracking Node (Airport Base) */}
+            <div style={{ position: 'absolute', width: '6px', height: '6px', backgroundColor: '#fff', borderRadius: '50%', boxShadow: '0 0 10px #fff, 0 0 20px #00f3ff', transform: 'translate(-50%, -50%)', zIndex: 20 }} />
 
-           <div style={{ position: 'absolute', top: '8px', left: '10px', fontSize: '9px', color: '#00f3ff', fontWeight: 800, letterSpacing: '1px', zIndex: 40 }}>SECTOR SCAN: ACTIVE</div>
-           <div style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', zIndex: 40 }}>{localTraffic.length} TARGETS ACQUIRED</div>
-           
-           <style>{`
+            {/* Real-time Peripheral Threats/Traffic */}
+            {localTraffic.map((t, idx) => (
+              <div key={idx} style={{
+                position: 'absolute', top: t.y, left: t.x, width: '4px', height: '4px',
+                backgroundColor: t.isArriving ? '#10B981' : (t.isClimbing ? '#F59E0B' : '#00f3ff'), borderRadius: '50%',
+                boxShadow: `0 0 8px ${t.isArriving ? '#10B981' : (t.isClimbing ? '#F59E0B' : '#00f3ff')}`, transform: 'translate(-50%, -50%)', zIndex: 30
+              }} title={`${t.callsign} | ${Math.round(t.dist * 60)} NM`} >
+                <div style={{ position: 'absolute', width: '10px', height: '1px', background: 'rgba(255,255,255,0.4)', top: '1px', left: '1px', transform: `rotate(${t.heading - 90}deg)`, transformOrigin: '0 0' }} />
+              </div>
+            ))}
+
+            {/* Advanced Conic Sweep Render */}
+            <div style={{
+              position: 'absolute', width: '400px', height: '400px', borderRadius: '50%',
+              background: 'conic-gradient(from 0deg, transparent 75%, rgba(0, 243, 255, 0.2) 99%, rgba(0, 243, 255, 0.9) 100%)',
+              animation: 'panelRadarSpin 2.5s linear infinite', zIndex: 15, pointerEvents: 'none',
+              transformOrigin: '50% 50%'
+            }} />
+          </div>
+
+          <div style={{ position: 'absolute', top: '8px', left: '10px', fontSize: '9px', color: '#00f3ff', fontWeight: 800, letterSpacing: '1px', zIndex: 40 }}>SECTOR SCAN: ACTIVE</div>
+          <div style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', zIndex: 40 }}>{localTraffic.length} TARGETS ACQUIRED</div>
+
+          <style>{`
              @keyframes panelRadarSpin {
                0% { transform: translate(-50%, -50%) rotate(0deg); }
                100% { transform: translate(-50%, -50%) rotate(360deg); }
@@ -330,7 +330,7 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
 
       {/* 3. TABS (Departures / Arrivals) */}
       <div style={{ display: 'flex', borderBottom: '1px solid rgba(47, 49, 54, 0.6)', backgroundColor: 'rgba(42, 43, 48, 0.4)' }}>
-        <button 
+        <button
           onClick={() => setActiveTab('arrivals')}
           style={{
             flex: 1, padding: '12px', border: 'none', backgroundColor: 'transparent',
@@ -342,7 +342,7 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
         >
           🛬 Arrivals
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('departures')}
           style={{
             flex: 1, padding: '12px', border: 'none', backgroundColor: 'transparent',
@@ -371,12 +371,12 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
               No active tracker targets detected on this sector.
             </div>
           ) : flightsData.slice(0, 50).map((f, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               onClick={() => onFlightClick && onFlightClick(f.rawFlight)}
-              style={{ 
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                padding: '12px 10px', marginBottom: '8px', 
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 10px', marginBottom: '8px',
                 backgroundColor: 'rgba(42, 43, 48, 0.4)', borderRadius: '6px',
                 border: '1px solid rgba(54, 57, 63, 0.4)',
                 cursor: 'pointer',
@@ -392,11 +392,11 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
                 </div>
                 {f.isDelayed && <div style={{ fontSize: '9px', color: '#EF4444', fontWeight: 700 }}>LATE</div>}
               </div>
-              
+
               {/* FLIGHT/AIRLINE & ROUTE */}
               <div style={{ flex: 1, marginLeft: '12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <div style={{ fontSize: '10px', color: '#8E9297', fontWeight: 600 }}>
-                   {f.rawFlight.origin_iata || '???'} <span style={{ color: '#00f3ff', margin: '0 2px' }}>→</span> {f.rawFlight.dest_iata || '???'}
+                  {f.rawFlight.origin_iata || '???'} <span style={{ color: '#00f3ff', margin: '0 2px' }}>→</span> {f.rawFlight.dest_iata || '???'}
                 </div>
                 <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>{f.flight}</div>
                 <div style={{ fontSize: '10px', color: '#8E9297', textTransform: 'uppercase' }}>{f.airline}</div>
@@ -405,22 +405,22 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
               {/* STATUS DOT */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '4px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: f.color, boxShadow: `0 0 6px ${f.color}` }}></div>
-                   <div style={{ fontSize: '11px', fontWeight: 700, color: f.color }}>{f.status}</div>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: f.color, boxShadow: `0 0 6px ${f.color}` }}></div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: f.color }}>{f.status}</div>
                 </div>
                 <div style={{ fontSize: '9px', color: '#8E9297', fontWeight: 500 }}>
-                   {f.rawFlight.baro_altitude ? `${Math.round(f.rawFlight.baro_altitude * 3.28084)} ft` : 'Ground'}
+                  {f.rawFlight.baro_altitude ? `${Math.round(f.rawFlight.baro_altitude * 3.28084)} ft` : 'Ground'}
                 </div>
               </div>
             </div>
           ))}
-          
+
         </div>
 
         {/* METRICS (Coordinates etc) */}
         <div style={{ padding: '16px', borderTop: '1px solid rgba(47, 49, 54, 0.6)', backgroundColor: 'transparent' }}>
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>Airport Metrics</div>
-          
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: '10px', color: '#8E9297', textTransform: 'uppercase', marginBottom: '2px' }}>Latitude</span>

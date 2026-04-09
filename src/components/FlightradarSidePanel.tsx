@@ -56,7 +56,7 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
       setIsExpanded(false); // Reset to partial view natively first
       // Wait for globe tracking pan to finish before showing details safely explicitly smartly 
       if (isMobile) {
-        setTimeout(() => setIsOpen(true), 4000); 
+        setTimeout(() => setIsOpen(true), 7000); 
       } else {
         requestAnimationFrame(() => requestAnimationFrame(() => setIsOpen(true)));
       }
