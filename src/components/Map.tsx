@@ -801,6 +801,7 @@ export default function Map() {
       {/* LEFT PANELS (Mutually exclusive) */}
       <FlightradarSidePanel
         flight={selectedFlight}
+        liveFlights={networkFlights}
         onClose={() => setSelectedFlightId(null)}
         onPointClick={(lat, lon, iata) => {
           // Temporarily pause the 10s auto-follow tracking mechanism for a lavish 15 seconds to let the user explore the airport
@@ -853,39 +854,42 @@ export default function Map() {
           e.currentTarget.releasePointerCapture(e.pointerId);
           e.currentTarget.style.cursor = 'grab';
         }}
+        onTouchStart={(e) => {
+          const touch = e.touches[0];
+          zoomDragRef.current = { isDragging: true, startX: touch.clientX, startY: touch.clientY, initialBottom: zoomPos.bottom, initialRight: zoomPos.right };
+        }}
+        onTouchMove={(e) => {
+          if (!zoomDragRef.current.isDragging) return;
+          const touch = e.touches[0];
+          const dy = touch.clientY - zoomDragRef.current.startY;
+          const dx = touch.clientX - zoomDragRef.current.startX;
+          setZoomPos({
+            bottom: zoomDragRef.current.initialBottom - dy,
+            right: zoomDragRef.current.initialRight - dx
+          });
+        }}
+        onTouchEnd={() => {
+          zoomDragRef.current.isDragging = false;
+        }}
         // Prevent map interaction while dragging zoom
         onPointerLeave={(e) => { if(zoomDragRef.current.isDragging) e.stopPropagation(); }}
-        style={isMobile ? {
-        position: 'absolute',
-        bottom: `${zoomPos.bottom}px`,
-        right: `${zoomPos.right}px`,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        zIndex: 1000,
-        backgroundColor: 'rgba(10, 15, 30, 0.45)', // Glassmorphism Core
-        borderRadius: '12px', // Smoother chassis
-        padding: '8px',
-        border: '1px solid rgba(0, 243, 255, 0.25)', // Cyber neon edge
-        boxShadow: '0 8px 30px rgba(0,0,0,0.6), inset 0 0 12px rgba(0,243,255,0.1)', // Complex volumetric depth
-        backdropFilter: 'blur(24px) saturate(150%)', // Multi-billion dollar glass rendering
-        cursor: 'grab',
-        touchAction: 'none' // Essential to stop natural page scrolling while moving the HUD
-      } : {
-        position: 'absolute',
-        bottom: '24px',
-        right: '340px', // Right-aligned clearing the desktop right panel naturally
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        zIndex: 1000,
-        backgroundColor: 'rgba(10, 15, 30, 0.45)',
-        borderRadius: '12px',
-        padding: '8px',
-        border: '1px solid rgba(0, 243, 255, 0.25)',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.6), inset 0 0 12px rgba(0,243,255,0.1)',
-        backdropFilter: 'blur(24px) saturate(150%)'
-      }}>
+        style={{
+          position: 'absolute',
+          bottom: `${zoomPos.bottom}px`,
+          right: `${zoomPos.right}px`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '6px',
+          zIndex: 1000,
+          backgroundColor: 'rgba(10, 15, 30, 0.45)', // Glassmorphism Core
+          borderRadius: '12px', // Smoother chassis
+          padding: '8px',
+          border: '1px solid rgba(0, 243, 255, 0.25)', // Cyber neon edge
+          boxShadow: '0 8px 30px rgba(0,0,0,0.6), inset 0 0 12px rgba(0,243,255,0.1)', // Complex volumetric depth
+          backdropFilter: 'blur(24px) saturate(150%)', // Multi-billion dollar glass rendering
+          cursor: 'grab',
+          touchAction: 'none' // Essential to stop natural page scrolling while moving the HUD
+        }}>
         <button
           onClick={(e) => handleTrackLocation()}
           onPointerDown={(e) => e.stopPropagation()}
@@ -1043,7 +1047,7 @@ export default function Map() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          padding: '0 24px 8px 24px',
+          padding: '0 24px 20px 24px', // Increased bottom padding to lift it heavily off the bottom screen edge
           zIndex: 900,
           transition: 'height 0.3s ease, background 0.3s ease'
         }}>
