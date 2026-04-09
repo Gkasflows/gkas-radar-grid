@@ -209,7 +209,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
                 <div 
                   onClick={() => {
                     onFlightClick(f);
-                    if (isMobile) setIsOpen(false);
+                    if (window.innerWidth < 768) handleToggle(false);
                   }}
                   style={{
                     height: '100%',
@@ -241,7 +241,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
                 <div 
                   onClick={() => {
                     onAirportClick(a);
-                    if (isMobile) setIsOpen(false);
+                    if (window.innerWidth < 768) handleToggle(false);
                   }}
                   style={{
                     height: '100%',
