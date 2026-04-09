@@ -811,6 +811,8 @@ export default function Map() {
         onReset={handleMasterReset}
         globalAirports={globalAirports}
         globalFlights={networkFlights}
+        onFlightSelect={handleFlyToFlight}
+        onAirportSelect={handleFlyToAirport}
       />
 
       {/* LEFT PANELS (Mutually exclusive) */}

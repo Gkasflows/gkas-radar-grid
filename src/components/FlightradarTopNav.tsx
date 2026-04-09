@@ -9,9 +9,11 @@ interface FlightradarTopNavProps {
   onReset: () => void;
   globalAirports?: any[];
   globalFlights?: any[];
+  onFlightSelect?: (flight: any) => void;
+  onAirportSelect?: (airport: any) => void;
 }
 
-export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports, globalFlights }: FlightradarTopNavProps) {
+export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports, globalFlights, onFlightSelect, onAirportSelect }: FlightradarTopNavProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -49,10 +51,17 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
     localStorage.setItem('gkas_recent_searches', JSON.stringify(newSearches));
   };
 
-  const handleSelect = (val: string) => {
+  const handleSelect = (val: string, type?: string, rawData?: any) => {
     onSearch(val);
     handleSaveSearch(val);
     setShowDropdown(false);
+    inputRef.current?.blur();
+    // Directly trigger fly-to for flights and airports
+    if (type === 'flight' && rawData && onFlightSelect) {
+      onFlightSelect(rawData);
+    } else if (type === 'airport' && rawData && onAirportSelect) {
+      onAirportSelect(rawData);
+    }
   };
 
   const handleDeleteSearch = (e: React.MouseEvent, target: string) => {
@@ -117,14 +126,14 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
     const ports = (globalAirports || [])
       .filter(a => a.name?.toLowerCase().includes(q) || a.city?.toLowerCase().includes(q) || a.iata?.toLowerCase().includes(q) || a.country?.toLowerCase().includes(q))
       .slice(0, 3)
-      .map(a => ({ type: 'airport', title: `${a.city || a.name || 'Unknown'} (${a.iata || 'UNK'})`, subtitle: a.country || a.name, icon: '📍', searchValue: a.iata || a.city }));
+      .map(a => ({ type: 'airport', title: `${a.city || a.name || 'Unknown'} (${a.iata || 'UNK'})`, subtitle: a.country || a.name, icon: '📍', searchValue: a.iata || a.city, raw: a }));
     results.push(...ports);
 
     // Live Flights Matching
     const flights = (globalFlights || [])
       .filter(f => f.callsign?.toLowerCase().includes(q) || f.airline?.toLowerCase().includes(q) || f.icao24?.toLowerCase().includes(q))
       .slice(0, 3)
-      .map(f => ({ type: 'flight', title: `Flight ${f.callsign || f.icao24}`, subtitle: `${f.origin || 'Unknown'} → ${f.destination || 'Unknown'}`, icon: '✈️', searchValue: f.callsign || f.icao24 }));
+      .map(f => ({ type: 'flight', title: `Flight ${f.callsign || f.icao24}`, subtitle: `${f.origin || 'Unknown'} → ${f.destination || 'Unknown'}`, icon: '✈️', searchValue: f.callsign || f.icao24, raw: f }));
     results.push(...flights);
       
     return results;
@@ -353,7 +362,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
                 overflow: 'hidden', zIndex: 1100, display: 'flex', flexDirection: 'column'
              }}>
                 {searchQuery && allSuggestions.length > 0 && allSuggestions.map((s, idx) => (
-                   <div key={idx} onClick={() => handleSelect(s.searchValue)} style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'background 0.2s', ...(s.type === 'hq' ? {color: '#00f3ff'} : {color: '#ccc'}) }}>
+                   <div key={idx} onClick={() => handleSelect(s.searchValue, s.type, s.raw)} style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'background 0.2s', ...(s.type === 'hq' ? {color: '#00f3ff'} : {color: '#ccc'}) }}>
                       <div style={{ display: 'flex', alignItems: 'center', fontSize: '13px', fontWeight: 600 }}>
                         <span style={{ marginRight: '6px' }}>{s.icon}</span> {s.title}
                       </div>
