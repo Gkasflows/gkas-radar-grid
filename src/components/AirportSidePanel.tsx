@@ -198,9 +198,9 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
         </div>
       </div>
 
-      {/* 2. AIRPORT INFO */}
-      <div style={{ padding: '16px', borderBottom: '1px solid rgba(47, 49, 54, 0.6)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {/* 2. AIRPORT INFO & RADAR */}
+      <div style={{ padding: '16px', borderBottom: '1px solid rgba(47, 49, 54, 0.6)', backgroundColor: '#1A1D24' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
           <div style={{ width: '48px', height: '48px', backgroundColor: 'rgba(42, 43, 48, 0.6)', borderRadius: '8px', border: '1px solid rgba(54, 57, 63, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: '#00f3ff' }}>
             {displayAirport.iata}
           </div>
@@ -208,6 +208,45 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
             <div style={{ fontSize: '16px', fontWeight: 700 }}>{displayAirport.city}</div>
             <div style={{ fontSize: '12px', color: '#8E9297', fontWeight: 500 }}>{displayAirport.country}</div>
           </div>
+        </div>
+
+        {/* HIGH-TECH MINIATURE RADAR SWEEP */}
+        <div style={{ 
+          position: 'relative', width: '100%', height: '140px', backgroundColor: 'rgba(0,0,0,0.4)', 
+          borderRadius: '8px', border: '1px solid rgba(0, 243, 255, 0.1)', overflow: 'hidden', 
+          display: 'flex', alignItems: 'center', justifyContent: 'center' 
+        }}>
+           {/* Static bounds */}
+           <div style={{ position: 'absolute', width: '280px', height: '280px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.05)' }} />
+           <div style={{ position: 'absolute', width: '180px', height: '180px', borderRadius: '50%', border: '1px dashed rgba(0, 243, 255, 0.1)' }} />
+           <div style={{ position: 'absolute', width: '90px', height: '90px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.2)' }} />
+           
+           {/* Crosshairs */}
+           <div style={{ position: 'absolute', width: '1px', height: '100%', backgroundColor: 'rgba(0,243,255,0.1)' }} />
+           <div style={{ position: 'absolute', height: '1px', width: '100%', backgroundColor: 'rgba(0,243,255,0.1)' }} />
+
+           {/* Center Airport blip */}
+           <div style={{ position: 'absolute', width: '6px', height: '6px', backgroundColor: '#fff', borderRadius: '50%', boxShadow: '0 0 10px #fff, 0 0 20px #00f3ff' }} />
+
+           {/* Sweeping Cone */}
+           <div style={{
+             position: 'absolute',
+             width: '400px',
+             height: '400px',
+             borderRadius: '50%',
+             background: 'conic-gradient(from 0deg, transparent 70%, rgba(0, 243, 255, 0.15) 95%, rgba(0, 243, 255, 0.8) 100%)',
+             animation: 'panelRadarSpin 2.5s linear infinite',
+           }} />
+
+           <div style={{ position: 'absolute', top: '8px', left: '10px', fontSize: '9px', color: '#00f3ff', fontWeight: 800, letterSpacing: '1px' }}>SECTOR SCAN: ACTIVE</div>
+           <div style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>ATC LOCK</div>
+           
+           <style>{`
+             @keyframes panelRadarSpin {
+               0% { transform: rotate(0deg); }
+               100% { transform: rotate(360deg); }
+             }
+           `}</style>
         </div>
       </div>
 
