@@ -202,24 +202,29 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
       } as LiveFlight;
     });
 
-    let finalFlights = flights;
+    // 🌐 Continuous Retention Vector Merge (CRVM) 🌐
+    // OpenSky free API frequently drops random large global regions (e.g. from 12,000 planes dropping randomly to 2,000) 
+    // to gracefully rate-limit bandwidth. Instead of planes spontaneously blipping out of existence from the Map,
+    // this engine perpetually stitches missing planes dynamically together.
+    const persistentMap = new Map<string, LiveFlight>();
+    const NOW = Date.now();
 
-    // Advanced Anomaly/Throttling Detection Array Guard
-    // OpenSky periodically rate-limits APIs gracefully by returning random regional subsets (1900 flights instead of 11,000).
-    // If payload crashes by >25% instantly, we logically assume a temporary throttle block. 
-    // We flawlessly merge the 1900 live updates INTO the master 11,000 global array so planes NEVER disappear visually!
-    if (lastSuccessfulFlights.length > 3000 && flights.length < (lastSuccessfulFlights.length * 0.75)) {
-      console.warn(`[GKASFLOWS FlightService]: OpenSky throttle anomaly detected (Received ${flights.length} flights, expected ~${lastSuccessfulFlights.length}). Engaging Auto-Merge rescue protocol.`);
-      
-      const persistentMap = new Map<string, LiveFlight>();
-      // 1. Rebuild the frozen massive 11,000 global planes grid locking their exact last-known velocity vectors natively
-      lastSuccessfulFlights.forEach(f => persistentMap.set(f.icao24, f));
-      
-      // 2. Aggressively smash the newly-fetched ~1900 highly-accurate coordinate updates over them!
-      flights.forEach(f => persistentMap.set(f.icao24, f));
-      
-      finalFlights = Array.from(persistentMap.values());
-    }
+    // 1. Load the frozen massive 11,000+ global aircraft grid from the last successful frame
+    lastSuccessfulFlights.forEach(f => {
+       // Gracefully let planes mathematically fade out from UI if OpenSky fundamentally drops their transponder signals for over 90 seconds (1.5 mins)
+       const lastSeen = (f as any)._lastSeen || NOW;
+       if (NOW - lastSeen > 90000) return; 
+       
+       persistentMap.set(f.icao24, f);
+    });
+
+    // 2. Aggressively smash the newly-fetched highly-accurate API coordinate updates over them, and immediately sync their seen timer to exactly NOW
+    flights.forEach(f => {
+       (f as any)._lastSeen = NOW;
+       persistentMap.set(f.icao24, f);
+    });
+
+    const finalFlights = Array.from(persistentMap.values());
 
     if (finalFlights.length > 0) {
       lastSuccessfulFlights = finalFlights; 
