@@ -94,9 +94,9 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
     .map(b => {
        const rPix = (b.dist / MAX_DEG) * (RADAR_SIZE / 2);
        const angle = Math.atan2(b.dLon, b.dLat); // Rads from true North
-       // + RADAR_SIZE/2 centers it
-       const x = (RADAR_SIZE / 2) + Math.sin(angle) * rPix;
-       const y = (RADAR_SIZE / 2) - Math.cos(angle) * rPix;
+       // Math center is 0,0 since we anchor at top:50% left:50%
+       const x = Math.sin(angle) * rPix;
+       const y = -Math.cos(angle) * rPix;
        return { x, y, callsign: b.f.callsign || b.f.icao24, heading: b.f.true_track || 0, isClimbing: (b.f.vertical_rate||0) > 0, dist: b.dist, isArriving: b.f.dest_iata === displayAirport.iata };
     });
   }, [displayAirport, liveFlights]);
@@ -241,50 +241,51 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
 
         {/* HIGH-TECH MINIATURE RADAR SWEEP WITH LIVE TARGETS */}
         <div style={{ 
-          position: 'relative', width: '100%', height: '140px', backgroundColor: 'rgba(10,12,18,0.8)', 
+          position: 'relative', width: '100%', height: '180px', backgroundColor: 'rgba(10,12,18,0.8)', 
           borderRadius: '8px', border: '1px solid rgba(0, 243, 255, 0.2)', overflow: 'hidden', 
-          display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 20px rgba(0,243,255,0.05)'
+          boxShadow: 'inset 0 0 20px rgba(0,243,255,0.05)'
         }}>
-           {/* Static ground mappings */}
-           <div style={{ position: 'absolute', width: '280px', height: '280px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.05)' }} />
-           <div style={{ position: 'absolute', width: '140px', height: '140px', borderRadius: '50%', border: '1px dashed rgba(0, 243, 255, 0.15)' }} />
-           <div style={{ position: 'absolute', width: '70px', height: '70px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.2)' }} />
-           
-           {/* Center Crosshairs */}
-           <div style={{ position: 'absolute', width: '1px', height: '100%', backgroundColor: 'rgba(0,243,255,0.1)' }} />
-           <div style={{ position: 'absolute', height: '1px', width: '100%', backgroundColor: 'rgba(0,243,255,0.1)' }} />
+           {/* ZERO ANCHOR SYSTEM */}
+           <div style={{ position: 'absolute', top: '50%', left: '50%' }}>
+             {/* Static ground mappings */}
+             <div style={{ position: 'absolute', width: '280px', height: '280px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.05)', transform: 'translate(-50%, -50%)' }} />
+             <div style={{ position: 'absolute', width: '140px', height: '140px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.15)', transform: 'translate(-50%, -50%)' }} />
+             <div style={{ position: 'absolute', width: '70px', height: '70px', borderRadius: '50%', border: '1px dashed rgba(0, 243, 255, 0.25)', transform: 'translate(-50%, -50%)' }} />
+             
+             {/* Center Crosshairs */}
+             <div style={{ position: 'absolute', width: '1px', height: '180px', backgroundColor: 'rgba(0,243,255,0.1)', transform: 'translate(-50%, -50%)' }} />
+             <div style={{ position: 'absolute', height: '1px', width: '280px', backgroundColor: 'rgba(0,243,255,0.1)', transform: 'translate(-50%, -50%)' }} />
 
-           {/* Relative Live Target Map */}
-           <div style={{ position: 'absolute', width: '140px', height: '140px', zIndex: 10 }}>
-               {/* Center Tracking Node (Airport Base) */}
-               <div style={{ position: 'absolute', top: '70px', left: '70px', width: '6px', height: '6px', backgroundColor: '#fff', borderRadius: '50%', boxShadow: '0 0 10px #fff, 0 0 20px #00f3ff', transform: 'translate(-50%, -50%)', zIndex: 20 }} />
-               
-               {/* Real-time Peripheral Threats/Traffic */}
-               {localTraffic.map((t, idx) => (
-                 <div key={idx} style={{
-                    position: 'absolute', top: t.y, left: t.x, width: '3px', height: '3px',
-                    backgroundColor: t.isArriving ? '#10B981' : (t.isClimbing ? '#F59E0B' : '#00f3ff'), borderRadius: '50%',
-                    boxShadow: `0 0 6px ${t.isArriving ? '#10B981' : (t.isClimbing ? '#F59E0B' : '#00f3ff')}`, transform: 'translate(-50%, -50%)'
-                 }} title={`${t.callsign} | ${Math.round(t.dist * 60)} NM`} >
-                    <div style={{ position: 'absolute', width: '8px', height: '1px', background: 'rgba(255,255,255,0.3)', top: '1px', left: '1px', transform: `rotate(${t.heading - 90}deg)`, transformOrigin: '0 0' }} />
-                 </div>
-               ))}
+             {/* Center Tracking Node (Airport Base) */}
+             <div style={{ position: 'absolute', width: '6px', height: '6px', backgroundColor: '#fff', borderRadius: '50%', boxShadow: '0 0 10px #fff, 0 0 20px #00f3ff', transform: 'translate(-50%, -50%)', zIndex: 20 }} />
+             
+             {/* Real-time Peripheral Threats/Traffic */}
+             {localTraffic.map((t, idx) => (
+               <div key={idx} style={{
+                  position: 'absolute', top: t.y, left: t.x, width: '4px', height: '4px',
+                  backgroundColor: t.isArriving ? '#10B981' : (t.isClimbing ? '#F59E0B' : '#00f3ff'), borderRadius: '50%',
+                  boxShadow: `0 0 8px ${t.isArriving ? '#10B981' : (t.isClimbing ? '#F59E0B' : '#00f3ff')}`, transform: 'translate(-50%, -50%)', zIndex: 30
+               }} title={`${t.callsign} | ${Math.round(t.dist * 60)} NM`} >
+                  <div style={{ position: 'absolute', width: '10px', height: '1px', background: 'rgba(255,255,255,0.4)', top: '1px', left: '1px', transform: `rotate(${t.heading - 90}deg)`, transformOrigin: '0 0' }} />
+               </div>
+             ))}
+
+             {/* Advanced Conic Sweep Render */}
+             <div style={{
+               position: 'absolute', width: '400px', height: '400px', borderRadius: '50%',
+               background: 'conic-gradient(from 0deg, transparent 75%, rgba(0, 243, 255, 0.2) 99%, rgba(0, 243, 255, 0.9) 100%)',
+               animation: 'panelRadarSpin 2.5s linear infinite', zIndex: 15, pointerEvents: 'none',
+               transformOrigin: '50% 50%'
+             }} />
            </div>
 
-           {/* Advanced Conic Sweep Render */}
-           <div style={{
-             position: 'absolute', width: '400px', height: '400px', borderRadius: '50%',
-             background: 'conic-gradient(from 0deg, transparent 75%, rgba(0, 243, 255, 0.2) 99%, rgba(0, 243, 255, 0.9) 100%)',
-             animation: 'panelRadarSpin 2s linear infinite', zIndex: 15, pointerEvents: 'none'
-           }} />
-
-           <div style={{ position: 'absolute', top: '8px', left: '10px', fontSize: '9px', color: '#00f3ff', fontWeight: 800, letterSpacing: '1px', zIndex: 30 }}>SECTOR SCAN: ACTIVE</div>
-           <div style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', zIndex: 30 }}>{localTraffic.length} TARGETS ACQUIRED</div>
+           <div style={{ position: 'absolute', top: '8px', left: '10px', fontSize: '9px', color: '#00f3ff', fontWeight: 800, letterSpacing: '1px', zIndex: 40 }}>SECTOR SCAN: ACTIVE</div>
+           <div style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', zIndex: 40 }}>{localTraffic.length} TARGETS ACQUIRED</div>
            
            <style>{`
              @keyframes panelRadarSpin {
-               0% { transform: rotate(0deg); }
-               100% { transform: rotate(360deg); }
+               0% { transform: translate(-50%, -50%) rotate(0deg); }
+               100% { transform: translate(-50%, -50%) rotate(360deg); }
              }
            `}</style>
         </div>
