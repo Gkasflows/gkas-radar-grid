@@ -5,11 +5,12 @@ interface FlightradarSidePanelProps {
   flight: LiveFlight | null;
   onClose: () => void;
   onPointClick?: (lat: number, lon: number, iata: string) => void;
+  liveFlights?: LiveFlight[];
 }
 
 // Photo resolution algorithm relocated securely securely back to flightService.ts
 
-export default function FlightradarSidePanel({ flight, onClose, onPointClick }: FlightradarSidePanelProps) {
+export default function FlightradarSidePanel({ flight, onClose, onPointClick, liveFlights = [] }: FlightradarSidePanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -61,6 +62,35 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
   };
 
   const displayFlight = flight || cachedFlight;
+
+  // Tactical Radar Local Traffic Core Rendering Logic
+  const localTraffic = React.useMemo(() => {
+    if (!displayFlight || !displayFlight.latitude || !displayFlight.longitude) return [];
+    const MAX_DEG = 1.8; // ~ 108 Nautical Miles Radar Radius 
+    const RADAR_SIZE = 140; // Pixels
+    
+    // Sort array by actual ground-distance locally avoiding heavy haversine for 10,000 objects
+    const cLat = displayFlight.latitude, cLon = displayFlight.longitude;
+    const latCos = Math.cos(cLat * Math.PI / 180);
+    
+    return liveFlights.filter(f => f.icao24 !== displayFlight.icao24 && f.latitude && f.longitude).map(f => {
+       const dLat = f.latitude - cLat;
+       const dLon = (f.longitude - cLon) * latCos;
+       const dist = Math.sqrt(dLat*dLat + dLon*dLon);
+       return { f, dist, dLat, dLon };
+    })
+    .filter(b => b.dist < MAX_DEG)
+    .sort((a,b) => a.dist - b.dist)
+    .slice(0, 40) // Show up to 40 max targets on mini radar
+    .map(b => {
+       const rPix = (b.dist / MAX_DEG) * (RADAR_SIZE / 2);
+       const angle = Math.atan2(b.dLon, b.dLat); // Rads from true North
+       // + RADAR_SIZE/2 centers it
+       const x = (RADAR_SIZE / 2) + Math.sin(angle) * rPix;
+       const y = (RADAR_SIZE / 2) - Math.cos(angle) * rPix;
+       return { x, y, callsign: b.f.callsign || b.f.icao24, heading: b.f.true_track || 0, isClimbing: (b.f.vertical_rate||0) > 0, dist: b.dist };
+    });
+  }, [displayFlight, liveFlights]);
 
   // Fully unmount ONLY when no flight exists and the animation has completely finished
   if (!displayFlight || (!flight && !isAnimating)) return null;
@@ -217,36 +247,47 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick }: 
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
 
-            {/* HIGH-TECH MINIATURE RADAR SWEEP */}
+            {/* HIGH-TECH MINIATURE RADAR SWEEP WITH LIVE TARGETS */}
             <div style={{ 
-              position: 'relative', width: '100%', height: '140px', backgroundColor: 'rgba(0,0,0,0.4)', 
-              borderRadius: '8px', border: '1px solid rgba(0, 243, 255, 0.1)', overflow: 'hidden', 
-              display: 'flex', alignItems: 'center', justifyContent: 'center' 
+              position: 'relative', width: '100%', height: '140px', backgroundColor: 'rgba(10,12,18,0.8)', 
+              borderRadius: '8px', border: '1px solid rgba(0, 243, 255, 0.2)', overflow: 'hidden', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 20px rgba(0,243,255,0.05)'
             }}>
-               {/* Static bounds */}
+               {/* Static ground mappings */}
                <div style={{ position: 'absolute', width: '280px', height: '280px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.05)' }} />
-               <div style={{ position: 'absolute', width: '180px', height: '180px', borderRadius: '50%', border: '1px dashed rgba(0, 243, 255, 0.1)' }} />
-               <div style={{ position: 'absolute', width: '90px', height: '90px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.2)' }} />
+               <div style={{ position: 'absolute', width: '140px', height: '140px', borderRadius: '50%', border: '1px dashed rgba(0, 243, 255, 0.15)' }} />
+               <div style={{ position: 'absolute', width: '70px', height: '70px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.2)' }} />
                
-               {/* Crosshairs */}
+               {/* Center Crosshairs */}
                <div style={{ position: 'absolute', width: '1px', height: '100%', backgroundColor: 'rgba(0,243,255,0.1)' }} />
                <div style={{ position: 'absolute', height: '1px', width: '100%', backgroundColor: 'rgba(0,243,255,0.1)' }} />
 
-               {/* Center Plane blip */}
-               <div style={{ position: 'absolute', width: '6px', height: '6px', backgroundColor: '#fff', borderRadius: '50%', boxShadow: '0 0 10px #fff, 0 0 20px #00f3ff' }} />
+               {/* Relative Live Target Map */}
+               <div style={{ position: 'absolute', width: '140px', height: '140px', zIndex: 10 }}>
+                   {/* Center Tracking Node */}
+                   <div style={{ position: 'absolute', top: '70px', left: '70px', width: '6px', height: '6px', backgroundColor: '#fff', borderRadius: '50%', boxShadow: '0 0 10px #fff, 0 0 20px #00f3ff', transform: 'translate(-50%, -50%)', zIndex: 20 }} />
+                   
+                   {/* Real-time Peripheral Threats/Traffic */}
+                   {localTraffic.map((t, idx) => (
+                     <div key={idx} style={{
+                        position: 'absolute', top: t.y, left: t.x, width: '3px', height: '3px',
+                        backgroundColor: t.isClimbing ? '#F59E0B' : '#00f3ff', borderRadius: '50%',
+                        boxShadow: `0 0 6px ${t.isClimbing ? '#F59E0B' : '#00f3ff'}`, transform: 'translate(-50%, -50%)'
+                     }} title={`${t.callsign} | ${Math.round(t.dist * 60)} NM`} >
+                        <div style={{ position: 'absolute', width: '8px', height: '1px', background: 'rgba(255,255,255,0.3)', top: '1px', left: '1px', transform: `rotate(${t.heading - 90}deg)`, transformOrigin: '0 0' }} />
+                     </div>
+                   ))}
+               </div>
 
-               {/* Sweeping Cone */}
+               {/* Advanced Conic Sweep Render */}
                <div style={{
-                 position: 'absolute',
-                 width: '400px',
-                 height: '400px',
-                 borderRadius: '50%',
-                 background: 'conic-gradient(from 0deg, transparent 70%, rgba(0, 243, 255, 0.15) 95%, rgba(0, 243, 255, 0.8) 100%)',
-                 animation: 'panelRadarSpin 2.5s linear infinite',
+                 position: 'absolute', width: '400px', height: '400px', borderRadius: '50%',
+                 background: 'conic-gradient(from 0deg, transparent 75%, rgba(0, 243, 255, 0.2) 99%, rgba(0, 243, 255, 0.9) 100%)',
+                 animation: 'panelRadarSpin 2s linear infinite', zIndex: 15, pointerEvents: 'none'
                }} />
 
-               <div style={{ position: 'absolute', top: '8px', left: '10px', fontSize: '9px', color: '#00f3ff', fontWeight: 800, letterSpacing: '1px' }}>TACTICAL SCAN: ACTIVE</div>
-               <div style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>TARGET LOCK</div>
+               <div style={{ position: 'absolute', top: '8px', left: '10px', fontSize: '9px', color: '#00f3ff', fontWeight: 800, letterSpacing: '1px', zIndex: 30 }}>TACTICAL SCAN: ACTIVE</div>
+               <div style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace', zIndex: 30 }}>{localTraffic.length} TARGETS ACQUIRED</div>
                
                <style>{`
                  @keyframes panelRadarSpin {
