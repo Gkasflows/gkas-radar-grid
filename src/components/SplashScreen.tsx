@@ -74,10 +74,8 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
         transform: phase >= 1 ? 'translateY(0)' : 'translateY(15px)'
       }}>
         {/* The Beautiful Re-added Colorful Logo */}
-        <div style={{
-          fontSize: 'clamp(42px, 8vw, 76px)',
+        <div className="splash-title" style={{
           fontWeight: 900,
-          letterSpacing: '12px',
           color: '#ffffff',
           textShadow: '0 0 40px rgba(0,243,255,0.2), 0 0 80px rgba(0,243,255,0.1)',
           lineHeight: 1,
@@ -91,11 +89,8 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
         </div>
 
         {/* Smooth Clean Subtitle */}
-        <div style={{
-          marginTop: '20px',
-          fontSize: '12px',
+        <div className="splash-subtitle" style={{
           fontWeight: 600,
-          letterSpacing: '10px',
           color: 'rgba(255,255,255,0.5)',
           textTransform: 'uppercase',
           position: 'relative',
@@ -105,6 +100,26 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
       </div>
 
       <style>{`
+        .splash-title {
+          font-size: clamp(28px, 8vw, 76px);
+          letter-spacing: 12px;
+        }
+        .splash-subtitle {
+          margin-top: 20px;
+          font-size: 12px;
+          letter-spacing: 10px;
+        }
+        @media (max-width: 768px) {
+          .splash-title {
+            font-size: 32px !important;
+            letter-spacing: 4px !important;
+          }
+          .splash-subtitle {
+            margin-top: 12px !important;
+            font-size: 10px !important;
+            letter-spacing: 4px !important;
+          }
+        }
         @keyframes flyAcross {
           0% { left: -300px; }
           100% { left: calc(100vw + 300px); }
