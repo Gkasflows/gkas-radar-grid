@@ -18,6 +18,7 @@ interface RightPanelProps {
   selectedFlightId: string | null;
   selectedAirportIata: string | null;
   onToggle?: (isOpen: boolean) => void;
+  isPlaybackMode?: boolean;
 }
 // NATIVE VIRTUAL DOM SCROLL ENGINE (Zero External Dependencies)
 // Completely bypasses Next.js Turbopack transpilation failures while effortlessly handling 10,000+ items at 60 FPS.
@@ -49,7 +50,7 @@ const VirtualList = ({ items, itemHeight, renderItem }: { items: any[], itemHeig
   );
 };
 
-export default function FlightradarRightPanel({ flights, airports, onFlightClick, onAirportClick, selectedFlightId, selectedAirportIata, onToggle }: RightPanelProps) {
+export default function FlightradarRightPanel({ flights, airports, onFlightClick, onAirportClick, selectedFlightId, selectedAirportIata, onToggle, isPlaybackMode }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<'flights' | 'airports'>('flights');
   const [isMobile, setIsMobile] = useState(false);
 
@@ -124,7 +125,11 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
       `}</style>
 
       {/* MOBILE FLOATING BUTTON */}
-      <div className="right-panel-mobile">
+      <div className="right-panel-mobile" style={{ 
+         opacity: isPlaybackMode ? 0 : 1, 
+         pointerEvents: isPlaybackMode ? 'none' : 'auto', 
+         transition: 'opacity 0.4s ease' 
+      }}>
         {!isOpen && (
           <button 
             onClick={() => handleToggle(true)}
