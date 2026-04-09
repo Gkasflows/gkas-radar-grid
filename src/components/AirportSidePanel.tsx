@@ -33,6 +33,34 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
   const [touchStartY, setTouchStartY] = useState(0);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [realAirportPhoto, setRealAirportPhoto] = useState<string | null>(null);
+
+  // Fetch true exact airport image from Wikimedia API
+  useEffect(() => {
+    if (!airport) return;
+    
+    setRealAirportPhoto(null);
+    
+    // Construct search string like "Heathrow Airport London"
+    const searchStr = `${airport.name} Airport ${airport.city}`;
+    const url = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(searchStr)}&gsrlimit=1&prop=pageimages&pithumbsize=1000&format=json&origin=*`;
+    
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+         if (data && data.query && data.query.pages) {
+            const pages = data.query.pages;
+            const pageId = Object.keys(pages)[0];
+            if (pages[pageId] && pages[pageId].thumbnail) {
+               setRealAirportPhoto(pages[pageId].thumbnail.source);
+            }
+         }
+      })
+      .catch(err => {
+         console.warn("Wikimedia API Error:", err);
+      });
+  }, [airport?.iata]);
+
   useEffect(() => {
     setIsMobile(window.innerWidth < 768);
   }, []);
