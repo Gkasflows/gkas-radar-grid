@@ -92,6 +92,38 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
     });
   }, [displayFlight, liveFlights]);
 
+  // Route Progress Geodesic Engine
+  const progressPercentage = React.useMemo(() => {
+    if (!displayFlight || !displayFlight.origin_coords || !displayFlight.dest_coords || !displayFlight.latitude) return null;
+    const { lat: lat1, lon: lon1 } = displayFlight.origin_coords;
+    const { lat: lat2, lon: lon2 } = displayFlight.dest_coords;
+    const lat = displayFlight.latitude;
+    const lon = displayFlight.longitude;
+
+    // Haversine formula
+    const toRad = (v: number) => v * Math.PI / 180;
+    const getDist = (aLat: number, aLon: number, bLat: number, bLon: number) => {
+       const R = 6371; // km
+       const dLat = toRad(bLat - aLat);
+       const dLon = toRad(bLon - aLon);
+       const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*Math.sin(dLon/2)*Math.sin(dLon/2);
+       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    };
+
+    const totalDist = getDist(lat1, lon1, lat2, lon2);
+    if (totalDist < 5) return 0;
+    const currentDist = getDist(lat1, lon1, lat, lon);
+    
+    // Check if we are landing soon (distance to target might be better)
+    const distToTarget = getDist(lat, lon, lat2, lon2);
+    if (distToTarget < 10 && displayFlight.baro_altitude && displayFlight.baro_altitude < 1000) return 99;
+
+    let pct = (currentDist / totalDist) * 100;
+    if (pct < 1) pct = 1;
+    if (pct > 99) pct = 99;
+    return pct;
+  }, [displayFlight]);
+
   // Fully unmount ONLY when no flight exists and the animation has completely finished
   if (!displayFlight || (!flight && !isAnimating)) return null;
 
@@ -218,8 +250,24 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
           </div>
           
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 8px' }}>
-            <div style={{ flex: 1, height: '2px', backgroundColor: 'rgba(79, 84, 92, 0.6)', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: '#2A2B30', padding: '0 4px', fontSize: '10px', color: '#8E9297', borderRadius: '4px' }}>
+            <div style={{ flex: 1, height: '3px', backgroundColor: 'rgba(79, 84, 92, 0.4)', position: 'relative', borderRadius: '2px' }}>
+              {/* Filled progress bar */}
+              {progressPercentage !== null && (
+                <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${progressPercentage}%`, backgroundColor: '#00f3ff', borderRadius: '2px', boxShadow: '0 0 6px #00f3ff' }} />
+              )}
+              {/* Airplane icon placed exactly at progress % */}
+              <div style={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: progressPercentage !== null ? `${progressPercentage}%` : '50%', 
+                transform: 'translate(-50%, -50%)', 
+                backgroundColor: progressPercentage !== null ? 'transparent' : '#2A2B30', 
+                padding: '0 2px', 
+                fontSize: '12px', 
+                color: progressPercentage !== null ? '#00f3ff' : '#8E9297', 
+                borderRadius: '4px',
+                filter: progressPercentage !== null ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' : 'none'
+              }}>
                 ✈
               </div>
             </div>

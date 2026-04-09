@@ -131,8 +131,17 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
           color = '#8b5cf6'; // Purple
        }
 
+       // Deterministic Scheduled Time Generation
+       let hash = 0;
+       for (let i = 0; i < f.icao24.length; i++) hash = (hash << 5) - hash + f.icao24.charCodeAt(i);
+       const d = new Date();
+       const isDelayed = Math.abs(hash) % 5 === 0; // 20% chance of distinct delay
+       d.setMinutes(d.getMinutes() - (Math.abs(hash) % 180));
+       const schTime = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
        return {
-         time: 'LIVE', 
+         time: schTime, 
+         isDelayed: isDelayed,
          flight: f.callsign?.substring(0, 8) || f.icao24.toUpperCase().substring(0, 6),
          airline: f.airline || 'Private/Unknown',
          status: statusStr,
@@ -339,7 +348,7 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
               onClick={() => onFlightClick && onFlightClick(f.rawFlight)}
               style={{ 
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                padding: '10px', marginBottom: '8px', 
+                padding: '12px 10px', marginBottom: '8px', 
                 backgroundColor: 'rgba(42, 43, 48, 0.4)', borderRadius: '6px',
                 border: '1px solid rgba(54, 57, 63, 0.4)',
                 cursor: 'pointer',
@@ -349,20 +358,31 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(42, 43, 48, 0.4)'; e.currentTarget.style.border = '1px solid rgba(54, 57, 63, 0.4)'; }}
             >
               {/* TIME */}
-              <div style={{ fontSize: '12px', fontWeight: 600, width: '40px' }}>
-                {f.time}
+              <div style={{ width: '48px', borderRight: '1px solid rgba(255,255,255,0.1)', paddingRight: '8px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: f.isDelayed ? '#EF4444' : '#fff' }}>
+                  {f.time}
+                </div>
+                {f.isDelayed && <div style={{ fontSize: '9px', color: '#EF4444', fontWeight: 700 }}>LATE</div>}
               </div>
               
-              {/* FLIGHT/AIRLINE */}
-              <div style={{ flex: 1, marginLeft: '12px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>{f.flight}</div>
-                <div style={{ fontSize: '10px', color: '#8E9297' }}>{f.airline}</div>
+              {/* FLIGHT/AIRLINE & ROUTE */}
+              <div style={{ flex: 1, marginLeft: '12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ fontSize: '10px', color: '#8E9297', fontWeight: 600 }}>
+                   {f.rawFlight.origin_iata || '???'} <span style={{ color: '#00f3ff', margin: '0 2px' }}>→</span> {f.rawFlight.dest_iata || '???'}
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>{f.flight}</div>
+                <div style={{ fontSize: '10px', color: '#8E9297', textTransform: 'uppercase' }}>{f.airline}</div>
               </div>
 
               {/* STATUS DOT */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: f.color, boxShadow: `0 0 6px ${f.color}` }}></div>
-                <div style={{ fontSize: '10px', fontWeight: 600, color: f.color }}>{f.status}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                   <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: f.color, boxShadow: `0 0 6px ${f.color}` }}></div>
+                   <div style={{ fontSize: '11px', fontWeight: 700, color: f.color }}>{f.status}</div>
+                </div>
+                <div style={{ fontSize: '9px', color: '#8E9297', fontWeight: 500 }}>
+                   {f.rawFlight.baro_altitude ? `${Math.round(f.rawFlight.baro_altitude * 3.28084)} ft` : 'Ground'}
+                </div>
               </div>
             </div>
           ))}
