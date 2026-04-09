@@ -125,11 +125,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
       `}</style>
 
       {/* MOBILE FLOATING BUTTON */}
-      <div className="right-panel-mobile" style={{ 
-         opacity: isPlaybackMode ? 0 : 1, 
-         pointerEvents: isPlaybackMode ? 'none' : 'auto', 
-         transition: 'opacity 0.4s ease' 
-      }}>
+      <div className="right-panel-mobile">
         {!isOpen && (
           <button 
             onClick={() => handleToggle(true)}
@@ -138,7 +134,10 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
               backgroundColor: 'rgba(15, 23, 42, 0.95)', color: '#00f3ff', padding: '12px 24px', borderRadius: '9999px',
               display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
               zIndex: 950, fontWeight: 'bold', fontSize: '14px', border: '1px solid rgba(0, 243, 255, 0.3)', cursor: 'pointer',
-              backdropFilter: 'blur(8px)'
+              backdropFilter: 'blur(8px)',
+              opacity: isPlaybackMode ? 0 : 1,
+              pointerEvents: isPlaybackMode ? 'none' : 'auto',
+              transition: 'opacity 0.4s ease, transform 0.4s ease'
             }}
           >
             <span style={{ fontSize: '16px' }}>🗺️</span> Open Tracker List
