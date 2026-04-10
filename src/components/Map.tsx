@@ -268,7 +268,15 @@ export default function Map() {
         try {
           const cached = localStorage.getItem('gkas_flight_snapshot');
           if (cached && flights.length === 0) {
-            const parsed = JSON.parse(cached);
+            let parsed = JSON.parse(cached);
+            
+            // Re-inflate if compressed
+            if (parsed.length > 0 && Array.isArray(parsed[0])) {
+               parsed = parsed.map((c: any[]) => ({
+                 icao24: c[0], latitude: c[1], longitude: c[2], true_track: c[3], velocity: c[4], baro_altitude: c[5]
+               }));
+            }
+            
             setFlights(parsed);
             setNetworkFlights(parsed);
           }
@@ -288,7 +296,14 @@ export default function Map() {
         // Persist data quietly into browser memory for instant next load
         // On mobile, skip localStorage writes to reduce jank
         if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-          try { localStorage.setItem('gkas_flight_snapshot', JSON.stringify(data)); } catch(e) { console.warn("Cache too large"); }
+          try { 
+            // Vercel Limit strictly prevents saving 25,000 heavy objects in 5MB localStorage
+            // We heavily compress them into an explicit minimal scalar chunk exactly for 0-latency map rendering!
+            const denseStorage = data.map(f => ([
+              f.icao24, f.latitude, f.longitude, Math.round(f.true_track || 0), Math.round(f.velocity || 0), Math.round(f.baro_altitude || 0)
+            ]));
+            localStorage.setItem('gkas_flight_snapshot', JSON.stringify(denseStorage)); 
+          } catch(e) { console.warn("Cache too large"); }
         }
       }
     };
