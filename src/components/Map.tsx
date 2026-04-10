@@ -921,6 +921,16 @@ export default function Map() {
           cursor: 'grab',
           touchAction: 'none' // Essential to stop natural page scrolling while moving the HUD
         }}>
+        
+        {/* DRAG GRIP HANDLE */}
+        <div style={{
+           width: '100%', height: '14px',
+           display: 'flex', justifyContent: 'center', alignItems: 'center',
+           cursor: 'grab', opacity: 0.5, marginBottom: '2px'
+        }}>
+           <div style={{ width: '20px', height: '4px', borderRadius: '2px', backgroundColor: '#00f3ff' }}></div>
+        </div>
+
         <button
           onClick={(e) => handleTrackLocation()}
           onPointerDown={(e) => e.stopPropagation()}
