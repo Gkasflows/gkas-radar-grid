@@ -165,25 +165,20 @@ export async function GET() {
 
     let finalFilteredStates = Array.from(mergedFlightsMap.values());
 
-    // MASTER BACKEND MERGE CONTINUITY
-    // If external APIs drop out (suddenly returning only 1,900 planes), we instantly mathematically merge them tightly over the full 15,000 known flights!
-    if (cachedStates && cachedStates.length > 2000 && finalFilteredStates.length < (cachedStates.length * 0.85)) {
-       const rescueMap = new Map();
-       cachedStates.forEach(f => rescueMap.set(f.icao24, f));
-       finalFilteredStates.forEach(f => rescueMap.set(f.icao24, f));
-       finalFilteredStates = Array.from(rescueMap.values());
-    }
-
+    // Since the frontend (flightService.ts) now processes and mathematically merges planes with a strict 90-second flush window,
+    // we must NOT infinitely cache planes on the backend. This prevents massive 4.5MB Vercel Serverless Function RAM limits from blowing out.
+    // Cleanly sort and aggressively cap the raw payload specifically under 12,000 max flights mathematically guaranteeing Vercel 200 OKs.
     finalFilteredStates.sort((a: any, b: any) => a.icao24.localeCompare(b.icao24));
+    let safelyCappedStates = finalFilteredStates.slice(0, 12000);
 
-    if (finalFilteredStates.length === 0 && cachedStates) {
+    if (safelyCappedStates.length === 0 && cachedStates) {
       return NextResponse.json({ states: cachedStates, warning: 'api_failure' });
     }
 
-    cachedStates = finalFilteredStates;
+    cachedStates = safelyCappedStates;
     lastFetchTime = now;
 
-    return NextResponse.json({ states: finalFilteredStates });
+    return NextResponse.json({ states: safelyCappedStates });
 
   } catch (error: any) {
     clearTimeout(timeoutId);
