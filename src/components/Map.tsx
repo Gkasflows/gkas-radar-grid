@@ -784,6 +784,20 @@ export default function Map() {
           pointer-events: ${isRightPanelOpen ? 'none' : 'auto'} !important; 
           transform: translateY(${isRightPanelOpen ? '20px' : '0px'}) !important;
         }
+
+        /* Permanently DISABLE Playback on Mobile */
+        .desktop-only-playback {
+          display: none !important;
+        }
+
+        /* HARD-KILL the Tracker List Button when Playback is Open */
+        ${isPlaybackMode ? `
+          .right-panel-mobile button {
+             opacity: 0 !important;
+             pointer-events: none !important;
+             transform: translateY(50px) translateX(-50%) !important;
+          }
+        ` : ''}
       }
     `}</style>
     <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
@@ -1053,7 +1067,7 @@ export default function Map() {
 
       {/* GLOBAL PLAYBACK TIMELINE SLIDER */}
       {flightSnapshots.current.length > 1 && (
-        <div className="mobile-playback-hidden" style={{
+        <div className="mobile-playback-hidden desktop-only-playback" style={{
           position: 'absolute',
           bottom: isMobile ? '24px' : 0,
           left: 0,
