@@ -143,11 +143,36 @@ export default function Map() {
   const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLocationActive, setIsLocationActive] = useState(false);
-  const [isHeatmapActive, setIsHeatmapActive] = useState(false);
   const [radarPath, setRadarPath] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
   // GLOBAL PLAYBACK SYSTEM
+  const [isHeatmapActive, setIsHeatmapActive] = useState(true);
+
+  // GLOBAL AUDIO ENGINE
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleGlobalInteraction = () => {
+        const audioEl = document.getElementById('gkas_audio_player') as HTMLAudioElement;
+        if (audioEl && !isAudioPlaying) {
+          audioEl.volume = 0.4; // Soft background ambience volume
+          audioEl.play().then(() => setIsAudioPlaying(true)).catch(() => {});
+        }
+      };
+      
+      // Bind to any interaction to cleanly bypass strict browser autoplay limits
+      window.addEventListener('pointerdown', handleGlobalInteraction, { once: true });
+      window.addEventListener('keydown', handleGlobalInteraction, { once: true });
+      
+      return () => {
+        window.removeEventListener('pointerdown', handleGlobalInteraction);
+        window.removeEventListener('keydown', handleGlobalInteraction);
+      };
+    }
+  }, [isAudioPlaying]);
+
   const [isPlaybackMode, setIsPlaybackMode] = useState(false);
   const [playbackIndex, setPlaybackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -219,37 +244,6 @@ export default function Map() {
 
   const lastSelectedFlightId = useRef<string | null>(null);
   const isAnimatingRef = useRef<boolean>(false);
-
-  // 0. Invisible Audio Autoplay Bypass
-  // Modern browsers aggressively ban hardcoded 0-second autoplay. This invisible listener waits for the user's
-  // VERY FIRST interaction (a click anywhere on the globe) and effortlessly starts the ambient background music automatically!
-  useEffect(() => {
-    let hasAudioStarted = false;
-    const audio = new Audio('/ambient.mp3');
-    audio.loop = true;
-    audio.volume = 0.20; // 20% background cinematic ambient volume
-
-    const startAudio = () => {
-      if (hasAudioStarted) return;
-      hasAudioStarted = true;
-      audio.play().catch(e => console.warn("Waiting for secure browser audio lock..."));
-    };
-
-    // Explicitly attempt a 0-second immediate autoplay override jump!
-    // If the browser natively allows it, it starts instantly. If not, it falls safely to the click handler.
-    audio.play().then(() => {
-      hasAudioStarted = true;
-    }).catch(e => console.warn("0-Second Autoplay blocked. Falling back to mouse listener.", e));
-
-    window.addEventListener('mousedown', startAudio);
-    window.addEventListener('keydown', startAudio);
-    
-    return () => {
-      window.removeEventListener('mousedown', startAudio);
-      window.removeEventListener('keydown', startAudio);
-      audio.pause();
-    };
-  }, []);
 
   // 1. Initial Mount & Polling Interval (10 seconds to fetch from OpenSky heavily)
   useEffect(() => {
@@ -800,6 +794,10 @@ export default function Map() {
         ` : ''}
       }
     `}</style>
+
+    {/* MASTER GLOBAL AUDIO ENGAGEMENT */}
+    <audio id="gkas_audio_player" src="/sound.mp3" loop preload="auto" />
+
     <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
       <DeckGL
         views={new MapView({ id: 'map', repeat: true })}
