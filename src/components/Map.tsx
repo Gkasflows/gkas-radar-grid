@@ -147,7 +147,7 @@ export default function Map() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
   // GLOBAL PLAYBACK SYSTEM
-  const [isHeatmapActive, setIsHeatmapActive] = useState(true);
+  const [isHeatmapActive, setIsHeatmapActive] = useState(false);
 
   // GLOBAL AUDIO ENGINE
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -796,7 +796,7 @@ export default function Map() {
     `}</style>
 
     {/* MASTER GLOBAL AUDIO ENGAGEMENT */}
-    <audio id="gkas_audio_player" src="/sound.mp3" loop preload="auto" />
+    <audio id="gkas_audio_player" src="/ambient.mp3" loop preload="auto" />
 
     <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
       <DeckGL
