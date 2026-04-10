@@ -172,8 +172,26 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
       return lastSuccessfulFlights;
     }
     const data = await response.json();
-    const rawFr24 = data.states || [];
+    let rawFr24 = data.states || [];
     
+    // DECOMPRESSION PROTOCOL:
+    // Checks if the payload is packed safely (array of arrays rather than large objects).
+    // This allows the engine to strictly render 25,000+ flights without server limits natively.
+    if (rawFr24.length > 0 && Array.isArray(rawFr24[0])) {
+      rawFr24 = rawFr24.map((s: any[]) => ({
+        icao24: s[0],
+        callsign: s[1],
+        origin_country: s[2],
+        longitude: s[3],
+        latitude: s[4],
+        baro_altitude: s[5],
+        velocity: s[6],
+        true_track: s[7],
+        vertical_rate: s[8],
+        category: s[9]
+      }));
+    }
+
     if (rawFr24.length === 0) return lastSuccessfulFlights;
 
     const flights = rawFr24.map((s: any) => {
