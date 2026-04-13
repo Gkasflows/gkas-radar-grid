@@ -25,13 +25,13 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
     const updateTime = () => {
       const now = new Date();
       if (isUtc) {
-        setCurrentTime(now.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' }));
+        setCurrentTime(`${now.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', second: '2-digit' })}.${String(now.getUTCMilliseconds()).padStart(3, '0')}`);
       } else {
-        setCurrentTime(now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+        setCurrentTime(`${now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}.${String(now.getMilliseconds()).padStart(3, '0')}`);
       }
     };
     updateTime(); // Instant init
-    const interval = setInterval(updateTime, 1000);
+    const interval = setInterval(updateTime, 47);
     return () => clearInterval(interval);
   }, [isUtc]);
 
