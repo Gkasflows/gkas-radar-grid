@@ -134,7 +134,7 @@ export default function Map() {
   const [networkFlights, setNetworkFlights] = useState<LiveFlight[]>([]);
   const [globalAirports, setGlobalAirports] = useState<Airport[]>(FALLBACK_AIRPORTS);
   const [selectedFlightId, setSelectedFlightId] = useState<string | null>(null);
-  const [selectedCountryName, setSelectedCountryName] = useState<string | null>(null);
+  const [geoStack, setGeoStack] = useState<{ id: number, geojson: any, center: [number, number], targetZoom: number }[]>([]);
   const [selectedAirportIata, setSelectedAirportIata] = useState<string | null>(null);
   const [hoveredAirport, setHoveredAirport] = useState<{ airport: Airport, x: number, y: number } | null>(null);
   const [hoveredFlight, setHoveredFlight] = useState<{ flight: LiveFlight, x: number, y: number } | null>(null);
@@ -418,7 +418,7 @@ export default function Map() {
     setTimeout(() => { isAnimatingRef.current = false; }, 2200);
 
     setSelectedFlightId(null);
-    setSelectedCountryName(null);
+    setGeoStack([]);
     setSelectedAirportIata(null);
     setSearchQuery('');
     setHoveredFlight(null);
@@ -435,6 +435,61 @@ export default function Map() {
       transitionInterpolator: new FlyToInterpolator()
     });
   }, []);
+
+  const handleGeographicClick = async (coordinate: [number, number]) => {
+    // Current Nominatim zoom levels mapping to map scope:
+    // Level 0 (Global) -> Fetch 3 (Country)
+    // Level 1 (Country) -> Fetch 5 (State)
+    // Level 2 (State) -> Fetch 8 (County)
+    // Level 3 (County) -> Fetch 10 (City)
+    // Level 4 (City) -> Fetch 14 (Suburb)
+    // Level 5 (Suburb) -> Fetch 18 (Street/Building)
+    const zoomLevels = [3, 5, 8, 10, 14, 18];
+    const nextZoomThreshold = zoomLevels[Math.min(geoStack.length, zoomLevels.length - 1)];
+
+    const [lng, lat] = coordinate;
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=${nextZoomThreshold}&polygon_geojson=1`);
+        const data = await res.json();
+        
+        if (data && data.osm_id) {
+           const currentTop = geoStack.length > 0 ? geoStack[geoStack.length - 1] : null;
+           
+           // If user is clicking the EXACT same shape again -> Step Back Out
+           if (currentTop && currentTop.id === data.osm_id) {
+               const newStack = [...geoStack];
+               newStack.pop();
+               setGeoStack(newStack);
+               
+               if (newStack.length === 0) {
+                   setViewState({ ...INITIAL_VIEW_STATE, transitionDuration: 3000, transitionInterpolator: new FlyToInterpolator() });
+               } else {
+                   const parent = newStack[newStack.length - 1];
+                   setViewState((prev: any) => ({ ...prev, longitude: parent.center[0], latitude: parent.center[1], zoom: Math.max(4, parent.targetZoom), transitionDuration: 3000, transitionInterpolator: new FlyToInterpolator() }));
+               }
+           } else {
+               // Push Deeper (Drill into the state/city/street)
+               const newStack = [...geoStack, {
+                   id: data.osm_id,
+                   geojson: data.geojson,
+                   center: [lng, lat] as [number, number],
+                   targetZoom: Math.max(viewState.zoom, nextZoomThreshold)
+               }];
+               setGeoStack(newStack);
+               
+               setViewState((prev: any) => ({
+                  ...prev,
+                  longitude: lng,
+                  latitude: lat,
+                  zoom: Math.max(prev.zoom, nextZoomThreshold),
+                  transitionDuration: 3000,
+                  transitionInterpolator: new FlyToInterpolator()
+               }));
+           }
+        }
+    } catch(e) {}
+  };
+
   const handleFlyToFlight = useCallback((flight: LiveFlight) => {
     playRadarBlip();
     isAnimatingRef.current = true;
@@ -634,70 +689,40 @@ export default function Map() {
       }
     }),
 
-    // Layer 1.1: Glowing Global GeoJSON Country Borders over the Satellite Image (Fully Interactive)
+    // Layer 1.1: Global Country Catch-Layer (Detects first click from orbit)
     new GeoJsonLayer({
       id: 'glowing-country-borders',
-      data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson', // Low-res removes messy island dots
+      data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson', // Base low-res countries
       stroked: true,
       filled: true,
-      getFillColor: [0, 0, 0, 1], // 1 alpha ensures 100% reliable WebGL click hit-testing while being visually invisible!
+      getFillColor: [0, 0, 0, 1], // Transparent touch layer
       lineWidthMinPixels: 1.5,
-      getLineColor: (d: any) => {
-        const name = d.properties.admin || d.properties.name || d.properties.NAME;
-        return name === selectedCountryName 
-          ? [0, 243, 255, 255] // Electric Cyan glow when selected
-          : [140, 160, 200, 180]; // Ice-Blue default
-      },
-      getLineWidth: (d: any) => {
-        const name = d.properties.admin || d.properties.name || d.properties.NAME;
-        return name === selectedCountryName ? 3 : 1; // Thicker stroke on select
-      },
-      updateTriggers: {
-        getLineColor: [selectedCountryName],
-        getLineWidth: [selectedCountryName]
-      },
+      getLineColor: [140, 160, 200, 80], // Muted default borders
       pickable: true,
-      onClick: ({ object, coordinate }: any) => {
-        if (object && object.properties) {
-          const name = object.properties.admin || object.properties.name || object.properties.NAME;
-          if (name) {
-            // If clicked the same country again, reset perfectly to global view
-            if (name === selectedCountryName) {
-              setSelectedCountryName(null);
-              setViewState({
-                ...INITIAL_VIEW_STATE,
-                transitionDuration: 3000,
-                transitionInterpolator: new FlyToInterpolator()
-              });
-            } else {
-              // New country clicked: pan smoothly to the click coordinate and glow it up
-              setSelectedCountryName(name);
-              if (coordinate) {
-                setViewState((prev: any) => ({
-                  ...prev,
-                  longitude: coordinate[0],
-                  latitude: coordinate[1],
-                  zoom: Math.max(prev.zoom, 4), // Ensure zoomed enough to see the country well
-                  transitionDuration: 3000,
-                  transitionInterpolator: new FlyToInterpolator()
-                }));
-              }
-            }
-            return;
-          }
-        }
-        
-        // Clicked empty ocean/invalid area, reset out
-        if (selectedCountryName) {
-          setSelectedCountryName(null);
-          setViewState({
-            ...INITIAL_VIEW_STATE,
-            transitionDuration: 3000,
-            transitionInterpolator: new FlyToInterpolator()
-          });
+      onClick: ({ coordinate }: any) => {
+        if (coordinate && geoStack.length === 0) { // Only handle if we aren't already deep drilling
+          handleGeographicClick(coordinate);
         }
       }
     }),
+
+    // Layer 1.2: Dynamic Deep Drill-Down Vector Topology
+    geoStack.length > 0 ? new GeoJsonLayer({
+      id: 'deep-drill-geojson',
+      data: geoStack[geoStack.length - 1].geojson, // Pull dynamic geometry straight from Nominatim
+      stroked: true,
+      filled: true,
+      getFillColor: [0, 243, 255, 35], // 3D semi-transparent icy blue pulse inside the province
+      getLineColor: [0, 243, 255, 255], // Heavy intense electric cyan outer bounds
+      lineWidthMinPixels: 4, 
+      pickable: true,
+      updateTriggers: {
+         data: [geoStack] // React instantly changes shape when navigating deep hierarchy
+      },
+      onClick: ({ coordinate }: any) => {
+        if (coordinate) handleGeographicClick(coordinate);
+      }
+    }) : null,
 
     // Layer 2: Mathematical Altitude-Encoded History Trail mimicking FR24
     selectedFlight ? new (LineLayer as any)({
@@ -835,11 +860,10 @@ export default function Map() {
       lineWidthMinPixels: 2,
       getRadius: 1800, // Massive 1.8km radius ring locked strictly to their ground coordinate
       stroked: true,
-      filled: true
     }) : null
-  ].filter(Boolean), [filteredFlights, networkFlights, filteredAirports, selectedFlight, selectedAirport, selectedFlightId, selectedAirportIata, userLocation, handleFlyToFlight, handleFlyToAirport, viewState.zoom, searchQuery, isHeatmapActive, flights, selectedCountryName]);
+  ].filter(Boolean), [filteredFlights, networkFlights, filteredAirports, selectedFlight, selectedAirport, selectedFlightId, selectedAirportIata, userLocation, handleFlyToFlight, handleFlyToAirport, viewState.zoom, searchQuery, isHeatmapActive, flights, geoStack]);
 
-  if (!mounted) return null;
+  const searchInput = document.getElementById('search-input') as HTMLInputElement; // React wrapper injection
 
   return (
     <>
