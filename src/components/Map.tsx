@@ -640,50 +640,61 @@ export default function Map() {
       data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson', // Low-res removes messy island dots
       stroked: true,
       filled: true,
-      getFillColor: [0, 0, 0, 0], // Must have invisible fill to enable picking anywhere inside the country!
+      getFillColor: [0, 0, 0, 1], // 1 alpha ensures 100% reliable WebGL click hit-testing while being visually invisible!
       lineWidthMinPixels: 1.5,
-      getLineColor: (d: any) => d.properties.NAME === selectedCountryName 
-        ? [0, 243, 255, 255] // Electric Cyan glow when selected
-        : [140, 160, 200, 180], // Ice-Blue default
-      getLineWidth: (d: any) => d.properties.NAME === selectedCountryName ? 3 : 1, // Thicker stroke on select
+      getLineColor: (d: any) => {
+        const name = d.properties.admin || d.properties.name || d.properties.NAME;
+        return name === selectedCountryName 
+          ? [0, 243, 255, 255] // Electric Cyan glow when selected
+          : [140, 160, 200, 180]; // Ice-Blue default
+      },
+      getLineWidth: (d: any) => {
+        const name = d.properties.admin || d.properties.name || d.properties.NAME;
+        return name === selectedCountryName ? 3 : 1; // Thicker stroke on select
+      },
       updateTriggers: {
         getLineColor: [selectedCountryName],
         getLineWidth: [selectedCountryName]
       },
       pickable: true,
       onClick: ({ object, coordinate }: any) => {
-        if (object && object.properties && object.properties.NAME) {
-          const name = object.properties.NAME;
-          // If clicked the same country again, reset perfectly to global view
-          if (name === selectedCountryName) {
-            setSelectedCountryName(null);
-            setViewState({
-              ...INITIAL_VIEW_STATE,
-              transitionDuration: 3000,
-              transitionInterpolator: new FlyToInterpolator()
-            });
-          } else {
-            // New country clicked: pan smoothly to the click coordinate and glow it up
-            setSelectedCountryName(name);
-            if (coordinate) {
-              setViewState((prev: any) => ({
-                ...prev,
-                longitude: coordinate[0],
-                latitude: coordinate[1],
-                zoom: Math.max(prev.zoom, 4), // Ensure zoomed enough to see the country well
+        if (object && object.properties) {
+          const name = object.properties.admin || object.properties.name || object.properties.NAME;
+          if (name) {
+            // If clicked the same country again, reset perfectly to global view
+            if (name === selectedCountryName) {
+              setSelectedCountryName(null);
+              setViewState({
+                ...INITIAL_VIEW_STATE,
                 transitionDuration: 3000,
                 transitionInterpolator: new FlyToInterpolator()
-              }));
+              });
+            } else {
+              // New country clicked: pan smoothly to the click coordinate and glow it up
+              setSelectedCountryName(name);
+              if (coordinate) {
+                setViewState((prev: any) => ({
+                  ...prev,
+                  longitude: coordinate[0],
+                  latitude: coordinate[1],
+                  zoom: Math.max(prev.zoom, 4), // Ensure zoomed enough to see the country well
+                  transitionDuration: 3000,
+                  transitionInterpolator: new FlyToInterpolator()
+                }));
+              }
             }
+            return;
           }
-        } else if (selectedCountryName) {
-          // Clicked empty ocean/invalid area, reset out
+        }
+        
+        // Clicked empty ocean/invalid area, reset out
+        if (selectedCountryName) {
           setSelectedCountryName(null);
-             setViewState({
-              ...INITIAL_VIEW_STATE,
-              transitionDuration: 3000,
-              transitionInterpolator: new FlyToInterpolator()
-            });
+          setViewState({
+            ...INITIAL_VIEW_STATE,
+            transitionDuration: 3000,
+            transitionInterpolator: new FlyToInterpolator()
+          });
         }
       }
     }),
