@@ -10,6 +10,7 @@ import FlightradarTopNav from './FlightradarTopNav';
 import FlightradarSidePanel from './FlightradarSidePanel';
 import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
+import WeatherSimulationCanvas, { WeatherCondition } from './WeatherSimulationCanvas';
 
 // Ultra-High-Resolution Command Center Satellite Imaging
 const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Hybrid: Satellite + Detailed Cartography Labels
@@ -135,6 +136,7 @@ export default function Map() {
   const [globalAirports, setGlobalAirports] = useState<Airport[]>(FALLBACK_AIRPORTS);
   const [selectedFlightId, setSelectedFlightId] = useState<string | null>(null);
   const [selectedAirportIata, setSelectedAirportIata] = useState<string | null>(null);
+  const [liveWeather, setLiveWeather] = useState<WeatherCondition>('clear');
   const [hoveredAirport, setHoveredAirport] = useState<{ airport: Airport, x: number, y: number } | null>(null);
   const [hoveredFlight, setHoveredFlight] = useState<{ flight: LiveFlight, x: number, y: number } | null>(null);
   const [viewState, setViewState] = useState<any>(INITIAL_VIEW_STATE);
@@ -613,6 +615,49 @@ export default function Map() {
     globalAirports.find(a => a.iata === selectedAirportIata) || null
     , [selectedAirportIata, globalAirports]);
 
+  // LIVE TARGET WEATHER RADAR (Open-Meteo)
+  useEffect(() => {
+    let activeLat = null;
+    let activeLon = null;
+    
+    // We only spawn interactive weather if the camera is zoomed tightly into the target region natively (>= 7.5)
+    if (selectedAirport && viewState.zoom >= 7.0) {
+       activeLat = selectedAirport.coords[1];
+       activeLon = selectedAirport.coords[0];
+    } else if (selectedFlight && viewState.zoom >= 7.0) {
+       activeLat = selectedFlight.latitude;
+       activeLon = selectedFlight.longitude;
+    }
+    
+    // If floating globally, smoothly clear the weather canvas
+    if (!activeLat || !activeLon) {
+       setLiveWeather('clear');
+       return;
+    }
+    
+    const fetchWeather = async () => {
+       try {
+           const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${activeLat}&longitude=${activeLon}&current=weather_code`);
+           const data = await res.json();
+           const code = data.current?.weather_code;
+           
+           if (code !== undefined) {
+               // Standard WMO Weather Codes natively mapped to visual simulators
+               if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) setLiveWeather('rain');
+               else if ([71, 73, 75, 77, 85, 86].includes(code)) setLiveWeather('snow');
+               else if ([95, 96, 99].includes(code)) setLiveWeather('thunder');
+               else setLiveWeather('clear');
+           }
+       } catch (e) {
+           setLiveWeather('clear');
+       }
+    };
+    
+    // Debounce the physical weather fetch so rapidly clicking doesn't hit limit locks
+    const t = setTimeout(fetchWeather, 600);
+    return () => clearTimeout(t);
+  }, [selectedAirport, selectedFlight, viewState.zoom]);
+
   // LAYERS
   const layers = useMemo(() => [
     // Layer 1: High-Definition Night-Vision Satellite Cartography
@@ -827,6 +872,8 @@ export default function Map() {
         controller={{ doubleClickZoom: false, keyboard: true, inertia: true, scrollZoom: { speed: 0.05, smooth: true } }}
         layers={layers}
       />
+
+      <WeatherSimulationCanvas condition={liveWeather} />
 
       {/* TOP NAVBAR */}
       <FlightradarTopNav
