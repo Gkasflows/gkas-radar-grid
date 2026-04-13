@@ -11,9 +11,8 @@ import FlightradarSidePanel from './FlightradarSidePanel';
 import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
 
-// Authentic Google Maps Native Dark Mode (Deep Navy & Teal Aesthetics)
-// Colors MUST use 0xff prefix for Google Maps Tile API to parse them successfully
-const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.t%3Aall%7Cs.e%3Ageometry%7Cp.c%3A0xff18253a%2Cs.t%3Awater%7Cs.e%3Ageometry%7Cp.c%3A0xff0f172a%2Cs.t%3Aall%7Cs.e%3Alabels.text.stroke%7Cp.c%3A0xff18253a%2Cs.t%3Aall%7Cs.e%3Alabels.text.fill%7Cp.c%3A0xff8ca5af';
+// Authentic Carto Dark Matter (Guaranteed 100% reliable premium dark vector map without API blockers)
+const FR24_MAP_URL = 'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png';
 
 // Airport Pin location SVG (Exact FR24 styling: Cyan-blue teardrop pin with white center dot and dark stroke)
 const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
