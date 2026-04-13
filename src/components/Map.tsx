@@ -617,6 +617,12 @@ export default function Map() {
 
   // LIVE TARGET WEATHER RADAR (Open-Meteo)
   useEffect(() => {
+    // DEVELOPER OVERRIDE: Type 'rain' in the search bar to physically summon a thunderstorm
+    if (searchQuery.toLowerCase().trim() === 'rain') {
+       setLiveWeather('thunder');
+       return;
+    }
+
     // We only spawn interactive weather if the camera is zoomed tightly into the target region natively (>= 6.5)
     if (viewState.zoom < 6.5) {
        setLiveWeather('clear');
@@ -648,7 +654,7 @@ export default function Map() {
     // Debounce the physical weather fetch deeply (1.5s) so dragging the map dynamically doesn't hit API limits
     const t = setTimeout(fetchWeather, 1500);
     return () => clearTimeout(t);
-  }, [viewState.latitude, viewState.longitude, viewState.zoom]);
+  }, [viewState.latitude, viewState.longitude, viewState.zoom, searchQuery]);
 
   // LAYERS
   const layers = useMemo(() => [
