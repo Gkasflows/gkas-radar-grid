@@ -11,8 +11,8 @@ import FlightradarSidePanel from './FlightradarSidePanel';
 import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
 
-// Ultra-High-Resolution Command Center Satellite Imaging
-const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Hybrid: Satellite + Detailed Cartography Labels
+// Authentic Google Maps Native Dark Mode (Deep Navy & Teal Aesthetics)
+const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&apistyle=s.t%3Aall%7Cs.e%3Ageometry%7Cp.c%3A%2318253a%2Cs.t%3Awater%7Cs.e%3Ageometry%7Cp.c%3A%230f172a%2Cs.t%3Aall%7Cs.e%3Alabels.text.stroke%7Cp.c%3A%2318253a%2Cs.t%3Aall%7Cs.e%3Alabels.text.fill%7Cp.c%3A%238ca5af%2C';
 
 // Airport Pin location SVG (Exact FR24 styling: Cyan-blue teardrop pin with white center dot and dark stroke)
 const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
@@ -632,15 +632,7 @@ export default function Map() {
       }
     }),
 
-    // Layer 1.1: Glowing Global GeoJSON Country Borders overlaying the Satellite Image
-    new GeoJsonLayer({
-      id: 'glowing-country-borders',
-      data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson', // Low-res exactly strips the thousands of messy island "dots" over the ocean!
-      stroked: true,
-      filled: false,
-      lineWidthMinPixels: 1.5,
-      getLineColor: [140, 160, 200, 180] // High Aesthetic Ice-Blue/Silver sleek vector trace!
-    }),
+    // Layer 1.1: Removed custom glowing borders to allow pristine Google Maps vector borders to show natively
 
     // Layer 2: Mathematical Altitude-Encoded History Trail mimicking FR24
     selectedFlight ? new (LineLayer as any)({
