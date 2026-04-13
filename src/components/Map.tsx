@@ -11,8 +11,8 @@ import FlightradarSidePanel from './FlightradarSidePanel';
 import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
 
-// Authentic Carto Dark Matter (Guaranteed 100% reliable premium dark vector map without API blockers)
-const FR24_MAP_URL = 'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png';
+// Ultra-High-Resolution Command Center Satellite Imaging
+const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Hybrid: Satellite + Detailed Cartography Labels
 
 // Airport Pin location SVG (Exact FR24 styling: Cyan-blue teardrop pin with white center dot and dark stroke)
 const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
@@ -632,7 +632,15 @@ export default function Map() {
       }
     }),
 
-    // Layer 1.1: Removed custom glowing borders to allow pristine Google Maps vector borders to show natively
+    // Layer 1.1: Glowing Global GeoJSON Country Borders overlaying the Satellite Image
+    new GeoJsonLayer({
+      id: 'glowing-country-borders',
+      data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson', // Low-res exactly strips the thousands of messy island "dots" over the ocean!
+      stroked: true,
+      filled: false,
+      lineWidthMinPixels: 1.5,
+      getLineColor: [140, 160, 200, 180] // High Aesthetic Ice-Blue/Silver sleek vector trace!
+    }),
 
     // Layer 2: Mathematical Altitude-Encoded History Trail mimicking FR24
     selectedFlight ? new (LineLayer as any)({
