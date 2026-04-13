@@ -134,6 +134,7 @@ export default function Map() {
   const [networkFlights, setNetworkFlights] = useState<LiveFlight[]>([]);
   const [globalAirports, setGlobalAirports] = useState<Airport[]>(FALLBACK_AIRPORTS);
   const [selectedFlightId, setSelectedFlightId] = useState<string | null>(null);
+  const [selectedCountryName, setSelectedCountryName] = useState<string | null>(null);
   const [selectedAirportIata, setSelectedAirportIata] = useState<string | null>(null);
   const [hoveredAirport, setHoveredAirport] = useState<{ airport: Airport, x: number, y: number } | null>(null);
   const [hoveredFlight, setHoveredFlight] = useState<{ flight: LiveFlight, x: number, y: number } | null>(null);
@@ -417,6 +418,7 @@ export default function Map() {
     setTimeout(() => { isAnimatingRef.current = false; }, 2200);
 
     setSelectedFlightId(null);
+    setSelectedCountryName(null);
     setSelectedAirportIata(null);
     setSearchQuery('');
     setHoveredFlight(null);
@@ -632,14 +634,58 @@ export default function Map() {
       }
     }),
 
-    // Layer 1.1: Glowing Global GeoJSON Country Borders overlaying the Satellite Image
+    // Layer 1.1: Glowing Global GeoJSON Country Borders over the Satellite Image (Fully Interactive)
     new GeoJsonLayer({
       id: 'glowing-country-borders',
-      data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson', // Low-res exactly strips the thousands of messy island "dots" over the ocean!
+      data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson', // Low-res removes messy island dots
       stroked: true,
-      filled: false,
+      filled: true,
+      getFillColor: [0, 0, 0, 0], // Must have invisible fill to enable picking anywhere inside the country!
       lineWidthMinPixels: 1.5,
-      getLineColor: [140, 160, 200, 180] // High Aesthetic Ice-Blue/Silver sleek vector trace!
+      getLineColor: (d: any) => d.properties.NAME === selectedCountryName 
+        ? [0, 243, 255, 255] // Electric Cyan glow when selected
+        : [140, 160, 200, 180], // Ice-Blue default
+      getLineWidth: (d: any) => d.properties.NAME === selectedCountryName ? 3 : 1, // Thicker stroke on select
+      updateTriggers: {
+        getLineColor: [selectedCountryName],
+        getLineWidth: [selectedCountryName]
+      },
+      pickable: true,
+      onClick: ({ object, coordinate }: any) => {
+        if (object && object.properties && object.properties.NAME) {
+          const name = object.properties.NAME;
+          // If clicked the same country again, reset perfectly to global view
+          if (name === selectedCountryName) {
+            setSelectedCountryName(null);
+            setViewState({
+              ...INITIAL_VIEW_STATE,
+              transitionDuration: 3000,
+              transitionInterpolator: new FlyToInterpolator()
+            });
+          } else {
+            // New country clicked: pan smoothly to the click coordinate and glow it up
+            setSelectedCountryName(name);
+            if (coordinate) {
+              setViewState((prev: any) => ({
+                ...prev,
+                longitude: coordinate[0],
+                latitude: coordinate[1],
+                zoom: Math.max(prev.zoom, 4), // Ensure zoomed enough to see the country well
+                transitionDuration: 3000,
+                transitionInterpolator: new FlyToInterpolator()
+              }));
+            }
+          }
+        } else if (selectedCountryName) {
+          // Clicked empty ocean/invalid area, reset out
+          setSelectedCountryName(null);
+             setViewState({
+              ...INITIAL_VIEW_STATE,
+              transitionDuration: 3000,
+              transitionInterpolator: new FlyToInterpolator()
+            });
+        }
+      }
     }),
 
     // Layer 2: Mathematical Altitude-Encoded History Trail mimicking FR24
@@ -780,7 +826,7 @@ export default function Map() {
       stroked: true,
       filled: true
     }) : null
-  ].filter(Boolean), [filteredFlights, networkFlights, filteredAirports, selectedFlight, selectedAirport, selectedFlightId, selectedAirportIata, userLocation, handleFlyToFlight, handleFlyToAirport, viewState.zoom, searchQuery, isHeatmapActive, flights]);
+  ].filter(Boolean), [filteredFlights, networkFlights, filteredAirports, selectedFlight, selectedAirport, selectedFlightId, selectedAirportIata, userLocation, handleFlyToFlight, handleFlyToAirport, viewState.zoom, searchQuery, isHeatmapActive, flights, selectedCountryName]);
 
   if (!mounted) return null;
 
