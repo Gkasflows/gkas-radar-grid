@@ -149,7 +149,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
         .mobile-only-nav { display: flex !important; }
         .brand-logo-text { font-size: 16px !important; }
         .top-nav-parent { padding: 0 16px !important; }
-        .clock-container { display: none !important; }
+        .clock-container { display: block !important; font-size: 11px !important; margin-right: 12px !important; }
         .search-container { width: 150px !important; }
       }
       @media (min-width: 769px) {
