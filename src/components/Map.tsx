@@ -617,23 +617,15 @@ export default function Map() {
 
   // LIVE TARGET WEATHER RADAR (Open-Meteo)
   useEffect(() => {
-    let activeLat = null;
-    let activeLon = null;
-    
-    // We only spawn interactive weather if the camera is zoomed tightly into the target region natively (>= 7.5)
-    if (selectedAirport && viewState.zoom >= 7.0) {
-       activeLat = selectedAirport.coords[1];
-       activeLon = selectedAirport.coords[0];
-    } else if (selectedFlight && viewState.zoom >= 7.0) {
-       activeLat = selectedFlight.latitude;
-       activeLon = selectedFlight.longitude;
-    }
-    
-    // If floating globally, smoothly clear the weather canvas
-    if (!activeLat || !activeLon) {
+    // We only spawn interactive weather if the camera is zoomed tightly into the target region natively (>= 6.5)
+    if (viewState.zoom < 6.5) {
        setLiveWeather('clear');
        return;
     }
+    
+    // Always sample weather strictly from the exact physical center of whatever city they are looking at!
+    const activeLat = viewState.latitude;
+    const activeLon = viewState.longitude;
     
     const fetchWeather = async () => {
        try {
@@ -653,10 +645,10 @@ export default function Map() {
        }
     };
     
-    // Debounce the physical weather fetch so rapidly clicking doesn't hit limit locks
-    const t = setTimeout(fetchWeather, 600);
+    // Debounce the physical weather fetch deeply (1.5s) so dragging the map dynamically doesn't hit API limits
+    const t = setTimeout(fetchWeather, 1500);
     return () => clearTimeout(t);
-  }, [selectedAirport, selectedFlight, viewState.zoom]);
+  }, [viewState.latitude, viewState.longitude, viewState.zoom]);
 
   // LAYERS
   const layers = useMemo(() => [
