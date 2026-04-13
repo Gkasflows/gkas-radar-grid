@@ -149,7 +149,24 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
         .mobile-only-nav { display: flex !important; }
         .brand-logo-text { font-size: 16px !important; }
         .top-nav-parent { padding: 0 16px !important; }
-        .clock-container { display: block !important; font-size: 11px !important; margin-right: 12px !important; }
+        .clock-container {
+          position: fixed !important;
+          bottom: 24px !important;
+          left: 50% !important;
+          transform: translateX(-50%) !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          background-color: rgba(15, 23, 42, 0.85) !important;
+          backdrop-filter: blur(12px) !important;
+          padding: 6px 16px !important;
+          border-radius: 20px !important;
+          border: 1px solid rgba(0, 243, 255, 0.3) !important;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+          margin: 0 !important;
+          font-size: 14px !important;
+          z-index: 1000 !important;
+        }
         .search-container { width: 150px !important; }
       }
       @media (min-width: 769px) {
