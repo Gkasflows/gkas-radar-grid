@@ -11,10 +11,10 @@ interface FlightradarTopNavProps {
   globalFlights?: any[];
   onFlightSelect?: (flight: any) => void;
   onAirportSelect?: (airport: any) => void;
-  onStormChase?: () => void;
+  onWeatherChase?: (type: 'rain' | 'snow' | 'thunder') => void;
 }
 
-export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports, globalFlights, onFlightSelect, onAirportSelect, onStormChase }: FlightradarTopNavProps) {
+export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports, globalFlights, onFlightSelect, onAirportSelect, onWeatherChase }: FlightradarTopNavProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -215,31 +215,39 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
           {isHeatmapActive ? '◆ Altitude Heatmap: ON' : '◇ Altitude Heatmap: OFF'}
         </button>
 
-        {/* STORM CHASER BUTTON */}
-        <button
-          onClick={onStormChase}
-          title="Teleport to an active global storm"
-          style={{
-            marginLeft: '10px',
-            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            color: '#fff',
-            padding: '6px 14px',
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: 800,
-            letterSpacing: '0.5px',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-          onMouseOver={(e) => { e.currentTarget.style.borderColor = '#00f3ff'; e.currentTarget.style.color = '#00f3ff'; }}
-          onMouseOut={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'; e.currentTarget.style.color = '#fff'; }}
-        >
-          ⚡ STORM CHASER
-        </button>
+        {/* 3 DISCRETE WEATHER HUNTERS */}
+        <div style={{ display: 'flex', marginLeft: '10px', gap: '4px', backgroundColor: 'rgba(15, 23, 42, 0.9)', borderRadius: '6px', padding: '2px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          {[
+             { t: 'rain', icon: '🌧️', label: 'RAIN' },
+             { t: 'snow', icon: '❄️', label: 'SNOW' },
+             { t: 'thunder', icon: '⚡', label: 'THUNDER' }
+          ].map(weather => (
+            <button
+              key={weather.t}
+              onClick={() => onWeatherChase && onWeatherChase(weather.t as any)}
+              title={`Teleport to an active ${weather.t} system globally`}
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: '#fff',
+                padding: '4px 10px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: 800,
+                letterSpacing: '0.5px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#00f3ff'; }}
+              onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#fff'; }}
+            >
+              {weather.icon} {weather.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 2. CENTER BRANDING LOGO */}
@@ -316,26 +324,29 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
             {isHeatmapActive ? '🔥' : '📍'}
           </button>
 
-          {/* MOBILE STORM CHASER BUTTON */}
-          <button
-            onClick={onStormChase}
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(15, 23, 42, 0.95)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              color: '#ffffff',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              fontSize: '18px'
-            }}
-          >
-            ⚡
-          </button>
+          {/* MOBILE WEATHER CHASERS */}
+          {['rain', 'snow', 'thunder'].map((t, idx) => (
+             <button
+                key={t}
+                onClick={() => onWeatherChase && onWeatherChase(t as any)}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: '18px'
+                }}
+             >
+                {t === 'rain' ? '🌧️' : t === 'snow' ? '❄️' : '⚡'}
+             </button>
+          ))}
         </div>
 
       {/* 3. RIGHT SEARCH ENGINE WITH LIVE AUTO-SUGGESTIONS & TIMING CLOCK */}

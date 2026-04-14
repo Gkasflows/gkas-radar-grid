@@ -436,53 +436,43 @@ export default function Map() {
     });
   }, []);
 
-  const handleStormChase = useCallback(async () => {
+  const handleWeatherChase = useCallback(async (type: 'rain' | 'snow' | 'thunder') => {
     // Notify the user it's tracking
-    setSearchQuery('📡 Scanning satellite grid for active storms...');
+    setSearchQuery(`📡 Scanning global satellite grid for active ${type.toUpperCase()}...`);
     
-    // Curated high-probability global precipitation hotspots
-    const candidates = [
-       { c: 'Seattle', lat: 47.6, lon: -122.3 },
-       { c: 'London', lat: 51.5, lon: -0.1 },
-       { c: 'Bogota', lat: 4.7, lon: -74.0 },
-       { c: 'Lagos', lat: 6.5, lon: 3.3 },
-       { c: 'Jakarta', lat: -6.2, lon: 106.8 },
-       { c: 'Singapore', lat: 1.3, lon: 103.8 },
-       { c: 'Mumbai', lat: 19.0, lon: 72.8 },
-       { c: 'Monrovia', lat: 6.3, lon: -10.8 },
-       { c: 'Hilo', lat: 19.7, lon: -155.0 },
-       { c: 'Quibdo', lat: 5.6, lon: -76.6 },
-       { c: 'Copenhagen', lat: 55.6, lon: 12.5 },
-       { c: 'Taipei', lat: 25.0, lon: 121.5 },
-       { c: 'Tokyo', lat: 35.6, lon: 139.6 },
-       { c: 'Vancouver', lat: 49.2, lon: -123.1 },
-       { c: 'Miami', lat: 25.7, lon: -80.1 }
-    ].sort(() => 0.5 - Math.random()); // Shuffle so it jumps differently every click!
+    // Completely random scramble of all ~250 core global airports
+    const candidates = [...globalAirports].sort(() => 0.5 - Math.random());
     
-    for (let i = 0; i < candidates.length; i += 5) {
-        const batch = candidates.slice(i, i + 5);
+    // Open-Meteo allows heavy massive batches. We scan 20 countries at once per network request!
+    for (let i = 0; i < candidates.length; i += 20) {
+        const batch = candidates.slice(i, i + 20);
         if (batch.length === 0) continue;
-        const lats = batch.map(b => b.lat).join(',');
-        const lons = batch.map(b => b.lon).join(',');
+        const lats = batch.map(b => b.coords[1]).join(',');
+        const lons = batch.map(b => b.coords[0]).join(',');
         
         try {
             const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=weather_code`);
             const data = await res.json();
             
-            // Open-Meteo returns an Array of objects if multiple coordinates supplied, or singular object for 1
             const results = Array.isArray(data) ? data : [data];
             
             for (let j = 0; j < results.length; j++) {
                 const code = results[j]?.current?.weather_code;
-                // Rain, Snow, and Thunderstorm WMO codes
-                if (code !== undefined && [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 71, 73, 75, 77, 85, 86, 95, 96, 99].includes(code)) {
+                if (code === undefined) continue;
+
+                let isMatch = false;
+                if (type === 'rain' && [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) isMatch = true;
+                if (type === 'snow' && [71, 73, 75, 77, 85, 86].includes(code)) isMatch = true;
+                if (type === 'thunder' && [95, 96, 99].includes(code)) isMatch = true;
+
+                if (isMatch) {
                     // STORM ACQUIRED: Purge UI then teleport
                     handleMasterReset(); 
-                    setSearchQuery(`⚡ Acquired storm signature: ${batch[j].c}`);
+                    setSearchQuery(`🎯 Acquired ${type.toUpperCase()} signature: ${batch[j].city}, ${batch[j].country}`);
                     
                     setViewState({
-                        longitude: batch[j].lon,
-                        latitude: batch[j].lat,
+                        longitude: batch[j].coords[0],
+                        latitude: batch[j].coords[1],
                         zoom: 8.5, // Punch deep down into the atmosphere natively
                         pitch: 45, // Angled beautifully for the 3D particle physics engine
                         bearing: 15,
@@ -498,10 +488,10 @@ export default function Map() {
         } catch(e) {}
     }
     
-    // Failsafe
-    setSearchQuery('☁️ Global storm scan complete. No major cellular systems detected right now.');
+    // Failsafe if absolutely nothing in the world matches
+    setSearchQuery(`☁️ Global scan complete. No active ${type.toUpperCase()} systems detected right now.`);
     setTimeout(() => setSearchQuery(''), 3500);
-  }, [handleMasterReset]);
+  }, [handleMasterReset, globalAirports]);
 
   const handleFlyToFlight = useCallback((flight: LiveFlight) => {
     playRadarBlip();
@@ -952,7 +942,7 @@ export default function Map() {
         globalFlights={networkFlights}
         onFlightSelect={handleFlyToFlight}
         onAirportSelect={handleFlyToAirport}
-        onStormChase={handleStormChase}
+        onWeatherChase={handleWeatherChase}
       />
 
       {/* LEFT PANELS (Mutually exclusive) */}
