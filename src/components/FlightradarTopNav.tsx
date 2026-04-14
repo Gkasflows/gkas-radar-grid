@@ -214,6 +214,32 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
         >
           {isHeatmapActive ? '◆ Altitude Heatmap: ON' : '◇ Altitude Heatmap: OFF'}
         </button>
+
+        {/* STORM CHASER BUTTON */}
+        <button
+          onClick={onStormChase}
+          title="Teleport to an active global storm"
+          style={{
+            marginLeft: '10px',
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            color: '#fff',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '11px',
+            fontWeight: 800,
+            letterSpacing: '0.5px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.borderColor = '#00f3ff'; e.currentTarget.style.color = '#00f3ff'; }}
+          onMouseOut={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'; e.currentTarget.style.color = '#fff'; }}
+        >
+          ⚡ STORM CHASER
+        </button>
       </div>
 
       {/* 2. CENTER BRANDING LOGO */}
@@ -288,6 +314,27 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
             }}
           >
             {isHeatmapActive ? '🔥' : '📍'}
+          </button>
+
+          {/* MOBILE STORM CHASER BUTTON */}
+          <button
+            onClick={onStormChase}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              color: '#ffffff',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '18px'
+            }}
+          >
+            ⚡
           </button>
         </div>
 
