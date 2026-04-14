@@ -623,8 +623,8 @@ export default function Map() {
        return;
     }
 
-    // We only spawn interactive weather if the camera is zoomed tightly into the target region natively (>= 6.5)
-    if (viewState.zoom < 6.5) {
+    // We now spawn weather much higher up, basically whenever you look at a country/state (>= 4.0)
+    if (viewState.zoom < 4.0) {
        setLiveWeather('clear');
        return;
     }
@@ -651,8 +651,8 @@ export default function Map() {
        }
     };
     
-    // Debounce the physical weather fetch deeply (1.5s) so dragging the map dynamically doesn't hit API limits
-    const t = setTimeout(fetchWeather, 1500);
+    // Debounce the physical weather fetch slightly (800ms) so you can scan the globe quickly
+    const t = setTimeout(fetchWeather, 800);
     return () => clearTimeout(t);
   }, [viewState.latitude, viewState.longitude, viewState.zoom, searchQuery]);
 
