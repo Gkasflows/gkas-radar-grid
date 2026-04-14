@@ -11,9 +11,10 @@ interface FlightradarTopNavProps {
   globalFlights?: any[];
   onFlightSelect?: (flight: any) => void;
   onAirportSelect?: (airport: any) => void;
+  onStormChase?: () => void;
 }
 
-export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports, globalFlights, onFlightSelect, onAirportSelect }: FlightradarTopNavProps) {
+export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports, globalFlights, onFlightSelect, onAirportSelect, onStormChase }: FlightradarTopNavProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
