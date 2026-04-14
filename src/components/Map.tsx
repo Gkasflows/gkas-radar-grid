@@ -623,8 +623,8 @@ export default function Map() {
        return;
     }
 
-    // We now spawn weather much higher up, basically whenever you look at a country/state (>= 4.0)
-    if (viewState.zoom < 4.0) {
+    // We only spawn interactive weather if the camera is zoomed tightly into the target region natively (>= 6.5)
+    if (viewState.zoom < 6.5) {
        setLiveWeather('clear');
        return;
     }
