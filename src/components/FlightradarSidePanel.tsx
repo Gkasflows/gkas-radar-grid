@@ -272,6 +272,71 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
           </div>
         </div>
 
+        {/* 2c. ATC TACTICAL RADIO INTERCEPTOR */}
+        {(() => {
+          // Dynamic geospatial calculation for nearest ATC tower intercept
+          const lon = displayFlight.longitude || 0;
+          const lat = displayFlight.latitude || 0;
+          const country = displayFlight.origin_country || '';
+          
+          let atcName = "GLOBAL ATC RELAY (JFK)";
+          let atcUrl = "https://broadcastify.cdnstream1.com/32468"; // Default fallback (JFK)
+          let atcStatus = "LIVE INTERCEPT";
+          let isEncrypted = false;
+
+          // NIGERIA AIRSPACE LOGIC
+          if (country === 'Nigeria' || country === 'NG' || (lon >= 2.6 && lon <= 14.7 && lat >= 4.2 && lat <= 13.9)) {
+            atcName = "DNMM LAGOS TOWER";
+            atcUrl = "";
+            atcStatus = "ENCRYPTED / SECURE";
+            isEncrypted = true;
+          }
+          else if (lon >= -75 && lon <= -72 && lat >= 40 && lat <= 42) {
+            atcName = "NEW YORK JFK TOWER";
+            atcUrl = "https://broadcastify.cdnstream1.com/32468";
+          }
+          else if (lon >= -120 && lon <= -116 && lat >= 33 && lat <= 35) {
+            atcName = "LOS ANGELES LAX TRACON";
+            atcUrl = "https://broadcastify.cdnstream1.com/24584";
+          }
+          else if (lon >= -89 && lon <= -87 && lat >= 41 && lat <= 43) {
+            atcName = "CHICAGO ORD TOWER";
+            atcUrl = "https://broadcastify.cdnstream1.com/32014";
+          }
+
+          return (
+            <div style={{ marginBottom: '12px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(0, 243, 255, 0.2)', padding: '8px', borderRadius: '6px', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: isEncrypted ? 'rgba(255,0,0,0.5)' : 'linear-gradient(90deg, transparent, #00f3ff, transparent)', animation: 'scanline 2s linear infinite' }} />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '9px', color: isEncrypted ? '#ef4444' : '#00f3ff', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isEncrypted ? '#ef4444' : '#10b981', display: 'inline-block', animation: isEncrypted ? 'none' : 'pulse 1.5s infinite' }} />
+                    {atcStatus}
+                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginTop: '2px' }}>{atcName}</div>
+                </div>
+                
+                {!isEncrypted && (
+                  <audio 
+                    controls 
+                    controlsList="nodownload noplaybackrate"
+                    src={atcUrl}
+                    style={{ height: '24px', width: '120px', outline: 'none' }}
+                  />
+                )}
+              </div>
+              <style dangerouslySetInnerHTML={{__html: `
+                @keyframes scanline { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+                @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+                audio::-webkit-media-controls-panel { background-color: rgba(15, 23, 42, 0.9); }
+                audio::-webkit-media-controls-current-time-display { display: none; }
+                audio::-webkit-media-controls-time-remaining-display { display: none; }
+              `}} />
+            </div>
+          );
+        })()}
+
         {/* 3. ROUTE (FROM -> TO) */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(42, 43, 48, 0.5)', borderRadius: '8px', padding: '10px' }}>
           {/* Origin Target */}
