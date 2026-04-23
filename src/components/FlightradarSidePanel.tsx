@@ -5,234 +5,101 @@ interface FlightradarSidePanelProps {
   flight: LiveFlight | null;
   onClose: () => void;
   onPointClick?: (lat: number, lon: number, iata: string) => void;
-  liveFlights?: LiveFlight[];
 }
 
 // Photo resolution algorithm relocated securely securely back to flightService.ts
 
-export default function FlightradarSidePanel({ flight, onClose, onPointClick, liveFlights = [] }: FlightradarSidePanelProps) {
+export default function FlightradarSidePanel({ flight, onClose, onPointClick }: FlightradarSidePanelProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [cachedFlight, setCachedFlight] = useState<LiveFlight | null>(null);
-
-  // Swipe drag states map
-  const [touchStartY, setTouchStartY] = useState(0);
-
-  const [isMobile, setIsMobile] = useState(false);
-  const [realPlanePhoto, setRealPlanePhoto] = useState<string | null>(null);
-  const [photographer, setPhotographer] = useState<string | null>(null);
-
-  // Fetch true exact plane image from Planespotters API
-  useEffect(() => {
-    if (!flight?.icao24) return;
-    
-    // Reset state before fetching
-    setRealPlanePhoto(null);
-    setPhotographer(null);
-
-    fetch(`https://api.planespotters.net/pub/photos/hex/${flight.icao24}`)
-      .then(res => res.json())
-      .then(data => {
-         if (data && data.photos && data.photos.length > 0) {
-            const photo = data.photos[0];
-            setRealPlanePhoto(photo.thumbnail_large.src);
-            setPhotographer(photo.photographer);
-         }
-      })
-      .catch(err => {
-         console.warn("Planespotters API Error:", err);
-      });
-  }, [flight?.icao24]);
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-  }, []);
 
   useEffect(() => {
     if (flight) {
       setCachedFlight(flight);
+      // Double RAF ensures the browser paints the panel off-screen before sliding it in
+      requestAnimationFrame(() => requestAnimationFrame(() => setIsOpen(true)));
       setIsAnimating(true);
-      setIsExpanded(false); // Reset to partial view natively first
-      // Wait for globe tracking pan to finish before showing details safely explicitly smartly 
-      if (isMobile) {
-        setTimeout(() => setIsOpen(true), 7000); 
-      } else {
-        requestAnimationFrame(() => requestAnimationFrame(() => setIsOpen(true)));
-      }
     } else {
       setIsOpen(false);
-      setIsExpanded(false);
       const timer = setTimeout(() => setIsAnimating(false), 300); // 0.3s transition match
       return () => clearTimeout(timer);
     }
-  }, [flight?.icao24, isMobile]);
-
-  const handleTouchStart = (e: React.TouchEvent) => setTouchStartY(e.changedTouches[0].clientY);
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const touchEndY = e.changedTouches[0].clientY;
-    const diff = touchEndY - touchStartY;
-    if (diff < -30) {
-      // Swiped UP gracefully
-      setIsExpanded(true);
-    } else if (diff > 30) {
-      // Swiped DOWN gracefully
-      if (isExpanded) setIsExpanded(false);
-      else {
-         setIsOpen(false);
-      }
-    }
-  };
+  }, [flight?.icao24]);
 
   const displayFlight = flight || cachedFlight;
-
-  // Tactical Radar Local Traffic Core Rendering Logic
-  const localTraffic = React.useMemo(() => {
-    if (!displayFlight || !displayFlight.latitude || !displayFlight.longitude) return [];
-    const MAX_DEG = 12.0; // ~ 720 Nautical Miles (Deep AWACS Regional Sweep) 
-    const RADAR_SIZE = 140; // Pixels
-    
-    // Sort array by actual ground-distance locally avoiding heavy haversine for 10,000 objects
-    const cLat = displayFlight.latitude, cLon = displayFlight.longitude;
-    const latCos = Math.cos(cLat * Math.PI / 180);
-    
-    return liveFlights.filter(f => f.icao24 !== displayFlight.icao24 && f.latitude && f.longitude).map(f => {
-       const dLat = f.latitude - cLat;
-       const dLon = (f.longitude - cLon) * latCos;
-       const dist = Math.sqrt(dLat*dLat + dLon*dLon);
-       return { f, dist, dLat, dLon };
-    })
-    .filter(b => b.dist < MAX_DEG)
-    .sort((a,b) => a.dist - b.dist)
-    .slice(0, 40) // Show up to 40 max targets on mini radar
-    .map(b => {
-       const rPix = (b.dist / MAX_DEG) * (RADAR_SIZE / 2);
-       const angle = Math.atan2(b.dLon, b.dLat); // Rads from true North
-       // Math center is 0,0 since we anchor at top:50% left:50%
-       const x = Math.sin(angle) * rPix;
-       const y = -Math.cos(angle) * rPix;
-       return { x, y, callsign: b.f.callsign || b.f.icao24, heading: b.f.true_track || 0, isClimbing: (b.f.vertical_rate||0) > 0, dist: b.dist };
-    });
-  }, [displayFlight, liveFlights]);
-
-  // Route Progress Geodesic Engine
-  const progressPercentage = React.useMemo(() => {
-    if (!displayFlight || !displayFlight.origin_coords || !displayFlight.dest_coords || !displayFlight.latitude) return null;
-    const { lat: lat1, lon: lon1 } = displayFlight.origin_coords;
-    const { lat: lat2, lon: lon2 } = displayFlight.dest_coords;
-    const lat = displayFlight.latitude;
-    const lon = displayFlight.longitude;
-
-    // Haversine formula
-    const toRad = (v: number) => v * Math.PI / 180;
-    const getDist = (aLat: number, aLon: number, bLat: number, bLon: number) => {
-       const R = 6371; // km
-       const dLat = toRad(bLat - aLat);
-       const dLon = toRad(bLon - aLon);
-       const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*Math.sin(dLon/2)*Math.sin(dLon/2);
-       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    };
-
-    const totalDist = getDist(lat1, lon1, lat2, lon2);
-    if (totalDist < 5) return 0;
-    const currentDist = getDist(lat1, lon1, lat, lon);
-    
-    // Check if we are landing soon (distance to target might be better)
-    const distToTarget = getDist(lat, lon, lat2, lon2);
-    if (distToTarget < 10 && displayFlight.baro_altitude && displayFlight.baro_altitude < 1000) return 99;
-
-    let pct = (currentDist / totalDist) * 100;
-    if (pct < 1) pct = 1;
-    if (pct > 99) pct = 99;
-    return pct;
-  }, [displayFlight]);
 
   // Fully unmount ONLY when no flight exists and the animation has completely finished
   if (!displayFlight || (!flight && !isAnimating)) return null;
 
   return (
-    <div 
-      onTouchStart={isMobile ? handleTouchStart : undefined}
-      onTouchEnd={isMobile ? handleTouchEnd : undefined}
-      style={isMobile ? {
-      position: 'fixed', zIndex: 1000, transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
-      bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', 
-      height: isExpanded ? '100vh' : '40vh',
-      backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', borderTop: '1px solid rgba(0, 243, 255, 0.25)',
-      borderRadius: isExpanded ? '0' : '24px 24px 0 0', display: 'flex', flexDirection: 'column', color: '#fff',
-      overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, sans-serif'
-    } : {
-      position: 'absolute', top: '76px', left: '16px',
-      transform: `translateX(${isOpen ? '0' : '-336px'})`,
-      transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-      zIndex: 1000, width: '320px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)',
-      border: '1px solid rgba(0, 243, 255, 0.25)', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-      display: 'flex', flexDirection: 'column', overflow: 'visible', fontFamily: '"Inter", -apple-system, sans-serif', color: '#fff'
+    <div style={{
+      position: 'absolute',
+      top: '76px', /* Match top nav offset */
+      left: isOpen ? '16px' : '-320px', /* Float cleanly */
+      transition: 'left 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+      zIndex: 1000,
     }}>
-      {/* SLIDE TOGGLE BUTTON - Desktop Only */}
-      {!isMobile && (
-        <div 
-          onClick={() => setIsOpen(!isOpen)}
-          style={{
-            position: 'absolute', right: '-36px', top: '50%', transform: 'translateY(-50%)', width: '36px', height: '140px',
-            backgroundColor: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0, 243, 255, 0.4)',
-            borderLeft: 'none', borderRadius: '0 16px 16px 0', color: '#00f3ff', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 1000,
-            boxShadow: '4px 0 15px rgba(0,243,255,0.2)', transition: 'background 0.2s', fontSize: '14px'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.2)'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(15, 23, 42, 0.95)'}
-        >
-          {isOpen ? '◀' : '▶'}
-        </div>
-      )}
+      {/* SLIDE TOGGLE BUTTON */}
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          position: 'absolute',
+          right: '-32px',
+          top: '32px',
+          width: '32px',
+          height: '48px',
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderLeft: 'none',
+          borderRadius: '0 12px 12px 0',
+          color: '#00f3ff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 1000,
+          boxShadow: '4px 0 10px rgba(0,0,0,0.3)',
+          transition: 'color 0.2s',
+        }}
+      >
+        {isOpen ? '◀' : '▶'}
+      </button>
 
-      {/* SWIPE HANDLE - Mobile Only */}
-      {isMobile && (
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', position: 'absolute', top: 0, left: 0, zIndex: 1010 }}>
-          <div style={{ flex: 1 }}></div>
-          <div style={{ width: '64px', height: '6px', backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '9999px', margin: '0 auto', boxShadow: '0 1px 4px rgba(0,0,0,0.5)' }}></div>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => { setIsOpen(false); }} style={{ color: '#00f3ff', fontSize: '12px', fontWeight: 'bold', background: 'none', border: 'none', cursor: 'pointer', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>✕ Hide</button>
-          </div>
-        </div>
-      )}
+      {/* MAIN CONTAINER */}
+      <div style={{
+        width: '320px',
+        height: 'calc(100vh - 92px)',
+        backgroundColor: 'rgba(15, 23, 42, 0.95)', // Solidified for performance
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '16px',
+        color: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
+        overflow: 'hidden'
+      }}>
       {/* 1. PHOTO AND X BUTTON */}
       <div style={{ 
         height: '180px', 
         width: '100%', 
         backgroundColor: '#2A2B30',
-        backgroundImage: `url("${realPlanePhoto || displayFlight.imageUrl}")`,
+        backgroundImage: `url("${displayFlight.imageUrl}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         position: 'relative'
       }}>
         {/* Close Button FR24 style */}
-        {!isMobile && (
-          <button onClick={onClose} style={{
-            position: 'absolute', top: '16px', right: '16px',
-            width: '32px', height: '32px',
-            borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)',
-            border: 'none', color: '#fff', fontSize: '18px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer'
-          }}>
-            ✕
-          </button>
-        )}
-        
-        {/* Photographer Attribution Block */}
-        {photographer && (
-           <div style={{
-             position: 'absolute', top: '16px', left: '16px',
-             backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-             borderRadius: '4px', padding: '2px 6px', fontSize: '9px',
-             color: 'rgba(255,255,255,0.8)', fontWeight: 500
-           }}>
-             © {photographer}
-           </div>
-        )}
-
+        <button onClick={onClose} style={{
+          position: 'absolute', top: '16px', right: '16px',
+          width: '32px', height: '32px',
+          borderRadius: '50%', backgroundColor: 'rgba(0,0,0,0.5)',
+          border: 'none', color: '#fff', fontSize: '18px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer'
+        }}>
+          ✕
+        </button>
         <div style={{
           position: 'absolute', bottom: '12px', left: '16px', right: '16px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
@@ -272,6 +139,71 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
           </div>
         </div>
 
+        {/* 2c. ATC TACTICAL RADIO INTERCEPTOR */}
+        {(() => {
+          // Dynamic geospatial calculation for nearest ATC tower intercept
+          const lon = displayFlight.longitude || 0;
+          const lat = displayFlight.latitude || 0;
+          const country = displayFlight.origin_country || '';
+          
+          let atcName = "GLOBAL ATC RELAY (JFK)";
+          let atcUrl = "https://broadcastify.cdnstream1.com/32468"; // Default fallback (JFK)
+          let atcStatus = "LIVE INTERCEPT";
+          let isEncrypted = false;
+
+          // NIGERIA AIRSPACE LOGIC
+          if (country === 'Nigeria' || country === 'NG' || (lon >= 2.6 && lon <= 14.7 && lat >= 4.2 && lat <= 13.9)) {
+            atcName = "DNMM LAGOS TOWER";
+            atcUrl = "";
+            atcStatus = "ENCRYPTED / SECURE";
+            isEncrypted = true;
+          }
+          else if (lon >= -75 && lon <= -72 && lat >= 40 && lat <= 42) {
+            atcName = "NEW YORK JFK TOWER";
+            atcUrl = "https://broadcastify.cdnstream1.com/32468";
+          }
+          else if (lon >= -120 && lon <= -116 && lat >= 33 && lat <= 35) {
+            atcName = "LOS ANGELES LAX TRACON";
+            atcUrl = "https://broadcastify.cdnstream1.com/24584";
+          }
+          else if (lon >= -89 && lon <= -87 && lat >= 41 && lat <= 43) {
+            atcName = "CHICAGO ORD TOWER";
+            atcUrl = "https://broadcastify.cdnstream1.com/32014";
+          }
+
+          return (
+            <div style={{ marginBottom: '12px', backgroundColor: 'rgba(0,0,0,0.4)', border: '1px solid rgba(0, 243, 255, 0.2)', padding: '8px', borderRadius: '6px', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', background: isEncrypted ? 'rgba(255,0,0,0.5)' : 'linear-gradient(90deg, transparent, #00f3ff, transparent)', animation: 'scanline 2s linear infinite' }} />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '9px', color: isEncrypted ? '#ef4444' : '#00f3ff', textTransform: 'uppercase', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isEncrypted ? '#ef4444' : '#10b981', display: 'inline-block', animation: isEncrypted ? 'none' : 'pulse 1.5s infinite' }} />
+                    {atcStatus}
+                  </div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginTop: '2px' }}>{atcName}</div>
+                </div>
+                
+                {!isEncrypted && (
+                  <audio 
+                    controls 
+                    controlsList="nodownload noplaybackrate"
+                    src={atcUrl}
+                    style={{ height: '24px', width: '120px', outline: 'none' }}
+                  />
+                )}
+              </div>
+              <style dangerouslySetInnerHTML={{__html: `
+                @keyframes scanline { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+                @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+                audio::-webkit-media-controls-panel { background-color: rgba(15, 23, 42, 0.9); }
+                audio::-webkit-media-controls-current-time-display { display: none; }
+                audio::-webkit-media-controls-time-remaining-display { display: none; }
+              `}} />
+            </div>
+          );
+        })()}
+
         {/* 3. ROUTE (FROM -> TO) */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(42, 43, 48, 0.5)', borderRadius: '8px', padding: '10px' }}>
           {/* Origin Target */}
@@ -286,24 +218,8 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
           </div>
           
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 8px' }}>
-            <div style={{ flex: 1, height: '3px', backgroundColor: 'rgba(79, 84, 92, 0.4)', position: 'relative', borderRadius: '2px' }}>
-              {/* Filled progress bar */}
-              {progressPercentage !== null && (
-                <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${progressPercentage}%`, backgroundColor: '#00f3ff', borderRadius: '2px', boxShadow: '0 0 6px #00f3ff' }} />
-              )}
-              {/* Airplane icon placed exactly at progress % */}
-              <div style={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: progressPercentage !== null ? `${progressPercentage}%` : '50%', 
-                transform: 'translate(-50%, -50%)', 
-                backgroundColor: progressPercentage !== null ? 'transparent' : '#2A2B30', 
-                padding: '0 2px', 
-                fontSize: '12px', 
-                color: progressPercentage !== null ? '#00f3ff' : '#8E9297', 
-                borderRadius: '4px',
-                filter: progressPercentage !== null ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' : 'none'
-              }}>
+            <div style={{ flex: 1, height: '2px', backgroundColor: 'rgba(79, 84, 92, 0.6)', position: 'relative' }}>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', backgroundColor: '#2A2B30', padding: '0 4px', fontSize: '10px', color: '#8E9297', borderRadius: '4px' }}>
                 ✈
               </div>
             </div>
@@ -330,57 +246,6 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
           <div style={{ fontSize: '10px', fontWeight: 700, color: '#00f3ff', letterSpacing: '1px', marginBottom: '16px', textTransform: 'uppercase' }}>Live Telemetry HUD</div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
-
-            {/* HIGH-TECH MINIATURE RADAR SWEEP WITH LIVE TARGETS */}
-            <div style={{ 
-              position: 'relative', width: '100%', height: '180px', backgroundColor: 'rgba(10,12,18,0.8)', 
-              borderRadius: '8px', border: '1px solid rgba(0, 243, 255, 0.2)', overflow: 'hidden', 
-              boxShadow: 'inset 0 0 20px rgba(0,243,255,0.05)'
-            }}>
-               {/* ZERO ANCHOR SYSTEM */}
-               <div style={{ position: 'absolute', top: '50%', left: '50%' }}>
-                 {/* Static ground mappings */}
-                 <div style={{ position: 'absolute', width: '280px', height: '280px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.05)', transform: 'translate(-50%, -50%)' }} />
-                 <div style={{ position: 'absolute', width: '140px', height: '140px', borderRadius: '50%', border: '1px solid rgba(0, 243, 255, 0.15)', transform: 'translate(-50%, -50%)' }} />
-                 <div style={{ position: 'absolute', width: '70px', height: '70px', borderRadius: '50%', border: '1px dashed rgba(0, 243, 255, 0.25)', transform: 'translate(-50%, -50%)' }} />
-                 
-                 {/* Center Crosshairs */}
-                 <div style={{ position: 'absolute', width: '1px', height: '180px', backgroundColor: 'rgba(0,243,255,0.1)', transform: 'translate(-50%, -50%)' }} />
-                 <div style={{ position: 'absolute', height: '1px', width: '280px', backgroundColor: 'rgba(0,243,255,0.1)', transform: 'translate(-50%, -50%)' }} />
-
-                 {/* Center Tracking Node */}
-                 <div style={{ position: 'absolute', width: '6px', height: '6px', backgroundColor: '#fff', borderRadius: '50%', boxShadow: '0 0 10px #fff, 0 0 20px #00f3ff', transform: 'translate(-50%, -50%)', zIndex: 20 }} />
-                 
-                 {/* Real-time Peripheral Threats/Traffic */}
-                 {localTraffic.map((t, idx) => (
-                   <div key={idx} style={{
-                      position: 'absolute', top: t.y, left: t.x, width: '4px', height: '4px',
-                      backgroundColor: t.isClimbing ? '#F59E0B' : '#00f3ff', borderRadius: '50%',
-                      boxShadow: `0 0 8px ${t.isClimbing ? '#F59E0B' : '#00f3ff'}`, transform: 'translate(-50%, -50%)', zIndex: 30
-                   }} title={`${t.callsign} | ${Math.round(t.dist * 60)} NM`} >
-                      <div style={{ position: 'absolute', width: '10px', height: '1px', background: 'rgba(255,255,255,0.4)', top: '1px', left: '1px', transform: `rotate(${t.heading - 90}deg)`, transformOrigin: '0 0' }} />
-                   </div>
-                 ))}
-
-                 {/* Advanced Conic Sweep Render */}
-                 <div style={{
-                   position: 'absolute', width: '400px', height: '400px', borderRadius: '50%',
-                   background: 'conic-gradient(from 0deg, transparent 75%, rgba(0, 243, 255, 0.2) 99%, rgba(0, 243, 255, 0.9) 100%)',
-                   animation: 'panelRadarSpin 2.5s linear infinite', zIndex: 15, pointerEvents: 'none',
-                   transformOrigin: '50% 50%'
-                 }} />
-               </div>
-
-               <div style={{ position: 'absolute', top: '8px', left: '10px', fontSize: '9px', color: '#00f3ff', fontWeight: 800, letterSpacing: '1px', zIndex: 40 }}>TACTICAL SCAN: ACTIVE</div>
-               <div style={{ position: 'absolute', bottom: '8px', right: '10px', fontSize: '9px', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', zIndex: 40 }}>{localTraffic.length} TARGETS ACQUIRED</div>
-               
-               <style>{`
-                 @keyframes panelRadarSpin {
-                   0% { transform: translate(-50%, -50%) rotate(0deg); }
-                   100% { transform: translate(-50%, -50%) rotate(360deg); }
-                 }
-               `}</style>
-            </div>
             
             {/* HUD 1: Altitude Curve */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -474,6 +339,8 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
         <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: '12px', color: '#8E9297' }}>
           Flight data provided by OpenSky Network & GKASFLOWS
         </div>
+
+      </div>
       </div>
     </div>
   );

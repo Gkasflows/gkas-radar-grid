@@ -4,16 +4,15 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import DeckGL from '@deck.gl/react';
 import { MapView, FlyToInterpolator } from '@deck.gl/core';
 import { TileLayer, GreatCircleLayer } from '@deck.gl/geo-layers';
-import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer, GeoJsonLayer } from '@deck.gl/layers';
+import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer } from '@deck.gl/layers';
 import { fetchLiveFlights, LiveFlight } from '../services/flightService';
 import FlightradarTopNav from './FlightradarTopNav';
 import FlightradarSidePanel from './FlightradarSidePanel';
 import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
-import WeatherSimulationCanvas, { WeatherCondition } from './WeatherSimulationCanvas';
 
-// Ultra-High-Resolution Command Center Satellite Imaging
-const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Hybrid: Satellite + Detailed Cartography Labels
+// Ultra-High Definition 4K Hybrid Satellite Matrix (Satellite Geography + Navigational Borders)
+const MAP_MATRIX_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
 
 // Airport Pin location SVG (Exact FR24 styling: Cyan-blue teardrop pin with white center dot and dark stroke)
 const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
@@ -26,12 +25,9 @@ const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent
 // Sprite Atlas containing a Yellow, a Red, and a White airplane wrapped in sharp black borders
 const AIRPLANE_ATLAS = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="64" viewBox="0 0 72 24">' +
-  // State 1: Diamond White Base Plane with Neon Cyan Stroke (Replaces regular Yellow plane)
-  '<path transform="translate(0,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ffffff" stroke="#00f3ff" stroke-width="1.2" stroke-linejoin="round"/>' +
-  // State 2: Electric Magenta Plane with Pink Glow (Replaces Selected Red plane)
-  '<path transform="translate(24,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ff00b3" stroke="#ff99ea" stroke-width="1.2" stroke-linejoin="round"/>' +
-  // State 3: Ghosted Heatmap plane (White heavily transparent)
-  '<path transform="translate(48,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="rgba(255,255,255,0.7)" stroke="none"/>' +
+  '<path transform="translate(0,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#FFDE1B" stroke="#000000" stroke-width="0.4" stroke-linejoin="round"/>' +
+  '<path transform="translate(24,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#FF3333" stroke="#000000" stroke-width="0.4" stroke-linejoin="round"/>' +
+  '<path transform="translate(48,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ffffff" stroke="#000000" stroke-width="0.4" stroke-linejoin="round"/>' +
   '</svg>'
 );
 
@@ -42,12 +38,12 @@ const FALLBACK_AIRPORTS: Airport[] = [
 
 const INITIAL_VIEW_STATE = {
   longitude: 0,
-  latitude: 0,
-  zoom: 0, // Zoom out globe entirely
-  pitch: 0, // Looking straight down globally
+  latitude: 20,
+  zoom: 2.0,
+  pitch: 30, // Reduced base tilt 
   bearing: 0,
   maxZoom: 20,
-  minZoom: 0
+  minZoom: 1.5
 };
 
 const calculateFlightHistoryTrail = (flight: LiveFlight | null) => {
@@ -136,54 +132,14 @@ export default function Map() {
   const [globalAirports, setGlobalAirports] = useState<Airport[]>(FALLBACK_AIRPORTS);
   const [selectedFlightId, setSelectedFlightId] = useState<string | null>(null);
   const [selectedAirportIata, setSelectedAirportIata] = useState<string | null>(null);
-  const [liveWeather, setLiveWeather] = useState<WeatherCondition>('clear');
   const [hoveredAirport, setHoveredAirport] = useState<{ airport: Airport, x: number, y: number } | null>(null);
   const [hoveredFlight, setHoveredFlight] = useState<{ flight: LiveFlight, x: number, y: number } | null>(null);
   const [viewState, setViewState] = useState<any>(INITIAL_VIEW_STATE);
   const [mounted, setMounted] = useState(false);
-  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLocationActive, setIsLocationActive] = useState(false);
+  const [isHeatmapActive, setIsHeatmapActive] = useState(false);
   const [radarPath, setRadarPath] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-
-  // GLOBAL PLAYBACK SYSTEM
-  const [isHeatmapActive, setIsHeatmapActive] = useState(false);
-
-  // GLOBAL AUDIO ENGINE
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const handleGlobalInteraction = () => {
-        const audioEl = document.getElementById('gkas_audio_player') as HTMLAudioElement;
-        if (audioEl && !isAudioPlaying) {
-          audioEl.volume = 0.4; // Soft background ambience volume
-          audioEl.play().then(() => setIsAudioPlaying(true)).catch(() => {});
-        }
-      };
-      
-      // Bind to any interaction to cleanly bypass strict browser autoplay limits
-      window.addEventListener('pointerdown', handleGlobalInteraction, { once: true });
-      window.addEventListener('keydown', handleGlobalInteraction, { once: true });
-      
-      return () => {
-        window.removeEventListener('pointerdown', handleGlobalInteraction);
-        window.removeEventListener('keydown', handleGlobalInteraction);
-      };
-    }
-  }, [isAudioPlaying]);
-
-  const [isPlaybackMode, setIsPlaybackMode] = useState(false);
-  const [playbackIndex, setPlaybackIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const flightSnapshots = useRef<{ timestamp: number; flights: LiveFlight[] }[]>([]);
-  const MAX_SNAPSHOTS = typeof window !== 'undefined' && window.innerWidth < 768 ? 30 : 120; // Mobile: 30 snapshots (~22min), Desktop: 120 (~90min)
-
-  // Native UI drag state for zoom buttons
-  const [zoomPos, setZoomPos] = useState({ bottom: 150, right: 16 });
-  const zoomDragRef = useRef({ isDragging: false, startX: 0, startY: 0, initialBottom: 150, initialRight: 16 });
 
   useEffect(() => {
     fetch('https://api.rainviewer.com/public/v3/weather/maps.json')
@@ -198,68 +154,43 @@ export default function Map() {
       });
   }, []);
 
-  // Global Geographic Auto-Panning Engine & Deep Search integration
-  useEffect(() => {
-    if (!searchQuery || searchQuery.length < 2) return;
-    
-    const debouncer = setTimeout(async () => {
-      // Prevent fetching if they already clicked a flight during typing
-      if (selectedFlightId || selectedAirportIata) return; 
-
-      let targetLat = 0, targetLon = 0, targetZoom = 5.5, targetPitch = 0, delay = 4500;
-      const q = searchQuery.toLowerCase();
-
-      if (q === 'smartan house' || q === 'the smartan house' || q === 'smartan') {
-         // Deep injection for local HQ
-         targetLat = 6.4550; // Lagos base
-         targetLon = 3.4064; 
-         targetZoom = 18.5; // Phenomenal close-up zoom 
-         targetPitch = 45; // 3D Tilt orientation
-         delay = 8000;
-      } else {
-         try {
-           const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=1`);
-           const json = await res.json();
-           if (json && json.length > 0) {
-             targetLat = parseFloat(json[0].lat);
-             targetLon = parseFloat(json[0].lon);
-           } else return;
-         } catch (e) {
-           return;
-         }
-      }
-
-      setViewState((prev: any) => ({
-        ...prev,
-        latitude: targetLat,
-        longitude: targetLon,
-        zoom: targetZoom, 
-        pitch: targetPitch,
-        bearing: 0,
-        transitionDuration: delay, // Cinematic smooth travel
-        transitionInterpolator: new FlyToInterpolator()
-      }));
-    }, 1200); // 1.2s delay typing tolerance preventing massive API limits
-    
-    return () => clearTimeout(debouncer);
-  }, [searchQuery, selectedFlightId, selectedAirportIata]);
-
   const lastSelectedFlightId = useRef<string | null>(null);
   const isAnimatingRef = useRef<boolean>(false);
+
+  // 0. Invisible Audio Autoplay Bypass
+  // Modern browsers aggressively ban hardcoded 0-second autoplay. This invisible listener waits for the user's
+  // VERY FIRST interaction (a click anywhere on the globe) and effortlessly starts the ambient background music automatically!
+  useEffect(() => {
+    let hasAudioStarted = false;
+    const audio = new Audio('/ambient.mp3');
+    audio.loop = true;
+    audio.volume = 0.20; // 20% background cinematic ambient volume
+
+    const startAudio = () => {
+      if (hasAudioStarted) return;
+      hasAudioStarted = true;
+      audio.play().catch(e => console.warn("Waiting for secure browser audio lock..."));
+    };
+
+    // Explicitly attempt a 0-second immediate autoplay override jump!
+    // If the browser natively allows it, it starts instantly. If not, it falls safely to the click handler.
+    audio.play().then(() => {
+      hasAudioStarted = true;
+    }).catch(e => console.warn("0-Second Autoplay blocked. Falling back to mouse listener.", e));
+
+    window.addEventListener('mousedown', startAudio);
+    window.addEventListener('keydown', startAudio);
+    
+    return () => {
+      window.removeEventListener('mousedown', startAudio);
+      window.removeEventListener('keydown', startAudio);
+      audio.pause();
+    };
+  }, []);
 
   // 1. Initial Mount & Polling Interval (10 seconds to fetch from OpenSky heavily)
   useEffect(() => {
     setMounted(true);
-    setIsMobile(window.innerWidth < 768);
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    
-    // Check if device matches system color scheme dynamically natively
-    const matcher = window.matchMedia('(prefers-color-scheme: dark)');
-    if (matcher.matches) {
-      // Setup dynamic hardware acceleration globally physically cleanly gracefully
-    }
-    
     let mounted = true;
 
     const loadData = async () => {
@@ -270,15 +201,7 @@ export default function Map() {
         try {
           const cached = localStorage.getItem('gkas_flight_snapshot');
           if (cached && flights.length === 0) {
-            let parsed = JSON.parse(cached);
-            
-            // Re-inflate if compressed
-            if (parsed.length > 0 && Array.isArray(parsed[0])) {
-               parsed = parsed.map((c: any[]) => ({
-                 icao24: c[0], latitude: c[1], longitude: c[2], true_track: c[3], velocity: c[4], baro_altitude: c[5]
-               }));
-            }
-            
+            const parsed = JSON.parse(cached);
             setFlights(parsed);
             setNetworkFlights(parsed);
           }
@@ -290,23 +213,8 @@ export default function Map() {
       if (mounted && data) {
         setFlights(data);
         setNetworkFlights(data);
-        // PLAYBACK: Record timestamped snapshot for global rewind
-        flightSnapshots.current.push({ timestamp: Date.now(), flights: data });
-        if (flightSnapshots.current.length > MAX_SNAPSHOTS) flightSnapshots.current.shift();
-        // If NOT in playback mode, keep slider synced to latest
-        if (!isPlaybackMode) setPlaybackIndex(flightSnapshots.current.length - 1);
-        // Persist data quietly into browser memory for instant next load
-        // On mobile, skip localStorage writes to reduce jank
-        if (typeof window !== 'undefined' && window.innerWidth >= 768) {
-          try { 
-            // Vercel Limit strictly prevents saving 25,000 heavy objects in 5MB localStorage
-            // We heavily compress them into an explicit minimal scalar chunk exactly for 0-latency map rendering!
-            const denseStorage = data.map(f => ([
-              f.icao24, f.latitude, f.longitude, Math.round(f.true_track || 0), Math.round(f.velocity || 0), Math.round(f.baro_altitude || 0)
-            ]));
-            localStorage.setItem('gkas_flight_snapshot', JSON.stringify(denseStorage)); 
-          } catch(e) { console.warn("Cache too large"); }
-        }
+        // Persist the perfect new massive data-grid quietly into physical browser memory for the next time they open the app!
+        try { localStorage.setItem('gkas_flight_snapshot', JSON.stringify(data)); } catch(e) { console.warn("Cache too large"); }
       }
     };
 
@@ -326,25 +234,24 @@ export default function Map() {
       .catch(e => console.log('Airports load pending:', e));
 
     loadData();
-    const interval = setInterval(loadData, 45000); // 45 second long polling gives planes a massive uninterrupted glide window before position reset
+    const interval = setInterval(loadData, 36000); // Perfectly synced to the Next.js 35s backend proxy limits
     return () => {
       mounted = false;
       clearInterval(interval);
-      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
-  // 2. Propulsion Engine (Smooth continuous movement of every single dot)
-  // Mobile: throttle to 3-second updates to save CPU. Desktop: 1-second updates.
+  // 2. 60FPS Propulsion Engine (Smooth continuous movement of every single dot)
   useEffect(() => {
     let animationFrameId: number;
     let lastTime = performance.now();
-    const TICK_RATE = typeof window !== 'undefined' && window.innerWidth < 768 ? 3.0 : 1.0;
 
     const loop = (currentTime: number) => {
       const deltaTime = (currentTime - lastTime) / 1000;
       
-      if (deltaTime < TICK_RATE) {
+      // PERFORMANCE FIX: Throttle heavy CPU dead-reckoning to exactly 1 update per second (1Hz).
+      // We will allow the Graphics Card (DeckGL) to physically handle all 60fps micro-movements across that 1 second duration internally!
+      if (deltaTime < 1.0) {
         animationFrameId = requestAnimationFrame(loop);
         return;
       }
@@ -374,27 +281,6 @@ export default function Map() {
     return () => cancelAnimationFrame(animationFrameId);
   }, []);
 
-  // PLAYBACK AUTO-ADVANCE ENGINE
-  useEffect(() => {
-    if (!isPlaying || !isPlaybackMode) return;
-    const playTimer = setInterval(() => {
-      setPlaybackIndex(prev => {
-        const next = prev + 1;
-        if (next >= flightSnapshots.current.length) {
-          setIsPlaying(false); // Stop at end
-          return prev;
-        }
-        const snapshot = flightSnapshots.current[next];
-        if (snapshot) {
-          setFlights(snapshot.flights);
-          setNetworkFlights(snapshot.flights);
-        }
-        return next;
-      });
-    }, 1000); // Advance 1 snapshot per second during playback (fast-forward effect)
-    return () => clearInterval(playTimer);
-  }, [isPlaying, isPlaybackMode]);
-
   // Hardware Sound System
   const playRadarBlip = useCallback(() => {
     try {
@@ -423,7 +309,6 @@ export default function Map() {
     setSearchQuery('');
     setHoveredFlight(null);
     setIsHeatmapActive(false);
-    setIsLocationActive(false);
 
     // Physically clear the un-controlled DOM search text input
     const searchInput = document.getElementById('search-input') as HTMLInputElement;
@@ -435,64 +320,6 @@ export default function Map() {
       transitionInterpolator: new FlyToInterpolator()
     });
   }, []);
-
-  const handleWeatherChase = useCallback(async (type: 'rain' | 'snow' | 'thunder') => {
-    // Notify the user it's tracking
-    setSearchQuery(`📡 Scanning global satellite grid for active ${type.toUpperCase()}...`);
-    
-    // Completely random scramble of all ~250 core global airports
-    const candidates = [...globalAirports].sort(() => 0.5 - Math.random());
-    
-    // Open-Meteo allows heavy massive batches. We scan 20 countries at once per network request!
-    for (let i = 0; i < candidates.length; i += 20) {
-        const batch = candidates.slice(i, i + 20);
-        if (batch.length === 0) continue;
-        const lats = batch.map(b => b.coords[1]).join(',');
-        const lons = batch.map(b => b.coords[0]).join(',');
-        
-        try {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&current=weather_code`);
-            const data = await res.json();
-            
-            const results = Array.isArray(data) ? data : [data];
-            
-            for (let j = 0; j < results.length; j++) {
-                const code = results[j]?.current?.weather_code;
-                if (code === undefined) continue;
-
-                let isMatch = false;
-                if (type === 'rain' && [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) isMatch = true;
-                if (type === 'snow' && [71, 73, 75, 77, 85, 86].includes(code)) isMatch = true;
-                if (type === 'thunder' && [95, 96, 99].includes(code)) isMatch = true;
-
-                if (isMatch) {
-                    // STORM ACQUIRED: Purge UI then teleport
-                    handleMasterReset(); 
-                    setSearchQuery(`🎯 Acquired ${type.toUpperCase()} signature: ${batch[j].city}, ${batch[j].country}`);
-                    
-                    setViewState({
-                        longitude: batch[j].coords[0],
-                        latitude: batch[j].coords[1],
-                        zoom: 8.5, // Punch deep down into the atmosphere natively
-                        pitch: 45, // Angled beautifully for the 3D particle physics engine
-                        bearing: 15,
-                        transitionDuration: 5500, // Luxurious fast glide across the globe
-                        transitionInterpolator: new FlyToInterpolator()
-                    });
-                    
-                    // Clear the UI lock text after arrival
-                    setTimeout(() => setSearchQuery(''), 6000); 
-                    return;
-                }
-            }
-        } catch(e) {}
-    }
-    
-    // Failsafe if absolutely nothing in the world matches
-    setSearchQuery(`☁️ Global scan complete. No active ${type.toUpperCase()} systems detected right now.`);
-    setTimeout(() => setSearchQuery(''), 3500);
-  }, [handleMasterReset, globalAirports]);
-
   const handleFlyToFlight = useCallback((flight: LiveFlight) => {
     playRadarBlip();
     isAnimatingRef.current = true;
@@ -576,38 +403,45 @@ export default function Map() {
   }, [selectedAirportIata, selectedFlightId, flights]);
 
   // Map Controls
-  const zoomIn = () => setViewState(prev => ({ ...prev, zoom: Math.min(prev.zoom + (isMobile ? 1.5 : 1), 20), transitionDuration: 300 }));
-  const zoomOut = () => setViewState(prev => ({ ...prev, zoom: Math.max(prev.zoom - (isMobile ? 2.5 : 1), 2), transitionDuration: 300 }));
+  const zoomIn = () => setViewState(prev => ({ ...prev, zoom: Math.min(prev.zoom + 1, 20), transitionDuration: 300 }));
+  const zoomOut = () => setViewState(prev => ({ ...prev, zoom: Math.max(prev.zoom - 1, 2), transitionDuration: 300 }));
 
   const handleTrackLocation = useCallback(() => {
-    if (isLocationActive) {
-      handleMasterReset();
-      setIsLocationActive(false);
-      setUserLocation(null);
+    if (!navigator.geolocation) {
+      alert('Geolocation is intrinsically blocked by this browser architecture.');
       return;
     }
+    
+    playRadarBlip();
 
-    if (navigator.geolocation) {
-      playRadarBlip();
-      navigator.geolocation.getCurrentPosition((position) => {
-        const { longitude, latitude } = position.coords;
-        setUserLocation([longitude, latitude]); // Physical track for Red pin
-        setViewState({
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation([longitude, latitude]);
+        
+        // Disengage current UI lock-ons
+        setSelectedFlightId(null);
+        setSelectedAirportIata(null);
+        
+        // Dynamic Geospatial swoop down to the user's location
+        setViewState((prev: any) => ({
+          ...prev,
           longitude,
           latitude,
-          zoom: 12, // Go closer to tracked location natively
+          zoom: 10.5, // Standard tactical airspace observation elevation
           pitch: 0,
           bearing: 0,
-          transitionDuration: 3000,
+          transitionDuration: 3500,
           transitionInterpolator: new FlyToInterpolator()
-        });
-        setIsLocationActive(true);
-      }, (err) => {
-        console.warn("Unable to obtain GPS lock natively.", err);
+        }));
+      },
+      (error) => {
+        console.warn("GPS Lock failed:", error);
         alert("Satellite array failed to acquire your GPS coordinate lock. Ensure browser permissions are granted.");
-      }, { enableHighAccuracy: false, timeout: 30000, maximumAge: Infinity });
-    }
-  }, [isLocationActive, handleMasterReset, playRadarBlip]);
+      },
+      { enableHighAccuracy: false, timeout: 30000, maximumAge: Infinity }
+    );
+  }, [playRadarBlip]);
 
   const filteredFlights = useMemo(() => {
     if (!searchQuery) return flights;
@@ -672,52 +506,11 @@ export default function Map() {
     globalAirports.find(a => a.iata === selectedAirportIata) || null
     , [selectedAirportIata, globalAirports]);
 
-  // LIVE TARGET WEATHER RADAR (Open-Meteo)
-  useEffect(() => {
-    // DEVELOPER OVERRIDE: Type 'rain' in the search bar to physically summon a thunderstorm
-    if (searchQuery.toLowerCase().trim() === 'rain') {
-       setLiveWeather('thunder');
-       return;
-    }
-
-    // We only spawn interactive weather if the camera is zoomed tightly into the target region natively (>= 6.5)
-    if (viewState.zoom < 6.5) {
-       setLiveWeather('clear');
-       return;
-    }
-    
-    // Always sample weather strictly from the exact physical center of whatever city they are looking at!
-    const activeLat = viewState.latitude;
-    const activeLon = viewState.longitude;
-    
-    const fetchWeather = async () => {
-       try {
-           const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${activeLat}&longitude=${activeLon}&current=weather_code`);
-           const data = await res.json();
-           const code = data.current?.weather_code;
-           
-           if (code !== undefined) {
-               // Standard WMO Weather Codes natively mapped to visual simulators
-               if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) setLiveWeather('rain');
-               else if ([71, 73, 75, 77, 85, 86].includes(code)) setLiveWeather('snow');
-               else if ([95, 96, 99].includes(code)) setLiveWeather('thunder');
-               else setLiveWeather('clear');
-           }
-       } catch (e) {
-           setLiveWeather('clear');
-       }
-    };
-    
-    // Debounce the physical weather fetch slightly (800ms) so you can scan the globe quickly
-    const t = setTimeout(fetchWeather, 800);
-    return () => clearTimeout(t);
-  }, [viewState.latitude, viewState.longitude, viewState.zoom, searchQuery]);
-
   // LAYERS
   const layers = useMemo(() => [
-    // Layer 1: High-Definition Night-Vision Satellite Cartography
+    // Layer 1: The Earth (Base global cartography)
     new TileLayer({
-      data: FR24_MAP_URL,
+      data: MAP_MATRIX_URL,
       minZoom: 0,
       maxZoom: 19,
       tileSize: 256,
@@ -728,20 +521,30 @@ export default function Map() {
           data: undefined,
           image: props.data,
           bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
-          tintColor: [255, 255, 255, 255] // Completely neutral filter so Google Maps hybrid labels render in perfect crisp white!
+          tintColor: [255, 255, 255, 255] // REMOVED the slate/dark tints! This allows the vibrant, stunning raw 4K colors of the ocean and continents to blast through.
         });
       }
     }),
 
-    // Layer 1.1: Glowing Global GeoJSON Country Borders overlaying the Satellite Image
-    new GeoJsonLayer({
-      id: 'glowing-country-borders',
-      data: 'https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_countries.geojson', // Low-res exactly strips the thousands of messy island "dots" over the ocean!
-      stroked: true,
-      filled: false,
-      lineWidthMinPixels: 1.5,
-      getLineColor: [140, 160, 200, 180] // High Aesthetic Ice-Blue/Silver sleek vector trace!
-    }),
+    // Layer 1.5: Global Live Storm/Precipitation Meteorological Grid
+    radarPath ? new TileLayer({
+      id: 'weather-radar-layer',
+      data: `${radarPath}/256/{z}/{x}/{y}/2/1_1.png`, // Scheme 2 (Universal Blue/Cyan radar)
+      minZoom: 0,
+      maxZoom: 7, // Hardware clamped to native RainViewer limits to trigger automatic tile interpolation
+      tileSize: 256,
+      opacity: 0.65, // Let the storms glow above the dark earth smoothly
+      renderSubLayers: props => {
+        const { boundingBox } = props.tile;
+        return new (BitmapLayer as any)(props, {
+          id: props.id + '-weather-bitmap',
+          data: undefined,
+          image: props.data,
+          bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
+          transparentColor: [0, 0, 0, 0] // RainViewer uses PNG transparency natively
+        });
+      }
+    }) : null,
 
     // Layer 2: Mathematical Altitude-Encoded History Trail mimicking FR24
     selectedFlight ? new (LineLayer as any)({
@@ -750,23 +553,9 @@ export default function Map() {
       getSourcePosition: (d: any) => d.start,
       getTargetPosition: (d: any) => d.end,
       getColor: (d: any) => d.color,
+      getWidth: 4, // Bold authentic trail
       widthMinPixels: 4
     }) : null,
-
-    // Layer 5: User GPS True Red Radar Pin
-    userLocation ? new (ScatterplotLayer as any)({
-      id: 'gps-user-location-pin',
-      data: [{ position: userLocation }],
-      getPosition: (d: any) => d.position,
-      getFillColor: [239, 68, 68, 255], // Deep Tactical Red
-      getLineColor: [255, 255, 255, 255], // White Border Highlight
-      lineWidthMinPixels: 2,
-      getRadius: 100, // Native visual buffer
-      radiusMinPixels: 7, // Highly visible physically at outer space scale!
-      radiusMaxPixels: 20
-    }) : null,
-
-
 
     // Layer 3: High Density IconLayer for ALL PLANES
     new (IconLayer as any)({
@@ -785,17 +574,12 @@ export default function Map() {
         return 'yellow';
       },
       getPosition: (d: LiveFlight) => [d.longitude, d.latitude],
-      getAngle: (d: LiveFlight) => 0 - (d.true_track || 0),
+      getAngle: (d: LiveFlight) => 0 - (d.true_track || 0), // svg points UP, we need angle clockwise
       getSize: (d: LiveFlight) => {
-        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-        const baseSize = isMobile ? 24 : 36;
-        if (!selectedFlightId) return hoveredFlight?.flight.icao24 === d.icao24 ? baseSize + 10 : baseSize;
-        return d.icao24 === selectedFlightId ? baseSize + 16 : (isMobile ? 10 : 16); 
+        if (!selectedFlightId) return hoveredFlight?.flight.icao24 === d.icao24 ? 46 : 36;
+        return d.icao24 === selectedFlightId ? 52 : 16; // Massively shrink unselected ghost planes to tiny dots
       },
-      sizeScale: Math.max(
-        typeof window !== 'undefined' && window.innerWidth < 768 ? 0.15 : 0.35, 
-        Math.min(1.2, (typeof window !== 'undefined' && window.innerWidth < 768 ? 0.15 : 0.35) + (viewState.zoom - 1.5) * 0.15)
-      ),
+      sizeScale: Math.max(0.35, Math.min(1.2, 0.35 + (viewState.zoom - 1.5) * 0.15)), // Seamless, mathematically continuous scaling matching FR24 exactly
       getColor: (d: LiveFlight) => {
         if (d.icao24 === selectedFlightId) return [255, 60, 60, 255]; // Selected turns Solid Red
         
@@ -825,7 +609,12 @@ export default function Map() {
         getSize: [selectedFlightId, hoveredFlight?.flight.icao24]
       },
       pickable: true,
-      onHover: isMobile ? undefined : ({ object, x, y }: any) => {
+      transitions: {
+        // Offload 100% of 60FPS animation rendering onto the user's graphics card, linearly smoothing the 1s calculation gaps!
+        getPosition: { duration: 1000, easing: (t: number) => t }, 
+        getAngle: { duration: 900 }
+      },
+      onHover: ({ object, x, y }: any) => {
         if (object) setHoveredFlight({ flight: object, x, y });
         else setHoveredFlight(null);
       },
@@ -847,7 +636,7 @@ export default function Map() {
       getColor: [255, 255, 255], 
       pickable: true,
       onClick: ({ object }: any) => { if (object) handleFlyToAirport(object); },
-      onHover: isMobile ? undefined : ({ object, x, y }: any) => {
+      onHover: ({ object, x, y }: any) => {
         if (object) setHoveredAirport({ airport: object, x, y });
         else setHoveredAirport(null);
       }
@@ -879,76 +668,36 @@ export default function Map() {
       lineWidthMinPixels: 2,
       getRadius: 1800, // Massive 1.8km radius ring locked strictly to their ground coordinate
       stroked: true,
+      filled: true
     }) : null
-  ].filter(Boolean), [filteredFlights, networkFlights, filteredAirports, selectedFlight, selectedAirport, selectedFlightId, selectedAirportIata, userLocation, handleFlyToFlight, handleFlyToAirport, viewState.zoom, searchQuery, isHeatmapActive, flights]);
+  ].filter(Boolean), [filteredFlights, networkFlights, filteredAirports, selectedFlight, selectedAirport, selectedFlightId, userLocation, handleFlyToFlight, handleFlyToAirport, viewState.zoom, searchQuery, isHeatmapActive]);
 
-  const searchInput = document.getElementById('search-input') as HTMLInputElement; // React wrapper injection
+  if (!mounted) return null;
 
   return (
-    <>
-    <style>{`
-      @media (max-width: 768px) {
-        .mobile-playback-hidden { 
-          opacity: ${isRightPanelOpen ? 0 : 1} !important; 
-          pointer-events: ${isRightPanelOpen ? 'none' : 'auto'} !important; 
-          transform: translateY(${isRightPanelOpen ? '20px' : '0px'}) !important;
-        }
-
-        /* Permanently DISABLE Playback on Mobile */
-        .desktop-only-playback {
-          display: none !important;
-        }
-
-        /* HARD-KILL the Tracker List Button when Playback is Open */
-        ${isPlaybackMode ? `
-          .right-panel-mobile button {
-             opacity: 0 !important;
-             pointer-events: none !important;
-             transform: translateY(50px) translateX(-50%) !important;
-          }
-        ` : ''}
-      }
-    `}</style>
-
-    {/* MASTER GLOBAL AUDIO ENGAGEMENT */}
-    <audio id="gkas_audio_player" src="/ambient.mp3" loop preload="auto" />
-
     <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
       <DeckGL
         views={new MapView({ id: 'map', repeat: true })}
         viewState={viewState}
-        onViewStateChange={({ viewState: newViewState, interactionState }) => {
-          setViewState(newViewState);
-          if (interactionState?.isDragging || interactionState?.isPanning) {
-            isAnimatingRef.current = false;
-          }
-          if (isLocationActive) setIsLocationActive(false);
+        onViewStateChange={e => {
+          setViewState(e.viewState as any);
         }}
         controller={{ doubleClickZoom: false, keyboard: true, inertia: true, scrollZoom: { speed: 0.05, smooth: true } }}
         layers={layers}
       />
 
-      <WeatherSimulationCanvas condition={liveWeather} />
-
       {/* TOP NAVBAR */}
       <FlightradarTopNav
-        searchQuery={searchQuery}
         onSearch={setSearchQuery}
         flightCount={networkFlights.length}
         isHeatmapActive={isHeatmapActive}
         toggleHeatmap={() => setIsHeatmapActive(prev => !prev)}
         onReset={handleMasterReset}
-        globalAirports={globalAirports}
-        globalFlights={networkFlights}
-        onFlightSelect={handleFlyToFlight}
-        onAirportSelect={handleFlyToAirport}
-        onWeatherChase={handleWeatherChase}
       />
 
       {/* LEFT PANELS (Mutually exclusive) */}
       <FlightradarSidePanel
         flight={selectedFlight}
-        liveFlights={networkFlights}
         onClose={() => setSelectedFlightId(null)}
         onPointClick={(lat, lon, iata) => {
           // Temporarily pause the 10s auto-follow tracking mechanism for a lavish 15 seconds to let the user explore the airport
@@ -980,76 +729,24 @@ export default function Map() {
         onClose={() => setSelectedAirportIata(null)}
       />
 
-      {/* HIGH-TECH DRAGGABLE ZOOM CONTROLS */}
-      <div 
-        onPointerDown={(e) => {
-          zoomDragRef.current = { isDragging: true, startX: e.clientX, startY: e.clientY, initialBottom: zoomPos.bottom, initialRight: zoomPos.right };
-          e.currentTarget.setPointerCapture(e.pointerId);
-          e.currentTarget.style.cursor = 'grabbing';
-        }}
-        onPointerMove={(e) => {
-          if (!zoomDragRef.current.isDragging) return;
-          const dy = e.clientY - zoomDragRef.current.startY;
-          const dx = e.clientX - zoomDragRef.current.startX;
-          setZoomPos({
-            bottom: zoomDragRef.current.initialBottom - dy,
-            right: zoomDragRef.current.initialRight - dx
-          });
-        }}
-        onPointerUp={(e) => {
-          zoomDragRef.current.isDragging = false;
-          e.currentTarget.releasePointerCapture(e.pointerId);
-          e.currentTarget.style.cursor = 'grab';
-        }}
-        onTouchStart={(e) => {
-          const touch = e.touches[0];
-          zoomDragRef.current = { isDragging: true, startX: touch.clientX, startY: touch.clientY, initialBottom: zoomPos.bottom, initialRight: zoomPos.right };
-        }}
-        onTouchMove={(e) => {
-          if (!zoomDragRef.current.isDragging) return;
-          const touch = e.touches[0];
-          const dy = touch.clientY - zoomDragRef.current.startY;
-          const dx = touch.clientX - zoomDragRef.current.startX;
-          setZoomPos({
-            bottom: zoomDragRef.current.initialBottom - dy,
-            right: zoomDragRef.current.initialRight - dx
-          });
-        }}
-        onTouchEnd={() => {
-          zoomDragRef.current.isDragging = false;
-        }}
-        // Prevent map interaction while dragging zoom
-        onPointerLeave={(e) => { if(zoomDragRef.current.isDragging) e.stopPropagation(); }}
-        style={{
-          position: 'absolute',
-          bottom: `${zoomPos.bottom}px`,
-          right: `${zoomPos.right}px`,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '6px',
-          zIndex: 1000,
-          backgroundColor: 'rgba(10, 15, 30, 0.45)', // Glassmorphism Core
-          borderRadius: '12px', // Smoother chassis
-          padding: '8px',
-          border: '1px solid rgba(0, 243, 255, 0.25)', // Cyber neon edge
-          boxShadow: '0 8px 30px rgba(0,0,0,0.6), inset 0 0 12px rgba(0,243,255,0.1)', // Complex volumetric depth
-          backdropFilter: 'blur(24px) saturate(150%)', // Multi-billion dollar glass rendering
-          cursor: 'grab',
-          touchAction: 'none' // Essential to stop natural page scrolling while moving the HUD
-        }}>
-        
-        {/* DRAG GRIP HANDLE */}
-        <div style={{
-           width: '100%', height: '14px',
-           display: 'flex', justifyContent: 'center', alignItems: 'center',
-           cursor: 'grab', opacity: 0.5, marginBottom: '2px'
-        }}>
-           <div style={{ width: '20px', height: '4px', borderRadius: '2px', backgroundColor: '#00f3ff' }}></div>
-        </div>
-
+      {/* HIGH-TECH ZOOM CONTROLS */}
+      <div style={{
+        position: 'absolute',
+        bottom: '24px',
+        right: '340px', // Sits perfectly flush to the left of the FlightradarRightPanel (RightPanel is 300px wide + 24px margin)
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        zIndex: 1000,
+        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        borderRadius: '8px',
+        padding: '6px',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(8px)'
+      }}>
         <button
-          onClick={(e) => handleTrackLocation()}
-          onPointerDown={(e) => e.stopPropagation()}
+          onClick={handleTrackLocation}
           title="Acquire Satellite GPS Lock"
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
@@ -1074,7 +771,6 @@ export default function Map() {
         </button>
         <button
           onClick={zoomIn}
-          onPointerDown={(e) => e.stopPropagation()}
           title="Engage Magnification"
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.15)';
@@ -1097,7 +793,6 @@ export default function Map() {
         </button>
         <button
           onClick={zoomOut}
-          onPointerDown={(e) => e.stopPropagation()}
           title="Disengage Magnification"
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.15)';
@@ -1128,8 +823,6 @@ export default function Map() {
         onAirportClick={handleFlyToAirport}
         selectedFlightId={selectedFlightId}
         selectedAirportIata={selectedAirportIata}
-        onToggle={(open) => setIsRightPanelOpen(open)}
-        isPlaybackMode={isPlaybackMode}
       />
 
       {/* FLIGHT HOVER TOOLTIP */}
@@ -1191,145 +884,6 @@ export default function Map() {
         </div>
       )}
 
-      {/* GLOBAL PLAYBACK TIMELINE SLIDER */}
-      {flightSnapshots.current.length > 1 && (
-        <div className="mobile-playback-hidden desktop-only-playback" style={{
-          position: 'absolute',
-          bottom: isMobile ? '24px' : 0,
-          left: 0,
-          right: 0,
-          height: isPlaybackMode ? '100px' : '36px',
-          background: isPlaybackMode 
-            ? 'linear-gradient(180deg, rgba(10,12,18,0.0) 0%, rgba(10,12,18,0.95) 30%)'
-            : 'linear-gradient(180deg, transparent 0%, rgba(10,12,18,0.7) 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          padding: '24px 24px 10px 24px', // Standard internal padding
-          zIndex: 900,
-          transition: 'height 0.3s ease, background 0.3s ease'
-        }}>
-          {/* Toggle Button */}
-          <button 
-            onClick={() => {
-              if (isPlaybackMode) {
-                // Exit playback: restore live data
-                setIsPlaybackMode(false);
-                setIsPlaying(false);
-                const latest = flightSnapshots.current[flightSnapshots.current.length - 1];
-                if (latest) {
-                  setFlights(latest.flights);
-                  setNetworkFlights(latest.flights);
-                }
-                setPlaybackIndex(flightSnapshots.current.length - 1);
-              } else {
-                setIsPlaybackMode(true);
-              }
-            }}
-            style={{
-              position: 'absolute',
-              top: isPlaybackMode ? '-35px' : '-65px', // Hovers dependably
-              left: '50%',
-              transform: 'translateX(-50%)', // Centered beautifully below the Tracker list button
-              background: isPlaybackMode ? 'rgba(255,0,100,0.9)' : 'rgba(20,24,35,0.85)',
-              border: `1px solid ${isPlaybackMode ? 'rgba(255,100,150,0.5)' : 'rgba(100,110,140,0.4)'}`,
-              color: '#fff',
-              padding: '6px 18px', // Slightly larger hit target bounds for mobile
-              borderRadius: '16px',
-              fontSize: '11px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              letterSpacing: '1px',
-              backdropFilter: 'blur(10px)',
-              transition: 'all 0.4s ease, opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            {isPlaybackMode ? '✕ EXIT PLAYBACK' : '⏪ PLAYBACK'}
-          </button>
-
-          {/* Playback Controls & Slider */}
-          {isPlaybackMode && (
-            <div style={{ width: '100%', maxWidth: '900px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {/* Play/Pause Button */}
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: '#fff',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}
-              >
-                {isPlaying ? '⏸' : '▶'}
-              </button>
-
-              {/* Timestamp Label (Left) */}
-              <div style={{ color: '#8E9297', fontSize: '11px', fontWeight: 600, minWidth: '55px', textAlign: 'center', fontFamily: 'monospace' }}>
-                {flightSnapshots.current[playbackIndex]
-                  ? new Date(flightSnapshots.current[playbackIndex].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                  : '--:--:--'
-                }
-              </div>
-
-              {/* Slider */}
-              <input
-                type="range"
-                min={0}
-                max={flightSnapshots.current.length - 1}
-                value={playbackIndex}
-                onChange={(e) => {
-                  const idx = parseInt(e.target.value);
-                  setPlaybackIndex(idx);
-                  const snapshot = flightSnapshots.current[idx];
-                  if (snapshot) {
-                    setFlights(snapshot.flights);
-                    setNetworkFlights(snapshot.flights);
-                  }
-                }}
-                style={{
-                  flex: 1,
-                  height: '4px',
-                  appearance: 'none',
-                  background: `linear-gradient(to right, #00f3ff 0%, #00f3ff ${(playbackIndex / Math.max(1, flightSnapshots.current.length - 1)) * 100}%, rgba(255,255,255,0.15) ${(playbackIndex / Math.max(1, flightSnapshots.current.length - 1)) * 100}%, rgba(255,255,255,0.15) 100%)`,
-                  borderRadius: '4px',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              />
-
-              {/* LIVE Label (Right) */}
-              <div style={{
-                color: playbackIndex === flightSnapshots.current.length - 1 ? '#00ff88' : '#8E9297',
-                fontSize: '11px',
-                fontWeight: 800,
-                letterSpacing: '1px',
-                minWidth: '40px',
-                textAlign: 'center'
-              }}>
-                {playbackIndex === flightSnapshots.current.length - 1 ? '● LIVE' : 'PAST'}
-              </div>
-
-              {/* Flight Count */}
-              <div style={{ color: '#4F545C', fontSize: '10px', fontWeight: 600, minWidth: '60px', textAlign: 'right' }}>
-                {flightSnapshots.current[playbackIndex]?.flights.length || 0} flights
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
-    </>
   );
 }
