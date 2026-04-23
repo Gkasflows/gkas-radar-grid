@@ -619,6 +619,15 @@ export default function Map() {
     if (lowerQ === 'usa' || lowerQ === 'us' || lowerQ === 'united states') return flights.filter(f => f.longitude >= -125.0 && f.longitude <= -65.0 && f.latitude >= 25.0 && f.latitude <= 50.0);
     if (lowerQ === 'europe' || lowerQ === 'eu') return flights.filter(f => f.longitude >= -10.0 && f.longitude <= 30.0 && f.latitude >= 36.0 && f.latitude <= 65.0);
 
+    // Deep Semantic Search Filters
+    if (lowerQ === 'landing' || lowerQ === 'descending') return flights.filter(f => (f.vertical_rate || 0) < -2);
+    if (lowerQ === 'taking off' || lowerQ === 'takeoff' || lowerQ === 'climbing') return flights.filter(f => (f.vertical_rate || 0) > 2);
+    if (lowerQ === 'cruising' || lowerQ === 'cruise') return flights.filter(f => f.baro_altitude && f.baro_altitude > 8000 && Math.abs(f.vertical_rate || 0) <= 0.5);
+    if (lowerQ === 'emergency' || lowerQ === 'sos') return flights.filter(f => f.squawk === '7700' || f.squawk === '7600' || f.squawk === '7500');
+    if (lowerQ === 'airbus' || lowerQ.includes('a3')) return flights.filter(f => f.model?.toLowerCase().includes('airbus') || f.type?.toLowerCase().startsWith('a3'));
+    if (lowerQ === 'boeing' || lowerQ.includes('737') || lowerQ.includes('777')) return flights.filter(f => f.model?.toLowerCase().includes('boeing') || f.type?.toLowerCase().startsWith('b7'));
+    if (lowerQ === 'fast' || lowerQ === 'speed') return flights.filter(f => f.velocity && f.velocity > 250);
+
     return flights.filter(f =>
       f.callsign?.toLowerCase().includes(lowerQ) ||
       f.airline?.toLowerCase().includes(lowerQ) ||
@@ -640,6 +649,15 @@ export default function Map() {
     if (lowerQ === 'uk' || lowerQ === 'united kingdom' || lowerQ === 'london') return networkFlights.filter(f => f.longitude >= -8.0 && f.longitude <= 2.0 && f.latitude >= 50.0 && f.latitude <= 60.0);
     if (lowerQ === 'usa' || lowerQ === 'us' || lowerQ === 'united states') return networkFlights.filter(f => f.longitude >= -125.0 && f.longitude <= -65.0 && f.latitude >= 25.0 && f.latitude <= 50.0);
     if (lowerQ === 'europe' || lowerQ === 'eu') return networkFlights.filter(f => f.longitude >= -10.0 && f.longitude <= 30.0 && f.latitude >= 36.0 && f.latitude <= 65.0);
+
+    // Deep Semantic Search Filters
+    if (lowerQ === 'landing' || lowerQ === 'descending') return networkFlights.filter(f => (f.vertical_rate || 0) < -2);
+    if (lowerQ === 'taking off' || lowerQ === 'takeoff' || lowerQ === 'climbing') return networkFlights.filter(f => (f.vertical_rate || 0) > 2);
+    if (lowerQ === 'cruising' || lowerQ === 'cruise') return networkFlights.filter(f => f.baro_altitude && f.baro_altitude > 8000 && Math.abs(f.vertical_rate || 0) <= 0.5);
+    if (lowerQ === 'emergency' || lowerQ === 'sos') return networkFlights.filter(f => f.squawk === '7700' || f.squawk === '7600' || f.squawk === '7500');
+    if (lowerQ === 'airbus' || lowerQ.includes('a3')) return networkFlights.filter(f => f.model?.toLowerCase().includes('airbus') || f.type?.toLowerCase().startsWith('a3'));
+    if (lowerQ === 'boeing' || lowerQ.includes('737') || lowerQ.includes('777')) return networkFlights.filter(f => f.model?.toLowerCase().includes('boeing') || f.type?.toLowerCase().startsWith('b7'));
+    if (lowerQ === 'fast' || lowerQ === 'speed') return networkFlights.filter(f => f.velocity && f.velocity > 250);
 
     return networkFlights.filter(f =>
       f.callsign?.toLowerCase().includes(lowerQ) ||
