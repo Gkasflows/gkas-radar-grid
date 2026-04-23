@@ -159,7 +159,7 @@ export default function Map() {
       const handleGlobalInteraction = () => {
         const audioEl = document.getElementById('gkas_audio_player') as HTMLAudioElement;
         if (audioEl && !isAudioPlaying) {
-          audioEl.volume = 0.4; // Soft background ambience volume
+          audioEl.volume = 0.05; // Extremely soft background ambience (so ATC radio is clearly audible)
           audioEl.play().then(() => setIsAudioPlaying(true)).catch(() => {});
         }
       };
