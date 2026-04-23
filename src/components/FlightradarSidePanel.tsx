@@ -293,15 +293,15 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
           }
           else if (lon >= -75 && lon <= -72 && lat >= 40 && lat <= 42) {
             atcName = "NEW YORK JFK TOWER";
-            atcUrl = "https://broadcastify.cdnstream1.com/32468";
+            atcUrl = "https://s1-fmt2.liveatc.net/kjfk_twr";
           }
           else if (lon >= -120 && lon <= -116 && lat >= 33 && lat <= 35) {
             atcName = "LOS ANGELES LAX TRACON";
-            atcUrl = "https://broadcastify.cdnstream1.com/24584";
+            atcUrl = "https://s1-fmt2.liveatc.net/klax_twr";
           }
           else if (lon >= -89 && lon <= -87 && lat >= 41 && lat <= 43) {
             atcName = "CHICAGO ORD TOWER";
-            atcUrl = "https://broadcastify.cdnstream1.com/32014";
+            atcUrl = "https://s1-fmt2.liveatc.net/kord_twr";
           }
 
           return (
