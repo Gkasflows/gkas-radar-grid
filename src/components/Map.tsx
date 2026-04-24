@@ -165,20 +165,20 @@ export default function Map() {
      }
 
      // 2. Scan for major ascents (Take-offs) globally
-     const takeoff = networkFlights.find(f => (f.vertical_rate || 0) > 12 && f.baro_altitude && f.baro_altitude < 3000 && !alertedSetRef.current.has(f.icao24 + '-tk'));
+     const takeoff = networkFlights.find(f => (f.vertical_rate || 0) > 15 && f.baro_altitude && f.baro_altitude < 3500 && !alertedSetRef.current.has(f.icao24 + '-tk'));
      if (takeoff && !globalAlert) {
         alertedSetRef.current.add(takeoff.icao24 + '-tk');
-        setGlobalAlert({ type: 'TAKEOFF DETECTED', icao: takeoff.icao24, msg: `${takeoff.callsign || takeoff.airline || takeoff.icao24} IS CURRENTLY LIFTING OFF FROM ${takeoff.origin_iata || 'UNKNOWN'}.` });
-        setTimeout(() => setGlobalAlert(null), 7000);
+        setGlobalAlert({ type: 'TAKEOFF DETECTED', icao: takeoff.icao24, msg: `${takeoff.callsign || takeoff.airline || takeoff.icao24} lifting off from ${takeoff.origin_iata || 'airfield'}.` });
+        setTimeout(() => setGlobalAlert(null), 6000);
         return;
      }
 
      // 3. Scan for major descents (Landings) globally
-     const landing = networkFlights.find(f => (f.vertical_rate || 0) < -10 && f.baro_altitude && f.baro_altitude < 2500 && !alertedSetRef.current.has(f.icao24 + '-ld'));
+     const landing = networkFlights.find(f => (f.vertical_rate || 0) < -8 && f.baro_altitude && f.baro_altitude < 4500 && !alertedSetRef.current.has(f.icao24 + '-ld'));
      if (landing && !globalAlert) {
          alertedSetRef.current.add(landing.icao24 + '-ld');
-         setGlobalAlert({ type: 'LANDING APPROACH', icao: landing.icao24, msg: `${landing.callsign || landing.airline || landing.icao24} IS ON FINAL APPROACH INTO ${landing.dest_iata || 'UNKNOWN'}.` });
-         setTimeout(() => setGlobalAlert(null), 7000);
+         setGlobalAlert({ type: 'LANDING APPROACH', icao: landing.icao24, msg: `${landing.callsign || landing.airline || landing.icao24} descending into ${landing.dest_iata || 'airfield'}.` });
+         setTimeout(() => setGlobalAlert(null), 6000);
          return;
      }
 
@@ -991,13 +991,13 @@ export default function Map() {
     {/* 🛑 TACTICAL TRIGGER WARNING NOTIFICATIONS 🛑 */}
     {globalAlert && (
          <div style={{
-           position: 'absolute', top: '100px', left: '50%', transform: 'translateX(-50%)', zIndex: 3000,
-           backgroundColor: globalAlert.type.includes('EMERGENCY') ? 'rgba(239, 68, 68, 0.9)' : 'rgba(0, 243, 255, 0.85)',
-           border: `1px solid ${globalAlert.type.includes('EMERGENCY') ? '#ff0000' : '#ffffff'}`,
-           backdropFilter: 'blur(12px)', borderRadius: '8px', padding: '12px 24px',
-           boxShadow: `0 0 30px ${globalAlert.type.includes('EMERGENCY') ? 'rgba(239, 68, 68, 0.6)' : 'rgba(0, 243, 255, 0.4)'}`,
-           display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'auto', cursor: 'pointer',
-           animation: 'alertDrop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+           position: 'absolute', top: '80px', left: '50%', transform: 'translateX(-50%)', zIndex: 3000,
+           backgroundColor: globalAlert.type.includes('EMERGENCY') ? 'rgba(239, 68, 68, 0.85)' : 'rgba(10, 15, 30, 0.85)',
+           border: `1px solid ${globalAlert.type.includes('EMERGENCY') ? '#ff0000' : 'rgba(0, 243, 255, 0.3)'}`,
+           backdropFilter: 'blur(24px) saturate(150%)', borderRadius: '12px', padding: '8px 16px',
+           boxShadow: `0 8px 32px ${globalAlert.type.includes('EMERGENCY') ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0, 0, 0, 0.5)'}`,
+           display: 'flex', alignItems: 'center', gap: '12px', pointerEvents: 'auto', cursor: 'pointer',
+           animation: 'alertSlide 0.5s cubic-bezier(0.16, 1, 0.3, 1)', whiteSpace: 'nowrap'
          }}
          onClick={() => {
             const flight = networkFlights.find(f => f.icao24 === globalAlert.icao);
@@ -1006,17 +1006,20 @@ export default function Map() {
                setGlobalAlert(null); // Dismiss on click
             }
          }}>
-           <div style={{ fontSize: '10px', color: '#fff', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '8px', height: '8px', backgroundColor: '#fff', borderRadius: '50%', animation: 'pulse 1s infinite' }} />
-              {globalAlert.type}
+           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '50%', backgroundColor: globalAlert.type.includes('EMERGENCY') ? 'rgba(255,255,255,0.2)' : 'rgba(0, 243, 255, 0.15)' }}>
+              <span style={{ width: '8px', height: '8px', backgroundColor: globalAlert.type.includes('EMERGENCY') ? '#fff' : '#00f3ff', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
            </div>
-           <div style={{ fontSize: '13px', color: '#fff', fontWeight: 600, marginTop: '6px', textAlign: 'center' }}>
-              {globalAlert.msg}
+           <div style={{ display: 'flex', flexDirection: 'column' }}>
+             <div style={{ fontSize: '10px', color: globalAlert.type.includes('EMERGENCY') ? '#fff' : '#00f3ff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                {globalAlert.type}
+             </div>
+             <div style={{ fontSize: '12px', color: '#fff', fontWeight: 500, marginTop: '2px' }}>
+                {globalAlert.msg}
+             </div>
            </div>
-           <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.7)', marginTop: '4px', textTransform: 'uppercase' }}>Click to auto-intercept coordinate</div>
          </div>
     )}
-    <style>{`@keyframes alertDrop { 0% { transform: translate(-50%, -50px); opacity: 0; } 100% { transform: translate(-50%, 0); opacity: 1; } }`}</style>
+    <style>{`@keyframes alertSlide { 0% { transform: translate(-50%, -40px) scale(0.95); opacity: 0; } 100% { transform: translate(-50%, 0) scale(1); opacity: 1; } }`}</style>
 
 
     <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
