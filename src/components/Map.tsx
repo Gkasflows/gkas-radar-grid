@@ -148,6 +148,44 @@ export default function Map() {
   const [radarPath, setRadarPath] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
 
+  // 🛑 GLOBAL TACTICAL ALERT ARRAY 🛑
+  const [globalAlert, setGlobalAlert] = useState<{type: string, icao: string, msg: string} | null>(null);
+  const alertedSetRef = useRef<Set<string>>(new Set());
+  
+  useEffect(() => {
+     if (!networkFlights || networkFlights.length === 0) return;
+     
+     // 1. Scan for immediate critical emergencies
+     const emergency = networkFlights.find(f => (f.squawk === '7700' || f.squawk === '7600' || f.squawk === '7500') && !alertedSetRef.current.has(f.icao24 + '-emg'));
+     if (emergency) {
+        alertedSetRef.current.add(emergency.icao24 + '-emg');
+        setGlobalAlert({ type: 'CRITICAL EMERGENCY', icao: emergency.icao24, msg: `SQUAWK ${emergency.squawk} DECLARED BY ${emergency.callsign || emergency.icao24}. INTERCEPTING.` });
+        setTimeout(() => setGlobalAlert(null), 8000);
+        return;
+     }
+
+     // 2. Scan for major ascents (Take-offs) globally
+     const takeoff = networkFlights.find(f => (f.vertical_rate || 0) > 12 && f.baro_altitude && f.baro_altitude < 3000 && !alertedSetRef.current.has(f.icao24 + '-tk'));
+     if (takeoff && !globalAlert) {
+        alertedSetRef.current.add(takeoff.icao24 + '-tk');
+        setGlobalAlert({ type: 'TAKEOFF DETECTED', icao: takeoff.icao24, msg: `${takeoff.callsign || takeoff.airline || takeoff.icao24} IS CURRENTLY LIFTING OFF FROM ${takeoff.origin_iata || 'UNKNOWN'}.` });
+        setTimeout(() => setGlobalAlert(null), 7000);
+        return;
+     }
+
+     // 3. Scan for major descents (Landings) globally
+     const landing = networkFlights.find(f => (f.vertical_rate || 0) < -10 && f.baro_altitude && f.baro_altitude < 2500 && !alertedSetRef.current.has(f.icao24 + '-ld'));
+     if (landing && !globalAlert) {
+         alertedSetRef.current.add(landing.icao24 + '-ld');
+         setGlobalAlert({ type: 'LANDING APPROACH', icao: landing.icao24, msg: `${landing.callsign || landing.airline || landing.icao24} IS ON FINAL APPROACH INTO ${landing.dest_iata || 'UNKNOWN'}.` });
+         setTimeout(() => setGlobalAlert(null), 7000);
+         return;
+     }
+
+     // Cleanup memory footprint autonomously
+     if (alertedSetRef.current.size > 2000) alertedSetRef.current.clear();
+  }, [networkFlights]);
+
   // GLOBAL PLAYBACK SYSTEM
   const [isHeatmapActive, setIsHeatmapActive] = useState(false);
 
@@ -949,6 +987,37 @@ export default function Map() {
 
     {/* MASTER GLOBAL AUDIO ENGAGEMENT */}
     <audio id="gkas_audio_player" src="/ambient.mp3" loop preload="auto" />
+
+    {/* 🛑 TACTICAL TRIGGER WARNING NOTIFICATIONS 🛑 */}
+    {globalAlert && (
+         <div style={{
+           position: 'absolute', top: '100px', left: '50%', transform: 'translateX(-50%)', zIndex: 3000,
+           backgroundColor: globalAlert.type.includes('EMERGENCY') ? 'rgba(239, 68, 68, 0.9)' : 'rgba(0, 243, 255, 0.85)',
+           border: `1px solid ${globalAlert.type.includes('EMERGENCY') ? '#ff0000' : '#ffffff'}`,
+           backdropFilter: 'blur(12px)', borderRadius: '8px', padding: '12px 24px',
+           boxShadow: `0 0 30px ${globalAlert.type.includes('EMERGENCY') ? 'rgba(239, 68, 68, 0.6)' : 'rgba(0, 243, 255, 0.4)'}`,
+           display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'auto', cursor: 'pointer',
+           animation: 'alertDrop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+         }}
+         onClick={() => {
+            const flight = networkFlights.find(f => f.icao24 === globalAlert.icao);
+            if (flight) {
+               handleFlyToFlight(flight);
+               setGlobalAlert(null); // Dismiss on click
+            }
+         }}>
+           <div style={{ fontSize: '10px', color: '#fff', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '8px', height: '8px', backgroundColor: '#fff', borderRadius: '50%', animation: 'pulse 1s infinite' }} />
+              {globalAlert.type}
+           </div>
+           <div style={{ fontSize: '13px', color: '#fff', fontWeight: 600, marginTop: '6px', textAlign: 'center' }}>
+              {globalAlert.msg}
+           </div>
+           <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.7)', marginTop: '4px', textTransform: 'uppercase' }}>Click to auto-intercept coordinate</div>
+         </div>
+    )}
+    <style>{`@keyframes alertDrop { 0% { transform: translate(-50%, -50px); opacity: 0; } 100% { transform: translate(-50%, 0); opacity: 1; } }`}</style>
+
 
     <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
       <DeckGL
