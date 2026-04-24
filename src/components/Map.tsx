@@ -164,22 +164,28 @@ export default function Map() {
         return;
      }
 
+     // Compile potential non-emergency alerts into an array so one type doesn't mathematically starve the other
+     const potentialAlerts: Array<{type: string, icao: string, msg: string}> = [];
+
      // 2. Scan for major ascents (Take-offs) globally
      const takeoff = networkFlights.find(f => (f.vertical_rate || 0) > 15 && f.baro_altitude && f.baro_altitude < 3500 && !alertedSetRef.current.has(f.icao24 + '-tk'));
-     if (takeoff && !globalAlert) {
+     if (takeoff) {
         alertedSetRef.current.add(takeoff.icao24 + '-tk');
-        setGlobalAlert({ type: 'TAKEOFF DETECTED', icao: takeoff.icao24, msg: `${takeoff.callsign || takeoff.airline || takeoff.icao24} lifting off from ${takeoff.origin_iata || 'airfield'}.` });
-        setTimeout(() => setGlobalAlert(null), 6000);
-        return;
+        potentialAlerts.push({ type: 'TAKEOFF DETECTED', icao: takeoff.icao24, msg: `${takeoff.callsign || takeoff.airline || takeoff.icao24} lifting off from ${takeoff.origin_iata || 'airfield'}.` });
      }
 
      // 3. Scan for major descents (Landings) globally
-     const landing = networkFlights.find(f => (f.vertical_rate || 0) < -8 && f.baro_altitude && f.baro_altitude < 4500 && !alertedSetRef.current.has(f.icao24 + '-ld'));
-     if (landing && !globalAlert) {
+     const landing = networkFlights.find(f => (f.vertical_rate || 0) < -7 && f.baro_altitude && f.baro_altitude < 5000 && !alertedSetRef.current.has(f.icao24 + '-ld'));
+     if (landing) {
          alertedSetRef.current.add(landing.icao24 + '-ld');
-         setGlobalAlert({ type: 'LANDING APPROACH', icao: landing.icao24, msg: `${landing.callsign || landing.airline || landing.icao24} descending into ${landing.dest_iata || 'airfield'}.` });
+         potentialAlerts.push({ type: 'LANDING APPROACH', icao: landing.icao24, msg: `${landing.callsign || landing.airline || landing.icao24} descending into ${landing.dest_iata || 'airfield'}.` });
+     }
+
+     // Radically balance the output globally
+     if (potentialAlerts.length > 0 && !globalAlert) {
+         const randomHunt = potentialAlerts[Math.floor(Math.random() * potentialAlerts.length)];
+         setGlobalAlert(randomHunt);
          setTimeout(() => setGlobalAlert(null), 6000);
-         return;
      }
 
      // Cleanup memory footprint autonomously
