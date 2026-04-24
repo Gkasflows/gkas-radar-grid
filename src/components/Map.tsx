@@ -761,6 +761,25 @@ export default function Map() {
       getLineColor: [140, 160, 200, 180] // High Aesthetic Ice-Blue/Silver sleek vector trace!
     }),
 
+    // Layer 1.5: ⛈ LIVE GLOBAL WEATHER RADAR (Meteorological Intercept)
+    radarPath ? new TileLayer({
+      id: 'live-weather-radar',
+      data: `${radarPath}/256/{z}/{x}/{y}/4/1_1.png`, // 4 = True Color Titan radar palette
+      minZoom: 0,
+      maxZoom: 12,
+      tileSize: 256,
+      renderSubLayers: props => {
+        const { boundingBox } = props.tile;
+        return new (BitmapLayer as any)(props, {
+          data: undefined,
+          image: props.data,
+          bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
+          opacity: 0.65, // Beautiful subtle storm blend
+          transparentColor: [0,0,0,0]
+        });
+      }
+    }) : null,
+
     // Layer 2: Mathematical Altitude-Encoded History Trail mimicking FR24
     selectedFlight ? new (LineLayer as any)({
       id: 'flight-history-trail',
