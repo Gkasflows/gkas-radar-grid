@@ -323,7 +323,7 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
                     controls 
                     controlsList="nodownload noplaybackrate"
                     src={atcUrl}
-                    style={{ height: '24px', width: '120px', outline: 'none' }}
+                    style={{ height: '30px', width: '140px', outline: 'none', pointerEvents: 'auto', position: 'relative', zIndex: 50 }}
                   />
                 )}
               </div>
