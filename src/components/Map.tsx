@@ -181,6 +181,26 @@ export default function Map() {
          potentialAlerts.push({ type: 'LANDING APPROACH', icao: landing.icao24, msg: `${landing.callsign || landing.airline || landing.icao24} descending into ${landing.dest_iata || 'airfield'}.` });
      }
 
+     // 4. Scan for ATC Radio Intercepts
+     const atcRadio = networkFlights.find(f => {
+       if (alertedSetRef.current.has(f.icao24 + '-atc')) return false;
+       if (!f.longitude || !f.latitude || (f.baro_altitude && f.baro_altitude > 15000)) return false; // Too high to be talking to tower
+       
+       const lon = f.longitude;
+       const lat = f.latitude;
+       
+       if (lon >= -75 && lon <= -72 && lat >= 40 && lat <= 42) { (f as any)._atcTower = "NEW YORK JFK TOWER"; return true; }
+       if (lon >= -120 && lon <= -116 && lat >= 33 && lat <= 35) { (f as any)._atcTower = "LOS ANGELES LAX TRACON"; return true; }
+       if (lon >= -89 && lon <= -87 && lat >= 41 && lat <= 43) { (f as any)._atcTower = "CHICAGO ORD TOWER"; return true; }
+       return false;
+     });
+
+     if (atcRadio) {
+         alertedSetRef.current.add(atcRadio.icao24 + '-atc');
+         const tower = (atcRadio as any)._atcTower;
+         potentialAlerts.push({ type: 'ATC RADIO LIVE', icao: atcRadio.icao24, msg: `${atcRadio.callsign || atcRadio.icao24} tuning into ${tower}.` });
+     }
+
      // Radically balance the output globally
      if (potentialAlerts.length > 0 && !globalAlert) {
          const randomHunt = potentialAlerts[Math.floor(Math.random() * potentialAlerts.length)];
@@ -1008,6 +1028,9 @@ export default function Map() {
          onClick={() => {
             const flight = networkFlights.find(f => f.icao24 === globalAlert.icao);
             if (flight) {
+               if (globalAlert.type === 'ATC RADIO LIVE') {
+                  typeof window !== 'undefined' && sessionStorage.setItem('autoplay_atc', 'true');
+               }
                handleFlyToFlight(flight);
                setGlobalAlert(null); // Dismiss on click
             }
@@ -1016,7 +1039,7 @@ export default function Map() {
               <span style={{ width: '8px', height: '8px', backgroundColor: globalAlert.type.includes('EMERGENCY') ? '#fff' : '#00f3ff', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
            </div>
            <div style={{ display: 'flex', flexDirection: 'column' }}>
-             <div style={{ fontSize: '10px', color: globalAlert.type.includes('EMERGENCY') ? '#fff' : '#00f3ff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+             <div style={{ fontSize: '10px', color: (globalAlert.type.includes('EMERGENCY') || globalAlert.type.includes('ATC')) ? '#fff' : '#00f3ff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
                 {globalAlert.type}
              </div>
              <div style={{ fontSize: '12px', color: '#fff', fontWeight: 500, marginTop: '2px' }}>

@@ -319,6 +319,8 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
                 
                 {!isEncrypted && (
                   <audio 
+                    autoPlay={typeof window !== 'undefined' && sessionStorage.getItem('autoplay_atc') === 'true'}
+                    onPlay={() => typeof window !== 'undefined' && sessionStorage.removeItem('autoplay_atc')}
                     controls 
                     controlsList="nodownload noplaybackrate"
                     src={atcUrl}
