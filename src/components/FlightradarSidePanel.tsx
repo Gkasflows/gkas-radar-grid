@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LiveFlight } from '../services/flightService';
 
 interface FlightradarSidePanelProps {
@@ -15,6 +15,8 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [cachedFlight, setCachedFlight] = useState<LiveFlight | null>(null);
+
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   // Swipe drag states map
   const [touchStartY, setTouchStartY] = useState(0);
@@ -54,6 +56,18 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
       setCachedFlight(flight);
       setIsAnimating(true);
       setIsExpanded(false); // Reset to partial view natively first
+      
+      // Auto-play ATC radio natively against browser delays
+      if (typeof window !== 'undefined' && sessionStorage.getItem('autoplay_atc') === 'true') {
+         setTimeout(() => {
+            if (audioRef.current) {
+               audioRef.current.volume = 1.0;
+               audioRef.current.play().catch(e => console.warn('Autoplay blocked natively:', e));
+               sessionStorage.removeItem('autoplay_atc');
+            }
+         }, 100); // 100ms micro-delay ensures DOM binding is complete
+      }
+
       // Wait for globe tracking pan to finish before showing details safely explicitly smartly 
       if (isMobile) {
         setTimeout(() => setIsOpen(true), 7000); 
@@ -319,8 +333,7 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
                 
                 {!isEncrypted && (
                   <audio 
-                    autoPlay={typeof window !== 'undefined' && sessionStorage.getItem('autoplay_atc') === 'true'}
-                    onPlay={() => typeof window !== 'undefined' && sessionStorage.removeItem('autoplay_atc')}
+                    ref={audioRef}
                     controls 
                     controlsList="nodownload noplaybackrate"
                     src={atcUrl}
