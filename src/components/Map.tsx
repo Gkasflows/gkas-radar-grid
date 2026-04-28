@@ -1028,9 +1028,6 @@ export default function Map() {
          onClick={() => {
             const flight = networkFlights.find(f => f.icao24 === globalAlert.icao);
             if (flight) {
-               if (globalAlert.type === 'ATC RADIO LIVE') {
-                  typeof window !== 'undefined' && sessionStorage.setItem('autoplay_atc', 'true');
-               }
                handleFlyToFlight(flight);
                setGlobalAlert(null); // Dismiss on click
             }
