@@ -10,8 +10,9 @@ const FR24_HEADERS = {
 };
 
 const BASE_FR24_URL = 'https://data-cloud.flightradar24.com/zones/fcgi/feed.js?faa=1&satellite=1&mlat=1&flarm=1&adsb=1&gnd=0&air=1&vehicles=0&estimated=1&maxage=14400&gliders=0&stats=0';
-const ADSB_ONE_URL = 'https://api.adsb.one/v2/point/0/0/25000';
-// ADS-B Exchange (airplanes.live) - Completely separate volunteer antenna network for extra unique planes!
+// airplanes.live GLOBAL endpoint — dumps every tracked aircraft worldwide in a single request
+const AIRPLANES_LIVE_ALL_URL = 'https://api.airplanes.live/v2/all';
+// airplanes.live REGIONAL endpoints — targeted geographic hotspots for extra density
 const ADSBX_BASE = 'https://api.airplanes.live/v2/point'; 
 
 let cachedStates: any[] | null = null;
@@ -28,10 +29,10 @@ export async function GET() {
   const timeoutId = setTimeout(() => controller.abort(), 9500); 
 
   try {
-    // SOURCE 1: ADSB.one (Primary global antenna network)
-    const adsbPromise = fetch(ADSB_ONE_URL, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
+    // SOURCE 1: airplanes.live GLOBAL (Full worldwide aircraft dump — replaces dead ADSB.one)
+    const adsbPromise = fetch(AIRPLANES_LIVE_ALL_URL, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
 
-    // SOURCE 2: airplanes.live (ADS-B Exchange - completely separate antenna network)
+    // SOURCE 2: airplanes.live REGIONAL (targeted geographic hotspots for extra density)
     // 10 strategic geographic points covering every major flight corridor on earth
     const adsbxFetch = (lat: number, lon: number) => 
       fetch(`${ADSBX_BASE}/${lat}/${lon}/250`, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
@@ -68,7 +69,7 @@ export async function GET() {
     // Hash map to flawlessly uniquely physically destroy clones automatically!
     const mergedFlightsMap = new Map<string, any>();
 
-    // Layer 1: Process ADSB.ONE Global Extractor (Absolute Vercel-Permitted Data)
+    // Layer 1: Process airplanes.live GLOBAL dump (replaces dead ADSB.one)
     if (adsbRes && adsbRes.ok) {
       const adsbData = await adsbRes.json().catch(() => ({ ac: [] }));
       const aircraft = adsbData.ac || [];
@@ -80,7 +81,7 @@ export async function GET() {
           mergedFlightsMap.set(icao, {
             icao24: icao,
             callsign: callsign,
-            origin_country: 'ADSB_ONE',
+            origin_country: 'AIRPLANES_LIVE',
             longitude: plane.lon,
             latitude: plane.lat,
             baro_altitude: (plane.alt_baro === 'ground' ? 0 : (plane.alt_baro || plane.alt_geom || 0)) * 0.3048,
