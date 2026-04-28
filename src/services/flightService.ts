@@ -164,14 +164,13 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
   const timeoutId = setTimeout(() => controller.abort(new Error('API Timeout')), 15000);
 
   try {
-    // TRI-SOURCE PARALLEL FETCH — three separate Vercel serverless functions, each with their own 10s limit
-    // Route 1: /api/flights → FR24 only (~1,500 planes)
-    // Route 2: /api/planes  → adsb.lol global dump (~7,000-15,000 planes)
-    // Route 3: /api/opensky → OpenSky Network academic feed (~5,000-8,000 unique planes)
-    const [flightsRes, planesRes, openskyRes] = await Promise.all([
+    // DUAL-SOURCE PARALLEL FETCH — two Vercel serverless functions
+    // Route 1: /api/flights → FR24 (~2,000 planes)
+    // Route 2: /api/planes  → adsb.lol global dump (~6,700 planes)
+    // Combined with 5-min CRVM retention = 12,000-15,000+ accumulated planes
+    const [flightsRes, planesRes] = await Promise.all([
       fetch('/api/flights', { signal: controller.signal }).catch(() => null),
       fetch('/api/planes', { signal: controller.signal }).catch(() => null),
-      fetch('/api/opensky', { signal: controller.signal }).catch(() => null),
     ]);
     clearTimeout(timeoutId);
 
@@ -196,16 +195,8 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
       rawPlanes = data.ac || [];
     }
 
-    // Process OpenSky Network data
-    let rawOpensky: any[] = [];
-    if (openskyRes && openskyRes.ok) {
-      const data = await openskyRes.json();
-      rawOpensky = data.ac || [];
-    }
-
-    // Merge all three: OpenSky base → adsb.lol overwrites → FR24 wins on duplicates
+    // Merge: adsb.lol base layer, FR24 overwrites duplicates
     const mergedRaw = new Map<string, any>();
-    for (const s of rawOpensky) mergedRaw.set(s.icao24, s);
     for (const s of rawPlanes) mergedRaw.set(s.icao24, s);
     for (const s of rawFlights) mergedRaw.set(s.icao24, s);
     const allRaw = Array.from(mergedRaw.values());
@@ -247,9 +238,10 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
 
     // 1. Load the frozen massive 11,000+ global aircraft grid from the last successful frame
     lastSuccessfulFlights.forEach(f => {
-       // Gracefully let planes mathematically fade out from UI if OpenSky fundamentally drops their transponder signals for over 90 seconds (1.5 mins)
+       // Gracefully let planes fade out if no source reports them for over 5 minutes (300s)
+       // Extended retention = more accumulation across polling cycles = 12,000+ planes
        const lastSeen = (f as any)._lastSeen || NOW;
-       if (NOW - lastSeen > 90000) return; 
+       if (NOW - lastSeen > 300000) return; 
        
        persistentMap.set(f.icao24, f);
     });
