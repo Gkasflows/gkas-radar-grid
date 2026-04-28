@@ -164,13 +164,15 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
   const timeoutId = setTimeout(() => controller.abort(new Error('API Timeout')), 15000);
 
   try {
-    // DUAL-SOURCE PARALLEL FETCH — two Vercel serverless functions
+    // TRI-SOURCE PARALLEL FETCH — three independent Vercel serverless functions
     // Route 1: /api/flights → FR24 (~2,000 planes)
     // Route 2: /api/planes  → adsb.lol global dump (~6,700 planes)
-    // Combined with 5-min CRVM retention = 12,000-15,000+ accumulated planes
-    const [flightsRes, planesRes] = await Promise.all([
+    // Route 3: /api/opensky → OpenSky regional boxes (~3,000-5,000 unique planes, different network)
+    // + 5-min CRVM retention = 12,000-15,000+ accumulated planes
+    const [flightsRes, planesRes, openskyRes] = await Promise.all([
       fetch('/api/flights', { signal: controller.signal }).catch(() => null),
       fetch('/api/planes', { signal: controller.signal }).catch(() => null),
+      fetch('/api/opensky', { signal: controller.signal }).catch(() => null),
     ]);
     clearTimeout(timeoutId);
 
@@ -195,8 +197,16 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
       rawPlanes = data.ac || [];
     }
 
-    // Merge: adsb.lol base layer, FR24 overwrites duplicates
+    // Process OpenSky regional data
+    let rawOpensky: any[] = [];
+    if (openskyRes && openskyRes.ok) {
+      const data = await openskyRes.json();
+      rawOpensky = data.ac || [];
+    }
+
+    // Merge: OpenSky base → adsb.lol overwrites → FR24 wins on duplicates (richest metadata)
     const mergedRaw = new Map<string, any>();
+    for (const s of rawOpensky) mergedRaw.set(s.icao24, s);
     for (const s of rawPlanes) mergedRaw.set(s.icao24, s);
     for (const s of rawFlights) mergedRaw.set(s.icao24, s);
     const allRaw = Array.from(mergedRaw.values());
