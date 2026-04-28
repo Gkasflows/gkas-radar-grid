@@ -164,37 +164,62 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
   const timeoutId = setTimeout(() => controller.abort(new Error('API Timeout')), 15000);
 
   try {
-    const response = await fetch('/api/flights', { signal: controller.signal });
+    // DUAL-SOURCE PARALLEL FETCH:
+    // 1. Server-side API (FR24 + regional airplanes.live via Vercel)
+    // 2. Direct browser-side fetch to airplanes.live /v2/all (bypasses Vercel's 10s serverless limit)
+    const [serverResponse, directResponse] = await Promise.all([
+      fetch('/api/flights', { signal: controller.signal }).catch(() => null),
+      fetch('https://api.airplanes.live/v2/all', { signal: controller.signal }).catch(() => null),
+    ]);
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      console.warn(`FlightService: API error (${response.status}). Returning cached flights.`);
-      return lastSuccessfulFlights;
-    }
-    const data = await response.json();
-    let rawFr24 = data.states || [];
-    
-    // DECOMPRESSION PROTOCOL:
-    // Checks if the payload is packed safely (array of arrays rather than large objects).
-    // This allows the engine to strictly render 25,000+ flights without server limits natively.
-    if (rawFr24.length > 0 && Array.isArray(rawFr24[0])) {
-      rawFr24 = rawFr24.map((s: any[]) => ({
-        icao24: s[0],
-        callsign: s[1],
-        origin_country: s[2],
-        longitude: s[3],
-        latitude: s[4],
-        baro_altitude: s[5],
-        velocity: s[6],
-        true_track: s[7],
-        vertical_rate: s[8],
-        category: s[9]
-      }));
+    // Process server-side data (FR24 + regional)
+    let rawServer: any[] = [];
+    if (serverResponse && serverResponse.ok) {
+      const data = await serverResponse.json();
+      rawServer = data.states || [];
+      if (rawServer.length > 0 && Array.isArray(rawServer[0])) {
+        rawServer = rawServer.map((s: any[]) => ({
+          icao24: s[0], callsign: s[1], origin_country: s[2],
+          longitude: s[3], latitude: s[4], baro_altitude: s[5],
+          velocity: s[6], true_track: s[7], vertical_rate: s[8], category: s[9]
+        }));
+      }
     }
 
-    if (rawFr24.length === 0) return lastSuccessfulFlights;
+    // Process direct airplanes.live global dump (15,000-25,000 planes)
+    let rawDirect: any[] = [];
+    if (directResponse && directResponse.ok) {
+      const directData = await directResponse.json().catch(() => ({ ac: [] }));
+      const aircraft = directData.ac || [];
+      for (const plane of aircraft) {
+        const callsign = plane.flight?.trim();
+        if (plane.lat !== undefined && plane.lon !== undefined && callsign) {
+          rawDirect.push({
+            icao24: String(plane.hex).toLowerCase(),
+            callsign: callsign,
+            origin_country: 'AIRPLANES_LIVE',
+            longitude: plane.lon,
+            latitude: plane.lat,
+            baro_altitude: (plane.alt_baro === 'ground' ? 0 : (plane.alt_baro || plane.alt_geom || 0)) * 0.3048,
+            velocity: (plane.gs || 0) * 0.514444,
+            true_track: plane.track || plane.true_heading || plane.mag_heading || 0,
+            vertical_rate: (plane.baro_rate || plane.geom_rate || 0) * 0.00508,
+            category: 0
+          });
+        }
+      }
+    }
 
-    const flights = rawFr24.map((s: any) => {
+    // Merge: direct airplanes.live data first, then server data overwrites (FR24 has richer metadata)
+    const mergedRaw = new Map<string, any>();
+    for (const s of rawDirect) mergedRaw.set(s.icao24, s);
+    for (const s of rawServer) mergedRaw.set(s.icao24, s); // Server data wins on duplicates
+    const allRaw = Array.from(mergedRaw.values());
+
+    if (allRaw.length === 0) return lastSuccessfulFlights;
+
+    const flights = allRaw.map((s: any) => {
       const enrichment = mapCategory(s.category || 0, s.icao24);
       
       const originData = getStableValue(s.icao24, CITIES as any) as any;
