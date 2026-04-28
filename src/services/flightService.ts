@@ -164,22 +164,22 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
   const timeoutId = setTimeout(() => controller.abort(new Error('API Timeout')), 15000);
 
   try {
-    // DUAL-SOURCE PARALLEL FETCH:
-    // 1. Server-side API (FR24 + regional airplanes.live via Vercel)
-    // 2. Direct browser-side fetch to airplanes.live /v2/all (bypasses Vercel's 10s serverless limit)
-    const [serverResponse, directResponse] = await Promise.all([
+    // DUAL-ROUTE PARALLEL FETCH — two separate Vercel serverless functions, each with their own 10s limit
+    // Route 1: /api/flights → FR24 only (~1,500 planes, completes in 1-3s)
+    // Route 2: /api/planes → airplanes.live 25 regional points (~3,000-5,000 planes, completes in 3-8s)
+    const [flightsRes, planesRes] = await Promise.all([
       fetch('/api/flights', { signal: controller.signal }).catch(() => null),
-      fetch('https://api.airplanes.live/v2/all', { signal: controller.signal }).catch(() => null),
+      fetch('/api/planes', { signal: controller.signal }).catch(() => null),
     ]);
     clearTimeout(timeoutId);
 
-    // Process server-side data (FR24 + regional)
-    let rawServer: any[] = [];
-    if (serverResponse && serverResponse.ok) {
-      const data = await serverResponse.json();
-      rawServer = data.states || [];
-      if (rawServer.length > 0 && Array.isArray(rawServer[0])) {
-        rawServer = rawServer.map((s: any[]) => ({
+    // Process FR24 server data
+    let rawFlights: any[] = [];
+    if (flightsRes && flightsRes.ok) {
+      const data = await flightsRes.json();
+      rawFlights = data.states || [];
+      if (rawFlights.length > 0 && Array.isArray(rawFlights[0])) {
+        rawFlights = rawFlights.map((s: any[]) => ({
           icao24: s[0], callsign: s[1], origin_country: s[2],
           longitude: s[3], latitude: s[4], baro_altitude: s[5],
           velocity: s[6], true_track: s[7], vertical_rate: s[8], category: s[9]
@@ -187,34 +187,17 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
       }
     }
 
-    // Process direct airplanes.live global dump (15,000-25,000 planes)
-    let rawDirect: any[] = [];
-    if (directResponse && directResponse.ok) {
-      const directData = await directResponse.json().catch(() => ({ ac: [] }));
-      const aircraft = directData.ac || [];
-      for (const plane of aircraft) {
-        const callsign = plane.flight?.trim();
-        if (plane.lat !== undefined && plane.lon !== undefined && callsign) {
-          rawDirect.push({
-            icao24: String(plane.hex).toLowerCase(),
-            callsign: callsign,
-            origin_country: 'AIRPLANES_LIVE',
-            longitude: plane.lon,
-            latitude: plane.lat,
-            baro_altitude: (plane.alt_baro === 'ground' ? 0 : (plane.alt_baro || plane.alt_geom || 0)) * 0.3048,
-            velocity: (plane.gs || 0) * 0.514444,
-            true_track: plane.track || plane.true_heading || plane.mag_heading || 0,
-            vertical_rate: (plane.baro_rate || plane.geom_rate || 0) * 0.00508,
-            category: 0
-          });
-        }
-      }
+    // Process airplanes.live regional data
+    let rawPlanes: any[] = [];
+    if (planesRes && planesRes.ok) {
+      const data = await planesRes.json();
+      rawPlanes = data.ac || [];
     }
 
-    // Merge: direct airplanes.live data first, then server data overwrites (FR24 has richer metadata)
+    // Merge: airplanes.live base layer, FR24 overwrites duplicates (richer metadata)
     const mergedRaw = new Map<string, any>();
-    for (const s of rawDirect) mergedRaw.set(s.icao24, s);
-    for (const s of rawServer) mergedRaw.set(s.icao24, s); // Server data wins on duplicates
+    for (const s of rawPlanes) mergedRaw.set(s.icao24, s);
+    for (const s of rawFlights) mergedRaw.set(s.icao24, s);
     const allRaw = Array.from(mergedRaw.values());
 
     if (allRaw.length === 0) return lastSuccessfulFlights;
