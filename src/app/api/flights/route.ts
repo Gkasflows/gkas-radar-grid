@@ -10,9 +10,7 @@ const FR24_HEADERS = {
 };
 
 const BASE_FR24_URL = 'https://data-cloud.flightradar24.com/zones/fcgi/feed.js?faa=1&satellite=1&mlat=1&flarm=1&adsb=1&gnd=0&air=1&vehicles=0&estimated=1&maxage=14400&gliders=0&stats=0';
-// airplanes.live GLOBAL endpoint — dumps every tracked aircraft worldwide in a single request
-const AIRPLANES_LIVE_ALL_URL = 'https://api.airplanes.live/v2/all';
-// airplanes.live REGIONAL endpoints — targeted geographic hotspots for extra density
+// airplanes.live REGIONAL endpoints — 24 strategic hotspots covering global airspace
 const ADSBX_BASE = 'https://api.airplanes.live/v2/point'; 
 
 let cachedStates: any[] | null = null;
@@ -29,51 +27,64 @@ export async function GET() {
   const timeoutId = setTimeout(() => controller.abort(), 9500); 
 
   try {
-    // SOURCE 1: airplanes.live GLOBAL (Full worldwide aircraft dump — replaces dead ADSB.one)
-    const adsbPromise = fetch(AIRPLANES_LIVE_ALL_URL, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
-
-    // SOURCE 2: airplanes.live REGIONAL (targeted geographic hotspots for extra density)
-    // 10 strategic geographic points covering every major flight corridor on earth
+    // airplanes.live regional fetcher (250nm radius each = ~463km coverage per point)
     const adsbxFetch = (lat: number, lon: number) => 
       fetch(`${ADSBX_BASE}/${lat}/${lon}/250`, { signal: controller.signal, cache: 'no-store' }).catch(() => null);
 
-    // Batch 1: Europe, East USA, West USA, East Asia, Middle East
-    const [adsbx1, adsbx2, adsbx3, adsbx4, adsbx5] = await Promise.all([
-      adsbxFetch(50, 10),    // Central Europe
-      adsbxFetch(40, -75),   // US East Coast
-      adsbxFetch(35, -120),  // US West Coast
-      adsbxFetch(35, 140),   // Japan/East Asia
-      adsbxFetch(25, 55),    // Middle East/Gulf
+    // ═══════════ BATCH 1: 9 parallel requests ═══════════
+    const [r1,r2,r3,r4,r5,r6,r7,r8,r9] = await Promise.all([
+      adsbxFetch(50, 10),     // Central Europe (Germany/France)
+      adsbxFetch(55, -3),     // UK / Scandinavia
+      adsbxFetch(40, -75),    // US East Coast
+      adsbxFetch(35, -120),   // US West Coast
+      adsbxFetch(45, -95),    // US Central / Midwest
+      adsbxFetch(25, 55),     // Middle East / Gulf
+      adsbxFetch(35, 140),    // Japan / East Asia
+      adsbxFetch(30, 120),    // China East Coast / Shanghai
+      adsbxFetch(55, 37),     // Russia / Moscow
     ]);
 
-    // Brief stagger to avoid rate limiting
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 200));
 
-    // Batch 2: India, Southeast Asia, South America, Australia, West Africa + FR24
-    const [adsbx6, adsbx7, adsbx8, adsbx9, adsbx10, fr24AfricaRes, fr24GlobalRes] = await Promise.all([
-      adsbxFetch(20, 78),    // India
-      adsbxFetch(5, 105),    // Southeast Asia
-      adsbxFetch(-23, -46),  // Brazil/South America
-      adsbxFetch(-33, 151),  // Australia
-      adsbxFetch(7, 3),      // West Africa/Nigeria
-      // SOURCE 3: FR24 Africa (Guarantees ALL 800+ planes in Africa precisely)
+    // ═══════════ BATCH 2: 9 parallel requests ═══════════
+    const [r10,r11,r12,r13,r14,r15,r16,r17,r18] = await Promise.all([
+      adsbxFetch(20, 78),     // India
+      adsbxFetch(5, 105),     // Southeast Asia / Indonesia
+      adsbxFetch(1, 32),      // East Africa / Kenya
+      adsbxFetch(-33, 151),   // Australia / Sydney
+      adsbxFetch(-23, -46),   // Brazil / South America
+      adsbxFetch(7, 3),       // West Africa / Nigeria
+      adsbxFetch(13, 100),    // Thailand / Indochina
+      adsbxFetch(22, 114),    // Hong Kong / South China
+      adsbxFetch(60, 25),     // Finland / Nordics
+    ]);
+
+    await new Promise(r => setTimeout(r, 200));
+
+    // ═══════════ BATCH 3: 6 regional + 2 FR24 overlays ═══════════
+    const [r19,r20,r21,r22,r23,r24,fr24AfricaRes,fr24GlobalRes] = await Promise.all([
+      adsbxFetch(33, -7),     // Morocco / North Africa
+      adsbxFetch(-34, 18),    // South Africa / Cape Town
+      adsbxFetch(25, -100),   // Mexico
+      adsbxFetch(50, -100),   // Canada
+      adsbxFetch(37, -25),    // Mid-Atlantic / Azores corridor
+      adsbxFetch(-5, 135),    // Papua / Pacific Islands
+      // FR24 Africa overlay (guarantees African coverage)
       fetch(`${BASE_FR24_URL}&bounds=35,-35,-20,55`, { signal: controller.signal, headers: FR24_HEADERS, cache: 'no-store' }).catch(() => null),
-      // SOURCE 4: FR24 Global overlay
+      // FR24 Global overlay
       fetch(`${BASE_FR24_URL}&bounds=85,-85,-180,180`, { signal: controller.signal, headers: FR24_HEADERS, cache: 'no-store' }).catch(() => null),
     ]);
 
-    const adsbRes = await adsbPromise;
-
     clearTimeout(timeoutId);
     
-    // Hash map to flawlessly uniquely physically destroy clones automatically!
+    // Hash map to uniquely destroy duplicate ICAO transponder clones
     const mergedFlightsMap = new Map<string, any>();
 
-    // Layer 1: Process airplanes.live GLOBAL dump (replaces dead ADSB.one)
-    if (adsbRes && adsbRes.ok) {
-      const adsbData = await adsbRes.json().catch(() => ({ ac: [] }));
-      const aircraft = adsbData.ac || [];
-      
+    // Unified airplanes.live processor — processes all 24 regional responses
+    const processAdsbx = async (res: Response | null) => {
+      if (!res || !res.ok) return;
+      const data = await res.json().catch(() => ({ ac: [] }));
+      const aircraft = data.ac || [];
       for (const plane of aircraft) {
         const callsign = plane.flight?.trim();
         if (plane.lat !== undefined && plane.lon !== undefined && callsign) {
@@ -88,48 +99,14 @@ export async function GET() {
             velocity: (plane.gs || 0) * 0.514444,
             true_track: plane.track || plane.true_heading || plane.mag_heading || 0,
             vertical_rate: (plane.baro_rate || plane.geom_rate || 0) * 0.00508,
-            category: 0 
+            category: 0
           });
         }
       }
-    }
-
-    // SOURCE 2 PROCESSOR: airplanes.live (ADS-B Exchange) - Same data format as ADSB.one
-    const processAdsbx = async (res: Response | null) => {
-      if (!res || !res.ok) return;
-      const data = await res.json().catch(() => ({ ac: [] }));
-      const aircraft = data.ac || [];
-      for (const plane of aircraft) {
-        const callsign = plane.flight?.trim();
-        if (plane.lat !== undefined && plane.lon !== undefined && callsign) {
-          const icao = String(plane.hex).toLowerCase();
-          if (!mergedFlightsMap.has(icao)) { // Only add if NOT already seen from ADSB.one (preserves primary source priority)
-            mergedFlightsMap.set(icao, {
-              icao24: icao,
-              callsign: callsign,
-              origin_country: 'ADSBX',
-              longitude: plane.lon,
-              latitude: plane.lat,
-              baro_altitude: (plane.alt_baro === 'ground' ? 0 : (plane.alt_baro || plane.alt_geom || 0)) * 0.3048,
-              velocity: (plane.gs || 0) * 0.514444,
-              true_track: plane.track || plane.true_heading || plane.mag_heading || 0,
-              vertical_rate: (plane.baro_rate || plane.geom_rate || 0) * 0.00508,
-              category: 0
-            });
-          }
-        }
-      }
     };
-    await processAdsbx(adsbx1);
-    await processAdsbx(adsbx2);
-    await processAdsbx(adsbx3);
-    await processAdsbx(adsbx4);
-    await processAdsbx(adsbx5);
-    await processAdsbx(adsbx6);
-    await processAdsbx(adsbx7);
-    await processAdsbx(adsbx8);
-    await processAdsbx(adsbx9);
-    await processAdsbx(adsbx10);
+    // Process all 24 regional airplanes.live responses
+    const allRegional = [r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16,r17,r18,r19,r20,r21,r22,r23,r24];
+    for (const res of allRegional) await processAdsbx(res);
 
     // FR24 Array Aggregation Helper
     const mergeFr24Data = async (res: Response | null) => {
