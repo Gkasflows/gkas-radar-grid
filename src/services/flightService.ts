@@ -164,12 +164,14 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
   const timeoutId = setTimeout(() => controller.abort(new Error('API Timeout')), 15000);
 
   try {
-    // DUAL-ROUTE PARALLEL FETCH — two separate Vercel serverless functions, each with their own 10s limit
-    // Route 1: /api/flights → FR24 only (~1,500 planes, completes in 1-3s)
-    // Route 2: /api/planes → airplanes.live 25 regional points (~3,000-5,000 planes, completes in 3-8s)
-    const [flightsRes, planesRes] = await Promise.all([
+    // TRI-SOURCE PARALLEL FETCH — three separate Vercel serverless functions, each with their own 10s limit
+    // Route 1: /api/flights → FR24 only (~1,500 planes)
+    // Route 2: /api/planes  → adsb.lol global dump (~7,000-15,000 planes)
+    // Route 3: /api/opensky → OpenSky Network academic feed (~5,000-8,000 unique planes)
+    const [flightsRes, planesRes, openskyRes] = await Promise.all([
       fetch('/api/flights', { signal: controller.signal }).catch(() => null),
       fetch('/api/planes', { signal: controller.signal }).catch(() => null),
+      fetch('/api/opensky', { signal: controller.signal }).catch(() => null),
     ]);
     clearTimeout(timeoutId);
 
@@ -187,15 +189,23 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
       }
     }
 
-    // Process airplanes.live regional data
+    // Process adsb.lol global data
     let rawPlanes: any[] = [];
     if (planesRes && planesRes.ok) {
       const data = await planesRes.json();
       rawPlanes = data.ac || [];
     }
 
-    // Merge: airplanes.live base layer, FR24 overwrites duplicates (richer metadata)
+    // Process OpenSky Network data
+    let rawOpensky: any[] = [];
+    if (openskyRes && openskyRes.ok) {
+      const data = await openskyRes.json();
+      rawOpensky = data.ac || [];
+    }
+
+    // Merge all three: OpenSky base → adsb.lol overwrites → FR24 wins on duplicates
     const mergedRaw = new Map<string, any>();
+    for (const s of rawOpensky) mergedRaw.set(s.icao24, s);
     for (const s of rawPlanes) mergedRaw.set(s.icao24, s);
     for (const s of rawFlights) mergedRaw.set(s.icao24, s);
     const allRaw = Array.from(mergedRaw.values());
