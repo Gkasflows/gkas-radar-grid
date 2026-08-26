@@ -5,6 +5,7 @@ import { LiveFlight } from '../services/flightService';
 interface AirportSidePanelProps {
   airport: Airport | null;
   onClose: () => void;
+  onBack?: () => void;
   liveFlights?: LiveFlight[];
   onFlightClick?: (flight: LiveFlight) => void;
 }
@@ -23,7 +24,7 @@ const getAirportImage = (iata: string) => {
   return `https://images.unsplash.com/photo-${AIRPORT_PHOTOS[index]}?q=80&w=1000&auto=format&fit=crop`;
 };
 
-export default function AirportSidePanel({ airport, onClose, liveFlights = [], onFlightClick }: AirportSidePanelProps) {
+export default function AirportSidePanel({ airport, onClose, onBack, liveFlights = [], onFlightClick }: AirportSidePanelProps) {
   const [activeTab, setActiveTab] = useState<'arrivals' | 'departures'>('arrivals');
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -249,6 +250,18 @@ export default function AirportSidePanel({ airport, onClose, liveFlights = [], o
         }}>
           ✕
         </button>
+
+        {/* Back Button for Nearby integration */}
+        {!isMobile && onBack && (
+          <button onClick={onBack} style={{
+            position: 'absolute', top: '16px', left: '16px',
+            padding: '6px 12px', borderRadius: '16px', backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+            border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: '11px', fontWeight: 600,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10
+          }}>
+            ← Back
+          </button>
+        )}
         <div style={{
           position: 'absolute', bottom: '0', left: '0', right: '0',
           background: 'linear-gradient(transparent, rgba(0,0,0,0.9))',

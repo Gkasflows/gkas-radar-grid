@@ -1272,12 +1272,26 @@ export default function Map() {
           />
         )}
 
-        <AirportSidePanel
-          airport={selectedAirport}
-          liveFlights={networkFilteredFlights}
-          onFlightClick={handleFlyToFlight}
-          onClose={() => setSelectedAirportIata(null)}
-        />
+        {/* Normal / Default Airport Side Panel */}
+        {!nearbyData && (
+          <AirportSidePanel
+            airport={selectedAirport}
+            liveFlights={networkFilteredFlights}
+            onFlightClick={handleFlyToFlight}
+            onClose={() => setSelectedAirportIata(null)}
+          />
+        )}
+
+        {/* Airport Side Panel when launched from Nearby Scanner */}
+        {nearbyData && selectedAirport && (
+          <AirportSidePanel
+            airport={selectedAirport}
+            liveFlights={networkFilteredFlights}
+            onFlightClick={handleFlyToFlight}
+            onClose={() => { setSelectedAirportIata(null); setNearbyData(null); }}
+            onBack={() => { setSelectedAirportIata(null); }}
+          />
+        )}
 
         {/* HIGH-TECH DRAGGABLE ZOOM CONTROLS */}
         <div
