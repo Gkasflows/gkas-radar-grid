@@ -20,7 +20,13 @@ export async function GET() {
   const timeoutId = setTimeout(() => controller.abort(), 9000);
 
   try {
-    const res = await fetch(ADSB_LOL_URL, { signal: controller.signal, cache: 'no-store' });
+    const res = await fetch(ADSB_LOL_URL, { 
+      signal: controller.signal, 
+      cache: 'no-store',
+      headers: {
+        'User-Agent': 'GKASFLOWS-Radar-Grid/1.0 (contact@gkasflows.com)'
+      }
+    });
     clearTimeout(timeoutId);
 
     if (!res.ok) {
