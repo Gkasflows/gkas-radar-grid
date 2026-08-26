@@ -55,6 +55,8 @@ export async function GET() {
             velocity: s[5] * 0.514444, 
             callsign: callsign,
             origin_country: s[8] || 'FR24', 
+            origin_iata: s[11] || null,
+            dest_iata: s[12] || null,
             vertical_rate: s[15] * 0.00508, 
             category: 0
           });

@@ -139,6 +139,23 @@ const mapCategory = (cat: number, icao: string): { type: string, model: string, 
   }
 };
 
+let airportCoordsCache: Map<string, {lat: number, lon: number}> | null = null;
+async function getAirportCoordsCache() {
+  if (airportCoordsCache) return airportCoordsCache;
+  if (typeof window === 'undefined') return new Map();
+  try {
+    const res = await fetch('/global_airports.json');
+    const data = await res.json();
+    airportCoordsCache = new Map();
+    data.forEach((a: any) => {
+      airportCoordsCache!.set(a.iata, { lat: a.coords[1], lon: a.coords[0] });
+    });
+    return airportCoordsCache;
+  } catch (e) {
+    return new Map();
+  }
+}
+
 export async function fetchLiveFlights(): Promise<LiveFlight[]> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(new Error('API Timeout')), 15000);
@@ -149,11 +166,14 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
     // Route 2: /api/planes  → adsb.lol global dump (~6,700 planes)
     // Route 3: /api/opensky → OpenSky regional boxes (~3,000-5,000 unique planes, different network)
     // + 5-min CRVM retention = 12,000-15,000+ accumulated planes
-    const [flightsRes, planesRes, openskyRes] = await Promise.all([
+    const results = await Promise.all([
       fetch('/api/flights', { signal: controller.signal }).catch(() => null),
       fetch('/api/planes', { signal: controller.signal }).catch(() => null),
       fetch('/api/opensky', { signal: controller.signal }).catch(() => null),
+      getAirportCoordsCache()
     ]);
+    const airportCoords = (results[3] as Map<string, {lat: number, lon: number}>) || new Map();
+    const [flightsRes, planesRes, openskyRes] = results;
     clearTimeout(timeoutId);
 
     // Process FR24 server data
@@ -196,18 +216,26 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
     const flights = allRaw.map((s: any) => {
       const enrichment = mapCategory(s.category || 0, s.icao24);
       
+      const originIata = s.origin_iata || null;
+      const destIata = s.dest_iata || null;
+      let originCoords = s.origin_coords || null;
+      let destCoords = s.dest_coords || null;
+
+      if (originIata && !originCoords) originCoords = airportCoords.get(originIata) || null;
+      if (destIata && !destCoords) destCoords = airportCoords.get(destIata) || null;
+
       return {
         ...s,
         ...enrichment,
         airline: s.airline || getAirline(s.callsign || '', s.icao24),
         origin: s.origin || null,
-        origin_iata: s.origin_iata || null,
+        origin_iata: originIata,
         origin_airport: s.origin_airport || null,
-        origin_coords: s.origin_coords || null,
+        origin_coords: originCoords,
         destination: s.destination || null,
-        dest_iata: s.dest_iata || null,
+        dest_iata: destIata,
         dest_airport: s.dest_airport || null,
-        dest_coords: s.dest_coords || null,
+        dest_coords: destCoords,
         dest_country: s.dest_country || null
       } as LiveFlight;
     });
@@ -221,30 +249,30 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
 
     // 1. Load the frozen massive 11,000+ global aircraft grid from the last successful frame
     lastSuccessfulFlights.forEach(f => {
-       // Gracefully let planes fade out if no source reports them for over 5 minutes (300s)
-       // Extended retention = more accumulation across polling cycles = 12,000+ planes
-       const lastSeen = (f as any)._lastSeen || NOW;
-       if (NOW - lastSeen > 300000) return; 
-       
-       persistentMap.set(f.icao24, f);
+      // Gracefully let planes fade out if no source reports them for over 5 minutes (300s)
+      // Extended retention = more accumulation across polling cycles = 12,000+ planes
+      const lastSeen = (f as any)._lastSeen || NOW;
+      if (NOW - lastSeen > 300000) return;
+
+      persistentMap.set(f.icao24, f);
     });
 
     // 2. Aggressively smash the newly-fetched highly-accurate API coordinate updates over them, and immediately sync their seen timer to exactly NOW
     flights.forEach(f => {
-       (f as any)._lastSeen = NOW;
-       persistentMap.set(f.icao24, f);
+      (f as any)._lastSeen = NOW;
+      persistentMap.set(f.icao24, f);
     });
 
     const finalFlights = Array.from(persistentMap.values()).sort((a, b) => a.icao24.localeCompare(b.icao24));
 
     if (finalFlights.length > 0) {
-      lastSuccessfulFlights = finalFlights; 
+      lastSuccessfulFlights = finalFlights;
     }
     return lastSuccessfulFlights;
 
   } catch (error: any) {
     clearTimeout(timeoutId);
-    
+
     if (error.name === 'AbortError' || error.message === 'API Timeout') {
       return lastSuccessfulFlights;
     }
@@ -254,7 +282,7 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
     } else {
       console.error('FlightService Error:', error.message);
     }
-    
-    return lastSuccessfulFlights; 
+
+    return lastSuccessfulFlights;
   }
 }
