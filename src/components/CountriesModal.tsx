@@ -4,6 +4,8 @@ interface CountriesModalProps {
   globalAirports: any[];
   onClose: () => void;
   onOpenAirportFeatures: (airport: any, feature: string) => void;
+}
+
 function getFlagUrl(countryCode: string) {
   if (!countryCode || countryCode.length !== 2) return '';
   return `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
