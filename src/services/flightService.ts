@@ -45,27 +45,7 @@ const getStableValue = (icao: string, list: string[]): string => {
 };
 
 const AIRLINES = ['Air Peace', 'Arik Air', 'Ibom Air', 'Dana Air', 'ValueJet', 'United Airlines', 'Lufthansa', 'Delta Air Lines', 'Air France', 'Emirates', 'British Airways', 'Qatar Airways', 'American Airlines', 'Singapore Airlines', 'KLM', 'Turkish Airlines'];
-const CITIES = [
-  { city: 'Lagos', country: 'Nigeria', iata: 'LOS', airport: 'Murtala Muhammed', lat: 6.5774, lon: 3.3223 },
-  { city: 'Abuja', country: 'Nigeria', iata: 'ABV', airport: 'Nnamdi Azikiwe', lat: 9.0068, lon: 7.2631 },
-  { city: 'Port Harcourt', country: 'Nigeria', iata: 'PHC', airport: 'Port Harcourt Int.', lat: 5.0153, lon: 6.9496 },
-  { city: 'London', country: 'United Kingdom', iata: 'LHR', airport: 'Heathrow', lat: 51.4700, lon: -0.4543 },
-  { city: 'New York', country: 'USA', iata: 'JFK', airport: 'John F. Kennedy', lat: 40.6413, lon: -73.7781 },
-  { city: 'Paris', country: 'France', iata: 'CDG', airport: 'Charles de Gaulle', lat: 49.0097, lon: 2.5479 },
-  { city: 'Tokyo', country: 'Japan', iata: 'HND', airport: 'Haneda', lat: 35.5494, lon: 139.7798 },
-  { city: 'Dubai', country: 'UAE', iata: 'DXB', airport: 'Dubai Int.', lat: 25.2532, lon: 55.3657 },
-  { city: 'Singapore', country: 'Singapore', iata: 'SIN', airport: 'Changi', lat: 1.3644, lon: 103.9915 },
-  { city: 'Los Angeles', country: 'USA', iata: 'LAX', airport: 'Los Angeles Int.', lat: 33.9416, lon: -118.4085 },
-  { city: 'Frankfurt', country: 'Germany', iata: 'FRA', airport: 'Frankfurt', lat: 50.0379, lon: 8.5622 },
-  { city: 'Hong Kong', country: 'China', iata: 'HKG', airport: 'Hong Kong Int.', lat: 22.3080, lon: 113.9185 },
-  { city: 'Sydney', country: 'Australia', iata: 'SYD', airport: 'Kingsford Smith', lat: -33.9399, lon: 151.1753 },
-  { city: 'Chicago', country: 'USA', iata: 'ORD', airport: 'O\'Hare Int.', lat: 41.9742, lon: -87.9073 },
-  { city: 'Amsterdam', country: 'Netherlands', iata: 'AMS', airport: 'Schiphol', lat: 52.3105, lon: 4.7683 },
-  { city: 'Istanbul', country: 'Turkey', iata: 'IST', airport: 'Istanbul Int.', lat: 41.2753, lon: 28.7519 },
-  { city: 'San Francisco', country: 'USA', iata: 'SFO', airport: 'San Francisco Int.', lat: 37.6213, lon: -122.3790 },
-  { city: 'Munich', country: 'Germany', iata: 'MUC', airport: 'Munich Int.', lat: 48.3537, lon: 11.7861 },
-  { city: 'Toronto', country: 'Canada', iata: 'YYZ', airport: 'Pearson Int.', lat: 43.6777, lon: -79.6248 }
-];
+
 
 const getAirline = (callsign: string, icao: string): string => {
   const code = callsign.substring(0, 3);
@@ -216,26 +196,19 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
     const flights = allRaw.map((s: any) => {
       const enrichment = mapCategory(s.category || 0, s.icao24);
       
-      const originData = getStableValue(s.icao24, CITIES as any) as any;
-      let destData = getStableValue(s.icao24 + 'dest', CITIES as any) as any;
-      if (originData.city === destData.city) {
-        destData = { city: 'Berlin', country: 'Germany', iata: 'BER', airport: 'Brandenburg', lat: 52.3667, lon: 13.5033 };
-      }
-
       return {
         ...s,
         ...enrichment,
-        airline: getAirline(s.callsign, s.icao24),
-        origin: originData.city,
-        origin_iata: originData.iata,
-        origin_airport: originData.airport,
-        origin_coords: { lat: originData.lat, lon: originData.lon },
-        destination: destData.city,
-        dest_iata: destData.iata,
-        dest_airport: destData.airport,
-        dest_coords: { lat: destData.lat, lon: destData.lon },
-        origin_country: originData.country,
-        dest_country: destData.country
+        airline: s.airline || getAirline(s.callsign || '', s.icao24),
+        origin: s.origin || null,
+        origin_iata: s.origin_iata || null,
+        origin_airport: s.origin_airport || null,
+        origin_coords: s.origin_coords || null,
+        destination: s.destination || null,
+        dest_iata: s.dest_iata || null,
+        dest_airport: s.dest_airport || null,
+        dest_coords: s.dest_coords || null,
+        dest_country: s.dest_country || null
       } as LiveFlight;
     });
 
@@ -262,7 +235,7 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
        persistentMap.set(f.icao24, f);
     });
 
-    const finalFlights = Array.from(persistentMap.values());
+    const finalFlights = Array.from(persistentMap.values()).sort((a, b) => a.icao24.localeCompare(b.icao24));
 
     if (finalFlights.length > 0) {
       lastSuccessfulFlights = finalFlights; 

@@ -51,17 +51,27 @@ const INITIAL_VIEW_STATE = {
 };
 
 const calculateFlightHistoryTrail = (flight: LiveFlight | null) => {
-  if (!flight || !flight.origin_coords || flight.longitude === undefined || flight.latitude === undefined) return [];
+  if (!flight || flight.longitude === undefined || flight.latitude === undefined) return [];
 
   const segments = [];
-  const startLon = flight.origin_coords.lon;
-  const startLat = flight.origin_coords.lat;
+  let startLon, startLat;
   const endLon = flight.longitude;
   const endLat = flight.latitude;
   const currentAlt = flight.baro_altitude || 10000;
-
+  
   // Plane's live heading vector
-  const headingRad = flight.true_track * (Math.PI / 180);
+  const headingRad = (flight.true_track || 0) * (Math.PI / 180);
+
+  if (flight.origin_coords && flight.origin_coords.lon && flight.origin_coords.lat) {
+    startLon = flight.origin_coords.lon;
+    startLat = flight.origin_coords.lat;
+  } else {
+    // Create a cinematic sweeping tail backwards from the plane's current heading
+    const backDist = 6.0; 
+    startLon = endLon - Math.sin(headingRad) * backDist;
+    startLat = endLat - Math.cos(headingRad) * backDist;
+  }
+
 
   // Raw distance
   const lonDiff = endLon - startLon;
@@ -924,6 +934,16 @@ export default function Map() {
         getIcon: [selectedFlightId, isHeatmapActive],
         getColor: [selectedFlightId, isHeatmapActive],
         getSize: [selectedFlightId, hoveredFlight?.flight.icao24]
+      },
+      transitions: {
+        getPosition: {
+          duration: typeof window !== 'undefined' && window.innerWidth < 768 ? 3000 : 1000,
+          easing: (t: any) => t
+        },
+        getAngle: {
+          duration: typeof window !== 'undefined' && window.innerWidth < 768 ? 3000 : 1000,
+          easing: (t: any) => t
+        }
       },
       pickable: true,
       onHover: isMobile ? undefined : ({ object, x, y }: any) => {
