@@ -26,6 +26,7 @@ export interface LiveFlight {
   dest_airport: string;
   dest_coords: { lat: number, lon: number };
   dest_country: string;
+  fr24_id?: string;
 }
 
 const OPENSKY_URL = '/api/flights';
@@ -236,7 +237,8 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
         dest_iata: destIata,
         dest_airport: s.dest_airport || null,
         dest_coords: destCoords,
-        dest_country: s.dest_country || null
+        dest_country: s.dest_country || null,
+        fr24_id: s.fr24_id || null
       } as LiveFlight;
     });
 

@@ -48,6 +48,7 @@ export async function GET() {
         if (s[1] !== null && s[2] !== null && callsign) {
           mergedFlightsMap.set(icao, { 
             icao24: icao,
+            fr24_id: k,
             latitude: s[1],
             longitude: s[2],
             true_track: s[3],

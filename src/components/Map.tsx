@@ -150,6 +150,29 @@ const calculateFlightHistoryTrail = (flight: LiveFlight | null) => {
   return segments;
 };
 
+const createTrueRouteSegments = (routeData: any) => {
+  if (!routeData || !routeData.trail || routeData.trail.length < 2) return [];
+  const segments = [];
+  const trail = routeData.trail;
+  
+  // Sort trail chronologically just in case
+  const sortedTrail = [...trail].sort((a: any, b: any) => a.ts - b.ts);
+  
+  for (let i = 0; i < sortedTrail.length - 1; i++) {
+    // Fade out older parts of the trail
+    const alpha = Math.max(50, Math.floor(255 * (i / sortedTrail.length)));
+    
+    segments.push({
+      sourcePosition: [sortedTrail[i].lng, sortedTrail[i].lat],
+      targetPosition: [sortedTrail[i+1].lng, sortedTrail[i+1].lat],
+      color: [0, 243, 255, alpha]
+    });
+  }
+  
+  // Connect the last point of the trail to the plane's actual current location
+  return segments;
+};
+
 export default function Map() {
   const [flights, setFlights] = useState<LiveFlight[]>([]);
   const [networkFlights, setNetworkFlights] = useState<LiveFlight[]>([]);
@@ -167,6 +190,9 @@ export default function Map() {
   const [isLocationActive, setIsLocationActive] = useState(false);
   const [radarPath, setRadarPath] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+
+  // 🛑 TRUE ROUTE HIGH-FIDELITY SCRAPER STATE 🛑
+  const [trueFlightRoute, setTrueFlightRoute] = useState<any>(null);
 
   // 🛑 GLOBAL TACTICAL ALERT ARRAY 🛑
   const [globalAlert, setGlobalAlert] = useState<{ type: string, icao: string, msg: string } | null>(null);
@@ -577,7 +603,7 @@ export default function Map() {
     setTimeout(() => setSearchQuery(''), 3500);
   }, [handleMasterReset, globalAirports]);
 
-  const handleFlyToFlight = useCallback((flight: LiveFlight) => {
+  const handleFlyToFlight = useCallback(async (flight: LiveFlight) => {
     playRadarBlip();
     isAnimatingRef.current = true;
     setTimeout(() => { isAnimatingRef.current = false; }, 2200); // Shield the animation from API interrupts for 2.2s
@@ -585,6 +611,7 @@ export default function Map() {
     // If the same plane is clicked again, reset and zoom back out to normal!
     if (selectedFlightId === flight.icao24) {
       setSelectedFlightId(null);
+      setTrueFlightRoute(null);
       setViewState({
         ...INITIAL_VIEW_STATE,
         transitionDuration: 8000,
@@ -595,6 +622,22 @@ export default function Map() {
 
     setSelectedAirportIata(null); // Clear airport selection
     setSelectedFlightId(flight.icao24);
+    setTrueFlightRoute(null);
+    setHoveredFlight(null);
+
+    // DYNAMIC ROUTE SCRAPER
+    if (flight.fr24_id) {
+      try {
+        const res = await fetch(`/api/flight-route?id=${flight.fr24_id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.trail) {
+             setTrueFlightRoute(data);
+          }
+        }
+      } catch (e) {}
+    }
+
     setViewState((prev: any) => ({
       ...prev,
       longitude: flight.longitude,
@@ -605,7 +648,7 @@ export default function Map() {
       transitionDuration: 8000, // Very slow, liquid-smooth cinematic travel time
       transitionInterpolator: new FlyToInterpolator()
     }));
-  }, [selectedFlightId]);
+  }, [selectedFlightId, playRadarBlip]);
 
   const handleFlyToAirport = useCallback((airport: Airport) => {
     isAnimatingRef.current = true;
@@ -657,7 +700,7 @@ export default function Map() {
       transitionDuration: 8000,
       transitionInterpolator: new FlyToInterpolator()
     }));
-  }, [selectedAirportIata, selectedFlightId, flights]);
+  }, [selectedAirportIata, selectedFlightId, flights, playRadarBlip]);
 
   // Map Controls
   const zoomIn = () => setViewState(prev => ({ ...prev, zoom: Math.min(prev.zoom + (isMobile ? 1.5 : 1), 20), transitionDuration: 300 }));
@@ -864,15 +907,17 @@ export default function Map() {
       }
     }) : null,
 
-    // Layer 2: Mathematical Altitude-Encoded History Trail mimicking FR24
-    selectedFlight ? new (LineLayer as any)({
-      id: 'flight-history-trail',
-      data: calculateFlightHistoryTrail(selectedFlight),
-      getSourcePosition: (d: any) => d.start,
-      getTargetPosition: (d: any) => d.end,
-      getColor: (d: any) => d.color,
-      widthMinPixels: 4
-    }) : null,
+    // Layer 5: Historical Flight Trajectory Trail (Ghosted Blue)
+    new (LineLayer as any)({
+      id: 'flight-history-layer',
+      data: isPlaybackMode ? [] : (trueFlightRoute ? createTrueRouteSegments(trueFlightRoute) : calculateFlightHistoryTrail(selectedFlight)),
+      getSourcePosition: (d: any) => d.sourcePosition || d.start,
+      getTargetPosition: (d: any) => d.targetPosition || d.end,
+      getColor: (d: any) => d.color || d.color,
+      getWidth: trueFlightRoute ? 4 : 3,
+      opacity: 0.8,
+      visible: !!selectedFlightId && !isHeatmapActive
+    }),
 
     // Layer 5: User GPS True Red Radar Pin
     userLocation ? new (ScatterplotLayer as any)({
