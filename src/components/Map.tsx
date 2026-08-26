@@ -66,10 +66,20 @@ const calculateFlightHistoryTrail = (flight: LiveFlight | null) => {
     startLon = flight.origin_coords.lon;
     startLat = flight.origin_coords.lat;
   } else {
-    // Create a cinematic sweeping tail backwards from the plane's current heading
-    const backDist = 6.0;
-    startLon = endLon - Math.sin(headingRad) * backDist;
-    startLat = endLat - Math.cos(headingRad) * backDist;
+    // Ultra-long dynamic flight path estimation (eliminates the "spawned in the ocean" look)
+    // 1 degree is ~111km. 40 degrees = ~4,400km (approx 5 hours of jet cruise flight)
+    // We scale the tail massively based on altitude (cruising planes get continent-spanning tails)
+    const isCruising = currentAlt > 20000;
+    const backDist = isCruising ? 45.0 : 12.0; 
+    
+    // Project backward along the heading vector
+    let rawStartLon = endLon - Math.sin(headingRad) * backDist;
+    let rawStartLat = endLat - Math.cos(headingRad) * backDist;
+    
+    // Apply a natural planetary "Great Circle" visual bend so it's a beautiful arc, not a stiff line
+    const curveBend = isCruising ? 8.0 : 2.0;
+    startLon = rawStartLon + Math.cos(headingRad) * curveBend;
+    startLat = rawStartLat - Math.sin(headingRad) * curveBend;
   }
 
 
