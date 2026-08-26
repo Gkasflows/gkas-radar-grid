@@ -13,6 +13,7 @@ import NearbyPanel from './NearbyPanel';
 import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
 import WeatherSimulationCanvas, { WeatherCondition } from './WeatherSimulationCanvas';
+import CountriesModal from './CountriesModal';
 
 // Ultra-High-Resolution Command Center Satellite Imaging
 const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Hybrid: Satellite + Detailed Cartography Labels
@@ -193,6 +194,7 @@ export default function Map() {
   const [radarPath, setRadarPath] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [nearbyData, setNearbyData] = useState<{ countryName: string, countryCode: string, flights: LiveFlight[], airports: Airport[] } | null>(null);
+  const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
 
   // 🛑 TRUE ROUTE HIGH-FIDELITY SCRAPER STATE 🛑
   const [trueFlightRoute, setTrueFlightRoute] = useState<any>(null);
@@ -368,6 +370,49 @@ export default function Map() {
       return;
     }
     setSearchQuery(query);
+  };
+
+  const handleOpenCountryScanner = async (countryCode: string, countryName: string) => {
+    setIsCountryModalOpen(false); // Close the modal
+    setSearchQuery(`📡 Locking onto ${countryName}...`);
+    try {
+      const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?country=${countryCode}&format=json`, { headers: { 'User-Agent': 'GkasRadar/1.0' }});
+      const searchData = await searchRes.json();
+      
+      if (searchData && searchData.length > 0) {
+        const bbox = searchData[0].boundingbox.map(Number); // [minLat, maxLat, minLon, maxLon]
+        
+        // Calculate center for FlyTo
+        const targetLat = (bbox[0] + bbox[1]) / 2;
+        const targetLon = (bbox[2] + bbox[3]) / 2;
+        
+        setViewState({
+          ...INITIAL_VIEW_STATE,
+          longitude: targetLon,
+          latitude: targetLat,
+          zoom: 5.5,
+          transitionDuration: 3000,
+          transitionInterpolator: new FlyToInterpolator()
+        });
+
+        const regionalAirports = globalAirports.filter(a => a.country === countryCode).slice(0, 50);
+        const regionalFlights = networkFlights.filter(f => 
+          f.latitude && f.longitude &&
+          f.latitude >= bbox[0] && f.latitude <= bbox[1] &&
+          f.longitude >= bbox[2] && f.longitude <= bbox[3]
+        ).slice(0, 50);
+        
+        setNearbyData({
+          countryName,
+          countryCode,
+          flights: regionalFlights,
+          airports: regionalAirports
+        });
+      }
+    } catch (e) {
+      console.error("Nominatim Scan Failed", e);
+    }
+    setSearchQuery('');
   };
 
   useEffect(() => {
@@ -1204,7 +1249,16 @@ export default function Map() {
           onFlightSelect={handleFlyToFlight}
           onAirportSelect={handleFlyToAirport}
           onWeatherChase={handleWeatherChase}
+          onOpenCountries={() => setIsCountryModalOpen(true)}
         />
+
+        {isCountryModalOpen && (
+          <CountriesModal 
+            globalAirports={globalAirports} 
+            onClose={() => setIsCountryModalOpen(false)} 
+            onSelectCountry={handleOpenCountryScanner}
+          />
+        )}
 
         {/* LEFT PANELS (Mutually exclusive via conditionals) */}
         {!nearbyData && (

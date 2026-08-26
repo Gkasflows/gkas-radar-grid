@@ -12,9 +12,10 @@ interface FlightradarTopNavProps {
   onFlightSelect?: (flight: any) => void;
   onAirportSelect?: (airport: any) => void;
   onWeatherChase?: (type: 'rain' | 'snow' | 'thunder') => void;
+  onOpenCountries?: () => void;
 }
 
-export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports, globalFlights, onFlightSelect, onAirportSelect, onWeatherChase }: FlightradarTopNavProps) {
+export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, isHeatmapActive, toggleHeatmap, onReset, globalAirports, globalFlights, onFlightSelect, onAirportSelect, onWeatherChase, onOpenCountries }: FlightradarTopNavProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -492,7 +493,14 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
                           { id: 'history', label: 'Airport flights history', icon: '🏛️', placeholder: 'Enter Airport IATA Code' },
                           { id: 'airport', label: 'Airports by country', icon: '🏛️', placeholder: 'Enter Country Name' },
                         ].map((sc) => (
-                           <div key={sc.id} onClick={() => setFilterMode({ id: sc.id, label: sc.label, placeholder: sc.placeholder })}
+                           <div key={sc.id} onClick={() => {
+                               if (sc.id === 'airport' && onOpenCountries) {
+                                  onOpenCountries();
+                                  setShowDropdown(false);
+                               } else {
+                                  setFilterMode({ id: sc.id, label: sc.label, placeholder: sc.placeholder });
+                               }
+                             }}
                              style={{
                                display: 'flex', alignItems: 'center', padding: '12px 16px',
                                cursor: 'pointer', transition: 'background 0.2s ease', color: '#fff'
