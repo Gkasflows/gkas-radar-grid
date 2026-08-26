@@ -1206,7 +1206,7 @@ export default function Map() {
           onWeatherChase={handleWeatherChase}
         />
 
-        {/* LEFT PANELS (Mutually exclusive) */}
+        {/* LEFT PANELS (Mutually exclusive via conditionals) */}
         {!nearbyData && (
           <FlightradarSidePanel
             flight={selectedFlight || null}
@@ -1236,7 +1236,27 @@ export default function Map() {
           />
         )}
 
-        {nearbyData && (
+        {/* When Nearby is active, but we clicked a flight inside it, show the flight panel with a BACK button */}
+        {nearbyData && selectedFlight && (
+          <FlightradarSidePanel
+            flight={selectedFlight || null}
+            liveFlights={networkFlights}
+            onClose={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); setNearbyData(null); }}
+            onBack={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); }}
+            onPointClick={(lat, lon, iata) => {
+              isAnimatingRef.current = true;
+              setTimeout(() => { isAnimatingRef.current = false; }, 15000);
+              if (iata) setSelectedAirportIata(iata);
+              setViewState((prev: any) => ({
+                ...prev, longitude: lon, latitude: lat, zoom: Math.max(prev.zoom, 7.5), pitch: 35, bearing: 0,
+                transitionDuration: 8000, transitionInterpolator: new FlyToInterpolator()
+              }));
+            }}
+          />
+        )}
+
+        {/* When Nearby is active and NO flight/airport is selected, show the Nearby panel */}
+        {nearbyData && !selectedFlight && !selectedAirport && (
           <NearbyPanel
             countryName={nearbyData.countryName}
             countryCode={nearbyData.countryCode}
@@ -1245,11 +1265,9 @@ export default function Map() {
             onClose={() => setNearbyData(null)}
             onFlightClick={(f) => {
               handleFlyToFlight(f);
-              setNearbyData(null);
             }}
             onAirportClick={(a) => {
               handleFlyToAirport(a);
-              setNearbyData(null);
             }}
           />
         )}

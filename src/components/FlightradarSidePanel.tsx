@@ -4,13 +4,14 @@ import { LiveFlight } from '../services/flightService';
 interface FlightradarSidePanelProps {
   flight: LiveFlight | null;
   onClose: () => void;
+  onBack?: () => void;
   onPointClick?: (lat: number, lon: number, iata: string) => void;
   liveFlights?: LiveFlight[];
 }
 
 // Photo resolution algorithm relocated securely securely back to flightService.ts
 
-export default function FlightradarSidePanel({ flight, onClose, onPointClick, liveFlights = [] }: FlightradarSidePanelProps) {
+export default function FlightradarSidePanel({ flight, onClose, onBack, onPointClick, liveFlights = [] }: FlightradarSidePanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -222,10 +223,22 @@ export default function FlightradarSidePanel({ flight, onClose, onPointClick, li
           </button>
         )}
         
+        {/* Back Button for Nearby integration */}
+        {!isMobile && onBack && (
+          <button onClick={onBack} style={{
+            position: 'absolute', top: '16px', left: '16px',
+            padding: '6px 12px', borderRadius: '16px', backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+            border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: '11px', fontWeight: 600,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10
+          }}>
+            ← Back
+          </button>
+        )}
+
         {/* Photographer Attribution Block */}
         {photographer && (
            <div style={{
-             position: 'absolute', top: '16px', left: '16px',
+             position: 'absolute', top: (onBack && !isMobile) ? '48px' : '16px', left: '16px',
              backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
              borderRadius: '4px', padding: '2px 6px', fontSize: '9px',
              color: 'rgba(255,255,255,0.8)', fontWeight: 500
