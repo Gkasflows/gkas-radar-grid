@@ -8,6 +8,7 @@ interface AirportSidePanelProps {
   onBack?: () => void;
   liveFlights?: LiveFlight[];
   onFlightClick?: (flight: LiveFlight) => void;
+  initialTab?: 'arrivals' | 'departures' | 'ground';
 }
 
 const AIRPORT_PHOTOS = [
@@ -24,8 +25,8 @@ const getAirportImage = (iata: string) => {
   return `https://images.unsplash.com/photo-${AIRPORT_PHOTOS[index]}?q=80&w=1000&auto=format&fit=crop`;
 };
 
-export default function AirportSidePanel({ airport, onClose, onBack, liveFlights = [], onFlightClick }: AirportSidePanelProps) {
-  const [activeTab, setActiveTab] = useState<'arrivals' | 'departures'>('arrivals');
+export default function AirportSidePanel({ airport, onClose, onBack, liveFlights = [], onFlightClick, initialTab = 'arrivals' }: AirportSidePanelProps) {
+  const [activeTab, setActiveTab] = useState<'arrivals' | 'departures' | 'ground'>(initialTab);
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -105,12 +106,31 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
     if (!displayAirport || !displayAirport.coords) return [];
     const MAX_DEG = 15.0; // ~ 900 Nautical Miles (Wide Sector Monitoring)
     const RADAR_SIZE = 140; // Pixels
+    const iata = displayAirport.iata;
+    const airportLat = displayAirport.coords[0];
+    const airportLon = displayAirport.coords[1];
 
     const cLat = displayAirport.coords[0];
     const cLon = displayAirport.coords[1];
     const latCos = Math.cos(cLat * Math.PI / 180);
 
-    return liveFlights.filter(f => f.latitude && f.longitude).map(f => {
+    return (liveFlights || []).filter(f => {
+      // Must have some coordinate proximity (approx 80km radius)
+      if (!f.latitude || !f.longitude) return false;
+      const dLat = Math.abs(f.latitude - airportLat);
+      const dLon = Math.abs(f.longitude - airportLon);
+      if (dLat > 0.8 || dLon > 0.8) return false;
+
+      if (activeTab === 'arrivals') {
+        return f.dest_iata === iata || (f.vertical_rate && f.vertical_rate < -10 && dLat < 0.4 && dLon < 0.4);
+      } else if (activeTab === 'departures') {
+        return f.origin_iata === iata || (f.vertical_rate && f.vertical_rate > 10 && dLat < 0.4 && dLon < 0.4);
+      } else if (activeTab === 'ground') {
+        // Altitude < 50m and Velocity < 15 knots (Taxiing / Parked)
+        return (f.baro_altitude !== undefined && f.baro_altitude < 50) && (f.velocity !== undefined && f.velocity < 15) && dLat < 0.1 && dLon < 0.1;
+      }
+      return false;
+    }).map(f => {
       const dLat = f.latitude - cLat;
       const dLon = (f.longitude - cLon) * latCos;
       const dist = Math.sqrt(dLat * dLat + dLon * dLon);
@@ -127,7 +147,7 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
         const y = -Math.cos(angle) * rPix;
         return { x, y, callsign: b.f.callsign || b.f.icao24, heading: b.f.true_track || 0, isClimbing: (b.f.vertical_rate || 0) > 0, dist: b.dist, isArriving: b.f.dest_iata === displayAirport.iata };
       });
-  }, [displayAirport, liveFlights]);
+  }, [displayAirport, liveFlights, activeTab]);
 
   // Authentically extract REAL flights from the global live data arrays
   const flightsData = React.useMemo(() => {
@@ -136,8 +156,10 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
     let activeSet = [];
     if (activeTab === 'arrivals') {
       activeSet = liveFlights.filter(f => f.dest_iata === displayAirport.iata);
-    } else {
+    } else if (activeTab === 'departures') {
       activeSet = liveFlights.filter(f => f.origin_iata === displayAirport.iata);
+    } else {
+      activeSet = liveFlights.filter(f => (f.dest_iata === displayAirport.iata || f.origin_iata === displayAirport.iata) && (f.on_ground || (f.baro_altitude || 0) < 50));
     }
 
     return activeSet.map(f => {
@@ -145,17 +167,14 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
       let statusStr = 'In Air';
       let color = '#38bdf8'; // Cyan
 
-      if (f.on_ground || (f.baro_altitude && f.baro_altitude < 500 && f.velocity && f.velocity < 50)) {
-        statusStr = activeTab === 'arrivals' ? 'Landed' : 'Taxiing';
-        color = '#10B981'; // Green
-      } else if (f.velocity && f.velocity < 10) {
-        statusStr = 'Delayed';
-        color = '#EF4444'; // Red
+      if (f.vertical_rate === 0 && (f.baro_altitude || 0) < 50) {
+        statusStr = activeTab === 'arrivals' ? 'Landed' : activeTab === 'departures' ? 'Taxiing' : 'On Ground';
+        color = '#10B981';
       } else if (f.vertical_rate && f.vertical_rate > 10 && activeTab === 'departures') {
-        statusStr = 'Climbing';
-        color = '#F59E0B'; // Yellow
+        statusStr = 'Airborne';
+        color = '#F59E0B';
       } else if (f.vertical_rate && f.vertical_rate < -10 && activeTab === 'arrivals') {
-        statusStr = 'Descending';
+        statusStr = 'Approaching';
         color = '#8b5cf6'; // Purple
       }
 
@@ -341,30 +360,42 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
       </div>
 
       {/* 3. TABS (Departures / Arrivals) */}
-      <div style={{ display: 'flex', borderBottom: '1px solid rgba(47, 49, 54, 0.6)', backgroundColor: 'rgba(42, 43, 48, 0.4)' }}>
-        <button
+      <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+        <button 
           onClick={() => setActiveTab('arrivals')}
           style={{
-            flex: 1, padding: '12px', border: 'none', backgroundColor: 'transparent',
+            flex: 1, padding: '12px 0', background: 'transparent', border: 'none',
+            color: activeTab === 'arrivals' ? '#00f3ff' : '#8E9297',
+            fontWeight: activeTab === 'arrivals' ? 700 : 500,
             borderBottom: activeTab === 'arrivals' ? '2px solid #00f3ff' : '2px solid transparent',
-            color: activeTab === 'arrivals' ? '#fff' : '#8E9297',
-            fontWeight: 600, cursor: 'pointer', fontSize: '13px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+            cursor: 'pointer', transition: 'all 0.2s', fontSize: '13px'
           }}
         >
-          🛬 Arrivals
+          Arrivals
         </button>
-        <button
+        <button 
           onClick={() => setActiveTab('departures')}
           style={{
-            flex: 1, padding: '12px', border: 'none', backgroundColor: 'transparent',
+            flex: 1, padding: '12px 0', background: 'transparent', border: 'none',
+            color: activeTab === 'departures' ? '#00f3ff' : '#8E9297',
+            fontWeight: activeTab === 'departures' ? 700 : 500,
             borderBottom: activeTab === 'departures' ? '2px solid #00f3ff' : '2px solid transparent',
-            color: activeTab === 'departures' ? '#fff' : '#8E9297',
-            fontWeight: 600, cursor: 'pointer', fontSize: '13px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+            cursor: 'pointer', transition: 'all 0.2s', fontSize: '13px'
           }}
         >
-          🛫 Departures
+          Departures
+        </button>
+        <button 
+          onClick={() => setActiveTab('ground')}
+          style={{
+            flex: 1, padding: '12px 0', background: 'transparent', border: 'none',
+            color: activeTab === 'ground' ? '#00f3ff' : '#8E9297',
+            fontWeight: activeTab === 'ground' ? 700 : 500,
+            borderBottom: activeTab === 'ground' ? '2px solid #00f3ff' : '2px solid transparent',
+            cursor: 'pointer', transition: 'all 0.2s', fontSize: '13px'
+          }}
+        >
+          On Ground
         </button>
       </div>
 

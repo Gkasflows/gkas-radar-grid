@@ -14,6 +14,7 @@ import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
 import WeatherSimulationCanvas, { WeatherCondition } from './WeatherSimulationCanvas';
 import CountriesModal from './CountriesModal';
+import RouteSearchModal from './RouteSearchModal';
 
 // Ultra-High-Resolution Command Center Satellite Imaging
 const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Hybrid: Satellite + Detailed Cartography Labels
@@ -195,6 +196,10 @@ export default function Map() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [nearbyData, setNearbyData] = useState<{ countryName: string, countryCode: string, flights: LiveFlight[], airports: Airport[] } | null>(null);
   const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
+  const [airportPanelTab, setAirportPanelTab] = useState<'arrivals' | 'departures' | 'ground'>('arrivals');
+  const [isRouteSearchOpen, setIsRouteSearchOpen] = useState(false);
+  const [routeSearchInitialFrom, setRouteSearchInitialFrom] = useState<Airport | null>(null);
+  const [routeSearchInitialTo, setRouteSearchInitialTo] = useState<Airport | null>(null);
 
   // 🛑 TRUE ROUTE HIGH-FIDELITY SCRAPER STATE 🛑
   const [trueFlightRoute, setTrueFlightRoute] = useState<any>(null);
@@ -413,6 +418,22 @@ export default function Map() {
       console.error("Nominatim Scan Failed", e);
     }
     setSearchQuery('');
+  };
+
+  const handleOpenAirportFeatures = (airport: Airport, feature: string) => {
+    setIsCountryModalOpen(false);
+    if (feature === 'map' || feature === 'arrivals' || feature === 'departures' || feature === 'ground') {
+      setAirportPanelTab(feature === 'map' ? 'arrivals' : feature as 'arrivals' | 'departures' | 'ground');
+      handleFlyToAirport(airport);
+    } else if (feature === 'search_arriving') {
+      setRouteSearchInitialTo(airport);
+      setRouteSearchInitialFrom(null);
+      setIsRouteSearchOpen(true);
+    } else if (feature === 'search_departing') {
+      setRouteSearchInitialFrom(airport);
+      setRouteSearchInitialTo(null);
+      setIsRouteSearchOpen(true);
+    }
   };
 
   useEffect(() => {
@@ -1256,7 +1277,19 @@ export default function Map() {
           <CountriesModal 
             globalAirports={globalAirports} 
             onClose={() => setIsCountryModalOpen(false)} 
-            onSelectCountry={handleOpenCountryScanner}
+            onOpenAirportFeatures={handleOpenAirportFeatures}
+          />
+        )}
+
+        {isRouteSearchOpen && (
+          <RouteSearchModal
+            globalAirports={globalAirports}
+            onClose={() => setIsRouteSearchOpen(false)}
+            initialFrom={routeSearchInitialFrom}
+            initialTo={routeSearchInitialTo}
+            onSearch={(from, to) => {
+              setSearchQuery(`Searching route from ${from?.iata || 'Any'} to ${to?.iata || 'Any'}...`);
+            }}
           />
         )}
 
@@ -1333,6 +1366,7 @@ export default function Map() {
             liveFlights={networkFilteredFlights}
             onFlightClick={handleFlyToFlight}
             onClose={() => setSelectedAirportIata(null)}
+            initialTab={airportPanelTab}
           />
         )}
 
@@ -1344,6 +1378,7 @@ export default function Map() {
             onFlightClick={handleFlyToFlight}
             onClose={() => { setSelectedAirportIata(null); setNearbyData(null); }}
             onBack={() => { setSelectedAirportIata(null); }}
+            initialTab={airportPanelTab}
           />
         )}
 

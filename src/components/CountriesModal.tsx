@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 interface CountriesModalProps {
   globalAirports: any[];
   onClose: () => void;
-  onSelectCountry: (countryCode: string, countryName: string) => void;
+  onOpenAirportFeatures: (airport: any, feature: string) => void;
 }
 
 function getFlagEmoji(countryCode: string) {
@@ -15,8 +15,12 @@ function getFlagEmoji(countryCode: string) {
   return String.fromCodePoint(...codePoints);
 }
 
-export default function CountriesModal({ globalAirports, onClose, onSelectCountry }: CountriesModalProps) {
+export default function CountriesModal({ globalAirports, onClose, onOpenAirportFeatures }: CountriesModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Navigation State
+  const [selectedCountry, setSelectedCountry] = useState<{code: string, name: string} | null>(null);
+  const [expandedAirport, setExpandedAirport] = useState<string | null>(null);
 
   const countries = useMemo(() => {
     const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
@@ -66,6 +70,26 @@ export default function CountriesModal({ globalAirports, onClose, onSelectCountr
     return groups;
   }, [filteredCountries]);
 
+  // ------------------------------------
+  // LEVEL 2: AIRPORTS VIEW LOGIC
+  // ------------------------------------
+  const countryAirports = useMemo(() => {
+    if (!selectedCountry) return [];
+    return globalAirports
+      .filter(a => a.country === selectedCountry.code)
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }, [selectedCountry, globalAirports]);
+
+  const filteredCountryAirports = useMemo(() => {
+    if (!searchQuery) return countryAirports;
+    const q = searchQuery.toLowerCase().trim();
+    return countryAirports.filter(a => 
+      (a.name || '').toLowerCase().includes(q) || 
+      (a.iata || '').toLowerCase().includes(q) ||
+      (a.city || '').toLowerCase().includes(q)
+    );
+  }, [countryAirports, searchQuery]);
+
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -87,7 +111,19 @@ export default function CountriesModal({ globalAirports, onClose, onSelectCountr
       }}>
         {/* Header */}
         <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'relative' }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#fff' }}>Airports by Country</h2>
+          {selectedCountry ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+               <button onClick={() => { setSelectedCountry(null); setSearchQuery(''); setExpandedAirport(null); }}
+                 style={{ background: 'transparent', border: 'none', color: '#00f3ff', cursor: 'pointer', fontSize: '20px', padding: 0 }}
+               >
+                 ←
+               </button>
+               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#fff' }}>{selectedCountry.name} Airports</h2>
+            </div>
+          ) : (
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#fff' }}>Airports by Country</h2>
+          )}
+          
           <button 
             onClick={onClose}
             style={{
@@ -103,7 +139,7 @@ export default function CountriesModal({ globalAirports, onClose, onSelectCountr
           <div style={{ position: 'relative' }}>
             <input 
               type="text" 
-              placeholder="Search for a country..."
+              placeholder={selectedCountry ? "Search airports in " + selectedCountry.name + "..." : "Search for a country..."}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               style={{
@@ -122,42 +158,108 @@ export default function CountriesModal({ globalAirports, onClose, onSelectCountr
 
         {/* List Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0' }}>
-          {Object.keys(grouped).length === 0 ? (
-            <div style={{ padding: '40px 20px', textAlign: 'center', color: '#8E9297' }}>
-              No countries found matching "{searchQuery}"
-            </div>
-          ) : (
-            Object.keys(grouped).sort().map(letter => (
-              <div key={letter}>
-                <div style={{
-                  padding: '8px 20px', backgroundColor: 'rgba(0, 243, 255, 0.05)',
-                  color: '#00f3ff', fontWeight: 800, fontSize: '14px',
-                  borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)'
-                }}>
-                  {letter}
-                </div>
-                {grouped[letter].map(country => (
-                  <div 
-                    key={country.code}
-                    onClick={() => onSelectCountry(country.code, country.name)}
-                    style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '16px 20px', cursor: 'pointer', transition: 'background 0.2s'
-                    }}
-                    onMouseOver={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
-                    onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '20px' }}>{country.flag}</span>
-                      <span style={{ fontSize: '15px', fontWeight: 500 }}>{country.name}</span>
-                    </div>
-                    <div style={{ fontSize: '13px', color: '#8E9297', fontWeight: 600 }}>
-                      {country.count} {country.count === 1 ? 'airport' : 'airports'}
-                    </div>
-                  </div>
-                ))}
+          
+          {/* LEVEL 1: COUNTRIES LIST */}
+          {!selectedCountry && (
+            Object.keys(grouped).length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: '#8E9297' }}>
+                No countries found matching "{searchQuery}"
               </div>
-            ))
+            ) : (
+              Object.keys(grouped).sort().map(letter => (
+                <div key={letter}>
+                  <div style={{
+                    padding: '8px 20px', backgroundColor: 'rgba(0, 243, 255, 0.05)',
+                    color: '#00f3ff', fontWeight: 800, fontSize: '14px',
+                    borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)'
+                  }}>
+                    {letter}
+                  </div>
+                  {grouped[letter].map(country => (
+                    <div 
+                      key={country.code}
+                      onClick={() => { setSelectedCountry(country); setSearchQuery(''); }}
+                      style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '16px 20px', cursor: 'pointer', transition: 'background 0.2s'
+                      }}
+                      onMouseOver={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
+                      onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '20px' }}>{country.flag}</span>
+                        <span style={{ fontSize: '15px', fontWeight: 500 }}>{country.name}</span>
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#8E9297', fontWeight: 600 }}>
+                        {country.count} {country.count === 1 ? 'airport' : 'airports'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))
+            )
+          )}
+
+          {/* LEVEL 2: AIRPORTS LIST */}
+          {selectedCountry && (
+            filteredCountryAirports.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: '#8E9297' }}>
+                No airports found matching "{searchQuery}"
+              </div>
+            ) : (
+              filteredCountryAirports.map(airport => {
+                const isExpanded = expandedAirport === airport.iata;
+                return (
+                  <div key={airport.iata} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    {/* Airport Row */}
+                    <div 
+                      onClick={() => setExpandedAirport(isExpanded ? null : airport.iata)}
+                      style={{
+                        padding: '16px 20px', cursor: 'pointer', transition: 'background 0.2s',
+                        backgroundColor: isExpanded ? 'rgba(0, 243, 255, 0.05)' : 'transparent'
+                      }}
+                      onMouseOver={e => { if(!isExpanded) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)' }}
+                      onMouseOut={e => { if(!isExpanded) e.currentTarget.style.backgroundColor = 'transparent' }}
+                    >
+                      <div style={{ fontSize: '15px', fontWeight: 600, color: isExpanded ? '#00f3ff' : '#fff' }}>
+                        {airport.name} ({airport.iata})
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#8E9297', marginTop: '4px' }}>
+                        {airport.city}
+                      </div>
+                    </div>
+
+                    {/* Sub-menu Options */}
+                    {isExpanded && (
+                      <div style={{ backgroundColor: 'rgba(0,0,0,0.3)', padding: '8px 0' }}>
+                        {[
+                          { id: 'map', icon: '🗺️', label: 'Show on map' },
+                          { id: 'arrivals', icon: '🛬', label: 'Arrival board' },
+                          { id: 'departures', icon: '🛫', label: 'Departure board' },
+                          { id: 'ground', icon: '🛩️', label: 'Aircraft on ground' },
+                          { id: 'search_arriving', icon: '🔍', label: 'Find arriving flight' },
+                          { id: 'search_departing', icon: '🔍', label: 'Find departing flight' },
+                        ].map(opt => (
+                          <div 
+                            key={opt.id}
+                            onClick={() => onOpenAirportFeatures(airport, opt.id)}
+                            style={{
+                              padding: '12px 36px', fontSize: '13px', color: '#e2e8f0',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px',
+                              transition: 'background 0.2s'
+                            }}
+                            onMouseOver={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
+                            onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <span style={{ fontSize: '16px' }}>{opt.icon}</span> {opt.label}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )
           )}
         </div>
       </div>
