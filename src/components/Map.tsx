@@ -626,9 +626,10 @@ export default function Map() {
     setHoveredFlight(null);
 
     // DYNAMIC ROUTE SCRAPER
-    if (flight.fr24_id) {
+    if (flight.fr24_id || flight.callsign) {
       try {
-        const res = await fetch(`/api/flight-route?id=${flight.fr24_id}`);
+        const query = flight.fr24_id ? `id=${flight.fr24_id}` : `callsign=${flight.callsign}`;
+        const res = await fetch(`/api/flight-route?${query}`);
         if (res.ok) {
           const data = await res.json();
           if (data && data.trail) {
@@ -989,16 +990,6 @@ export default function Map() {
         getIcon: [selectedFlightId, isHeatmapActive],
         getColor: [selectedFlightId, isHeatmapActive],
         getSize: [selectedFlightId, hoveredFlight?.flight.icao24]
-      },
-      transitions: {
-        getPosition: {
-          duration: typeof window !== 'undefined' && window.innerWidth < 768 ? 3000 : 1000,
-          easing: (t: any) => t
-        },
-        getAngle: {
-          duration: typeof window !== 'undefined' && window.innerWidth < 768 ? 3000 : 1000,
-          easing: (t: any) => t
-        }
       },
       pickable: true,
       onHover: isMobile ? undefined : ({ object, x, y }: any) => {
