@@ -20,6 +20,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
   const inputRef = useRef<HTMLInputElement>(null);
   const [currentTime, setCurrentTime] = useState('');
   const [isUtc, setIsUtc] = useState(true);
+  const [filterMode, setFilterMode] = useState<{ id: string, label: string, placeholder: string } | null>(null);
 
   // Live Auto-Switching Clock Engine
   useEffect(() => {
@@ -73,8 +74,12 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
   };
 
   const handleClear = () => {
-    onSearch('');
-    setShowDropdown(false);
+    if (filterMode && !searchQuery) {
+      setFilterMode(null);
+    } else {
+      onSearch('');
+      if (!filterMode) setShowDropdown(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -123,14 +128,33 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
       results.push({ type: 'hq', title: 'THE SMARTAN HOUSE', subtitle: 'Global Tracking Headquarters', icon: '🏛️', searchValue: 'THE SMARTAN HOUSE' });
     }
       
-    // Geofencing matching local DB string
+    // Handle specific filter modes
+    if (filterMode) {
+      if (filterMode.id === 'airline') {
+        const flights = (globalFlights || [])
+          .filter(f => f.airline?.toLowerCase().includes(q) || f.callsign?.toLowerCase().includes(q))
+          .map(f => f.airline || f.callsign || 'Unknown')
+          .filter((v, i, a) => a.indexOf(v) === i) // Unique
+          .slice(0, 5)
+          .map(a => ({ type: 'airline', title: a, subtitle: 'Airline Fleet', icon: '✈️', searchValue: a }));
+        return flights;
+      }
+      if (filterMode.id === 'route') {
+        const flights = (globalFlights || [])
+          .filter(f => (f.origin_iata?.toLowerCase() === q.split('-')[0]?.trim() && f.dest_iata?.toLowerCase() === q.split('-')[1]?.trim()) || f.callsign?.toLowerCase().includes(q))
+          .slice(0, 5)
+          .map(f => ({ type: 'flight', title: `Flight ${f.callsign || f.icao24}`, subtitle: `${f.origin || 'Unknown'} → ${f.destination || 'Unknown'}`, icon: '✈️', searchValue: f.callsign || f.icao24, raw: f }));
+        return flights;
+      }
+    }
+
+    // Default global search
     const ports = (globalAirports || [])
       .filter(a => a.name?.toLowerCase().includes(q) || a.city?.toLowerCase().includes(q) || a.iata?.toLowerCase().includes(q) || a.country?.toLowerCase().includes(q))
       .slice(0, 3)
       .map(a => ({ type: 'airport', title: `${a.city || a.name || 'Unknown'} (${a.iata || 'UNK'})`, subtitle: a.country || a.name, icon: '📍', searchValue: a.iata || a.city, raw: a }));
     results.push(...ports);
 
-    // Live Flights Matching
     const flights = (globalFlights || [])
       .filter(f => f.callsign?.toLowerCase().includes(q) || f.airline?.toLowerCase().includes(q) || f.icao24?.toLowerCase().includes(q))
       .slice(0, 3)
@@ -138,7 +162,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
     results.push(...flights);
       
     return results;
-  }, [searchQuery, globalAirports, globalFlights]);
+  }, [searchQuery, globalAirports, globalFlights, filterMode]);
 
   const allSuggestions = [...suggestions, ...geoLocations].slice(0, 8); // Max 8 items rendered smoothly
 
@@ -168,7 +192,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
       backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', display: 'flex',
       alignItems: 'center', padding: '0 24px', zIndex: 1000, color: '#fff', boxSizing: 'border-box', justifyContent: 'space-between',
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-      borderBottom: '1px solid rgba(0, 243, 255, 0.25)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)'
+      borderBottom: '1px solid rgba(251, 191, 36, 0.25)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)'
     }}>
       
       {/* 1. LEFT CONTROLS */}
@@ -198,9 +222,9 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
         <button
           onClick={toggleHeatmap}
           style={{
-            backgroundColor: isHeatmapActive ? 'rgba(0, 243, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-            border: isHeatmapActive ? '1px solid #00f3ff' : '1px solid rgba(255, 255, 255, 0.1)',
-            color: isHeatmapActive ? '#00f3ff' : '#8E9297',
+            backgroundColor: isHeatmapActive ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+            border: isHeatmapActive ? '1px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.1)',
+            color: isHeatmapActive ? '#fbbf24' : '#8E9297',
             padding: '6px 14px',
             borderRadius: '6px',
             fontSize: '11px',
@@ -209,7 +233,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
             textTransform: 'uppercase',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            boxShadow: isHeatmapActive ? '0 0 10px rgba(0, 243, 255, 0.3)' : 'none'
+            boxShadow: isHeatmapActive ? '0 0 10px rgba(251, 191, 36, 0.3)' : 'none'
           }}
         >
           {isHeatmapActive ? '◆ Altitude Heatmap: ON' : '◇ Altitude Heatmap: OFF'}
@@ -241,7 +265,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
                 alignItems: 'center',
                 gap: '4px'
               }}
-              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#00f3ff'; }}
+              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fbbf24'; }}
               onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#fff'; }}
             >
               {weather.icon} {weather.label}
@@ -264,11 +288,11 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
         }}
       >
         <span className="brand-logo-text" style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '-0.5px' }}>
-          GKAS<span style={{ color: '#00f3ff' }}>FLOWS</span> 
+          GKAS<span style={{ color: '#fbbf24' }}>FLOWS</span> 
         </span>
         <span className="desktop-only-nav" style={{
-          marginLeft: '8px', fontSize: '10px', fontWeight: 700, backgroundColor: 'rgba(0, 243, 255, 0.1)',
-          color: '#00f3ff', padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px'
+          marginLeft: '8px', fontSize: '10px', fontWeight: 700, backgroundColor: 'rgba(251, 191, 36, 0.1)',
+          color: '#fbbf24', padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px'
         }}>
           LIVE BETA
         </span>
@@ -310,9 +334,9 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
               width: '40px',
               height: '40px',
               borderRadius: '50%',
-              backgroundColor: isHeatmapActive ? 'rgba(0, 243, 255, 0.2)' : 'rgba(15, 23, 42, 0.95)',
-              border: isHeatmapActive ? '1px solid #00f3ff' : '1px solid rgba(0, 243, 255, 0.2)',
-              color: isHeatmapActive ? '#00f3ff' : '#ffffff',
+              backgroundColor: isHeatmapActive ? 'rgba(251, 191, 36, 0.2)' : 'rgba(15, 23, 42, 0.95)',
+              border: isHeatmapActive ? '1px solid #fbbf24' : '1px solid rgba(251, 191, 36, 0.2)',
+              color: isHeatmapActive ? '#fbbf24' : '#ffffff',
               boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
               display: 'flex',
               alignItems: 'center',
@@ -358,97 +382,166 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
           title="Click to toggle UTC / Local Time"
           onClick={() => setIsUtc(!isUtc)} 
           style={{ marginRight: '24px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0', cursor: 'pointer', fontFamily: '"SF Mono", "Consolas", monospace', userSelect: 'none', transition: 'color 0.2s' }}
-          onMouseOver={(e) => (e.currentTarget.style.color = '#00f3ff')}
+          onMouseOver={(e) => (e.currentTarget.style.color = '#fbbf24')}
           onMouseOut={(e) => (e.currentTarget.style.color = '#e2e8f0')}
         >
           {currentTime} <span style={{ opacity: 0.6 }}>{isUtc ? 'UTC' : 'LOC'}</span>
         </div>
 
-        <div className="search-container" style={{ position: 'relative', height: '32px', display: 'flex', alignItems: 'center' }}>
+        <div className="search-container" style={{ position: 'relative', height: '34px', display: 'flex', alignItems: 'center', transition: 'all 0.3s ease' }}>
+          {filterMode && (
+             <div style={{ position: 'absolute', left: '10px', display: 'flex', alignItems: 'center', zIndex: 2 }}>
+                <div style={{ backgroundColor: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.4)', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 800, letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                   {filterMode.label}
+                </div>
+             </div>
+          )}
           <input 
             ref={inputRef}
             type="text" 
             id="search-input"
             value={searchQuery}
-            placeholder="Search..."
+            placeholder={filterMode ? filterMode.placeholder : "Search flights, airports..."}
             onChange={(e) => { 
               const val = e.target.value;
               onSearch(val); 
-              if (val.trim().length > 0) {
+              if (val.trim().length > 0 || !filterMode) {
                  setShowDropdown(true);
-              } else {
-                 setShowDropdown(false);
               }
             }}
             onFocus={() => {
-              if (searchQuery.trim().length > 0 || recentSearches.length > 0) {
-                setShowDropdown(true);
-              }
+              setShowDropdown(true);
             }}
             onKeyDown={handleKeyDown}
             style={{
               width: '100%',
               height: '100%',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
+              backgroundColor: filterMode ? 'rgba(0, 40, 60, 0.6)' : 'rgba(255, 255, 255, 0.1)',
+              border: filterMode ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '16px',
-              padding: '0 28px 0 32px',
-              color: '#00f3ff', 
+              padding: filterMode ? '0 28px 0 110px' : '0 28px 0 36px',
+              color: '#fbbf24', 
               fontSize: '13px',
               fontWeight: 500,
               outline: 'none',
-              boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.5)',
-              boxSizing: 'border-box'
+              boxShadow: filterMode ? '0 0 15px rgba(251, 191, 36, 0.15)' : 'inset 0 1px 4px rgba(0,0,0,0.5)',
+              boxSizing: 'border-box',
+              transition: 'all 0.3s ease'
             }}
           />
           {/* SEARCH ICON */}
-          <svg style={{ position: 'absolute', left: '12px', width: '14px', height: '14px', fill: '#ffffff', opacity: 0.7 }} viewBox="0 0 24 24">
-            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-          </svg>
+          {!filterMode && (
+            <svg style={{ position: 'absolute', left: '14px', width: '14px', height: '14px', fill: '#ffffff', opacity: 0.7 }} viewBox="0 0 24 24">
+              <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+          )}
           
           {/* SECURE CANCEL BUTTON (X) */}
-          {searchQuery && (
+          {(searchQuery || filterMode) && (
             <button 
               onClick={handleClear} 
-              style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', fontWeight: 900, cursor: 'pointer', padding: 0, opacity: 0.8, outline: 'none' }}
+              style={{ position: 'absolute', right: '12px', background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', fontWeight: 900, cursor: 'pointer', padding: 0, opacity: 0.8, outline: 'none', zIndex: 2 }}
               title="Clear Search"
             >
               ✕
             </button>
           )}
 
-          {/* DYNAMIC AUTO-SUGGESTIONS PANEL */}
-          {showDropdown && (allSuggestions.length > 0 || (!searchQuery && recentSearches.length > 0)) && (
+          {/* DYNAMIC AUTO-SUGGESTIONS & TACTICAL SHORTCUTS PANEL */}
+          {showDropdown && (
              <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: '12px', 
-                width: '100%', backgroundColor: 'rgba(15, 23, 42, 0.98)', backdropFilter: 'blur(16px)',
-                borderRadius: '12px', border: '1px solid rgba(0,243,255,0.3)', boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
+                width: '320px', backgroundColor: 'rgba(12, 18, 30, 0.96)', backdropFilter: 'blur(20px)',
+                borderRadius: '16px', border: '1px solid rgba(251,191,36,0.2)', boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
                 overflow: 'hidden', zIndex: 1100, display: 'flex', flexDirection: 'column'
              }}>
+                
+                {/* 1. TYPING SUGGESTIONS */}
                 {searchQuery && allSuggestions.length > 0 && allSuggestions.map((s, idx) => (
-                   <div key={idx} onClick={() => handleSelect(s.searchValue, s.type, s.raw)} style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'background 0.2s', ...(s.type === 'hq' ? {color: '#00f3ff'} : {color: '#ccc'}) }}>
+                   <div key={idx} onClick={() => handleSelect(s.searchValue, s.type, s.raw)} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'background 0.2s', ...(s.type === 'hq' ? {color: '#fbbf24'} : {color: '#ccc'}) }}
+                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(251, 191, 36, 0.08)'}
+                   onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                       <div style={{ display: 'flex', alignItems: 'center', fontSize: '13px', fontWeight: 600 }}>
-                        <span style={{ marginRight: '6px' }}>{s.icon}</span> {s.title}
+                        <span style={{ marginRight: '8px', fontSize: '15px' }}>{s.icon}</span> {s.title}
                       </div>
-                      {s.subtitle && <div style={{ fontSize: '10px', color: '#8E9297', marginLeft: '24px', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.subtitle}</div>}
+                      {s.subtitle && <div style={{ fontSize: '11px', color: '#8E9297', marginLeft: '26px', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.subtitle}</div>}
                    </div>
                 ))}
-                {!searchQuery && recentSearches.length > 0 && (
-                   <>
-                     <div style={{ padding: '8px 14px', fontSize: '10px', color: '#8E9297', backgroundColor: 'rgba(0,0,0,0.3)', fontWeight: 800, letterSpacing: '0.5px' }}>RECENT SEARCHES</div>
-                     {recentSearches.map(s => (
-                       <div key={s} onClick={() => handleSelect(s)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                          <span style={{ fontSize: '13px', color: '#00f3ff', cursor: 'pointer', fontWeight: 500 }}>🕒 {s}</span>
-                          <button 
-                            onClick={(e) => handleDeleteSearch(e, s)} 
-                            style={{ background: 'transparent', border: 'none', color: '#8E9297', cursor: 'pointer', fontSize: '12px', padding: '0 4px' }}
-                            title="Remove from history"
-                          >
-                            ✕
-                          </button>
-                       </div>
-                     ))}
-                   </>
+                
+                {/* 2. DEFAULT STATE: SHORTCUTS TO FIND & RECENT */}
+                {!searchQuery && !filterMode && (
+                   <div style={{ display: 'flex', flexDirection: 'column', padding: '12px' }}>
+                      <div style={{ fontSize: '10px', color: '#fbbf24', fontWeight: 800, letterSpacing: '1px', marginBottom: '8px', paddingLeft: '4px' }}>TACTICAL SHORTCUTS</div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+                        {[
+                          { id: 'route', label: 'Route', icon: '🗺️', desc: 'Flights by Route', placeholder: 'Enter Route (e.g. JFK-LAX)' },
+                          { id: 'airline', label: 'Airline', icon: '✈️', desc: 'Live Airline Fleets', placeholder: 'Enter Airline Code (e.g. QTR)' },
+                          { id: 'airport', label: 'Airports', icon: '🏛️', desc: 'Airports by Country', placeholder: 'Enter Country Name' },
+                          { id: 'history', label: 'History', icon: '⏳', desc: 'Airport Timetables', placeholder: 'Enter Airport IATA Code' },
+                        ].map((sc) => (
+                           <div key={sc.id} onClick={() => setFilterMode({ id: sc.id, label: sc.label, placeholder: sc.placeholder })}
+                             style={{
+                               display: 'flex', flexDirection: 'column', padding: '10px', borderRadius: '10px',
+                               backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                               cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', overflow: 'hidden'
+                             }}
+                             onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(251, 191, 36, 0.08)'; e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.3)'; }}
+                             onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+                           >
+                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, color: '#fff' }}>
+                               <span>{sc.icon}</span> {sc.label}
+                             </div>
+                             <div style={{ fontSize: '10px', color: '#8E9297', marginTop: '4px' }}>{sc.desc}</div>
+                           </div>
+                        ))}
+                      </div>
+
+                      {/* FULL-WIDTH "NEARBY" ACTION */}
+                      <button 
+                        onClick={() => {
+                          if (navigator.geolocation) {
+                             navigator.geolocation.getCurrentPosition(pos => {
+                               // Signal Map to fly to location
+                               onSearch(`@geo:${pos.coords.latitude},${pos.coords.longitude}`);
+                               setShowDropdown(false);
+                             });
+                          }
+                        }}
+                        style={{
+                          width: '100%', padding: '12px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                          border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', fontSize: '13px', fontWeight: 800,
+                          cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                          marginBottom: recentSearches.length > 0 ? '16px' : '4px'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.2)'; e.currentTarget.style.boxShadow = '0 0 12px rgba(16,185,129,0.3)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                      >
+                         📡 SCAN LOCAL AIRSPACE (NEARBY)
+                      </button>
+
+                      {recentSearches.length > 0 && (
+                         <>
+                           <div style={{ fontSize: '10px', color: '#8E9297', fontWeight: 800, letterSpacing: '0.5px', marginBottom: '8px', paddingLeft: '4px', textTransform: 'uppercase' }}>Recent History</div>
+                           {recentSearches.slice(0, 3).map(s => (
+                             <div key={s} onClick={() => handleSelect(s)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderRadius: '8px', marginBottom: '4px', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                               onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)'}
+                             >
+                                <span style={{ fontSize: '12px', color: '#ccc', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{opacity: 0.5}}>🕒</span> {s}
+                                </span>
+                                <button 
+                                  onClick={(e) => handleDeleteSearch(e, s)} 
+                                  style={{ background: 'transparent', border: 'none', color: '#8E9297', cursor: 'pointer', fontSize: '12px', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  ✕
+                                </button>
+                             </div>
+                           ))}
+                         </>
+                      )}
+                   </div>
                 )}
              </div>
           )}
