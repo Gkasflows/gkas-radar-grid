@@ -5,9 +5,11 @@ import DeckGL from '@deck.gl/react';
 import { MapView, FlyToInterpolator } from '@deck.gl/core';
 import { TileLayer, GreatCircleLayer } from '@deck.gl/geo-layers';
 import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer, GeoJsonLayer } from '@deck.gl/layers';
+import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { fetchLiveFlights, LiveFlight } from '../services/flightService';
 import FlightradarTopNav from './FlightradarTopNav';
 import FlightradarSidePanel from './FlightradarSidePanel';
+import NearbyPanel from './NearbyPanel';
 import FlightradarRightPanel, { Airport } from './FlightradarRightPanel';
 import AirportSidePanel from './AirportSidePanel';
 import WeatherSimulationCanvas, { WeatherCondition } from './WeatherSimulationCanvas';
@@ -190,6 +192,7 @@ export default function Map() {
   const [isLocationActive, setIsLocationActive] = useState(false);
   const [radarPath, setRadarPath] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [nearbyData, setNearbyData] = useState<{ countryName: string, countryCode: string, flights: LiveFlight[], airports: Airport[] } | null>(null);
 
   // 🛑 TRUE ROUTE HIGH-FIDELITY SCRAPER STATE 🛑
   const [trueFlightRoute, setTrueFlightRoute] = useState<any>(null);
@@ -309,6 +312,64 @@ export default function Map() {
   }, []);
 
   // Global Geographic Auto-Panning Engine & Deep Search integration
+  const handleSearchIntercept = async (query: string) => {
+    if (query.startsWith('@geo:')) {
+      const [lat, lon] = query.replace('@geo:', '').split(',').map(Number);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        setUserLocation([lon, lat]);
+        setViewState({
+          ...INITIAL_VIEW_STATE,
+          longitude: lon,
+          latitude: lat,
+          zoom: 5.5,
+          transitionDuration: 3000,
+          transitionInterpolator: new FlyToInterpolator()
+        });
+        
+        // Background Nominatim Lookup for Regional Scanner
+        try {
+          // 1. Get Country from coordinates
+          const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, { headers: { 'User-Agent': 'GkasRadar/1.0' }});
+          const revData = await revRes.json();
+          const countryCode = revData?.address?.country_code?.toUpperCase();
+          const countryName = revData?.address?.country;
+          
+          if (countryCode && countryName) {
+            // 2. Get Country Bounding Box
+            const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?country=${countryCode}&format=json`, { headers: { 'User-Agent': 'GkasRadar/1.0' }});
+            const searchData = await searchRes.json();
+            
+            if (searchData && searchData.length > 0) {
+              const bbox = searchData[0].boundingbox.map(Number); // [minLat, maxLat, minLon, maxLon]
+              
+              // 3. Filter Airports
+              const regionalAirports = globalAirports.filter(a => a.country === countryCode).slice(0, 50);
+              
+              // 4. Filter Live Flights in Bounding Box
+              const regionalFlights = networkFlights.filter(f => 
+                f.latitude && f.longitude &&
+                f.latitude >= bbox[0] && f.latitude <= bbox[1] &&
+                f.longitude >= bbox[2] && f.longitude <= bbox[3]
+              ).slice(0, 50);
+              
+              setNearbyData({
+                countryName,
+                countryCode,
+                flights: regionalFlights,
+                airports: regionalAirports
+              });
+            }
+          }
+        } catch (e) {
+          console.error("Nominatim Scan Failed", e);
+        }
+      }
+      setSearchQuery('');
+      return;
+    }
+    setSearchQuery(query);
+  };
+
   useEffect(() => {
     if (!searchQuery || searchQuery.length < 2) return;
 
@@ -534,6 +595,7 @@ export default function Map() {
     setHoveredFlight(null);
     setIsHeatmapActive(false);
     setIsLocationActive(false);
+    setNearbyData(null);
 
     // Physically clear the un-controlled DOM search text input
     const searchInput = document.getElementById('search-input') as HTMLInputElement;
@@ -545,26 +607,6 @@ export default function Map() {
       transitionInterpolator: new FlyToInterpolator()
     });
   }, []);
-
-  const handleSearchIntercept = (query: string) => {
-    if (query.startsWith('@geo:')) {
-      const [lat, lon] = query.replace('@geo:', '').split(',').map(Number);
-      if (!isNaN(lat) && !isNaN(lon)) {
-        setUserLocation([lon, lat]);
-        setViewState({
-          ...INITIAL_VIEW_STATE,
-          longitude: lon,
-          latitude: lat,
-          zoom: 8,
-          transitionDuration: 3000,
-          transitionInterpolator: new FlyToInterpolator()
-        });
-      }
-      setSearchQuery('');
-      return;
-    }
-    setSearchQuery(query);
-  };
 
   const handleWeatherChase = useCallback(async (type: 'rain' | 'snow' | 'thunder') => {
     // Notify the user it's tracking
@@ -1069,8 +1111,6 @@ export default function Map() {
     }) : null
   ].filter(Boolean), [filteredFlights, networkFlights, filteredAirports, selectedFlight, selectedAirport, selectedFlightId, selectedAirportIata, userLocation, handleFlyToFlight, handleFlyToAirport, viewState.zoom, searchQuery, isHeatmapActive, flights]);
 
-  const searchInput = document.getElementById('search-input') as HTMLInputElement; // React wrapper injection
-
   return (
     <>
       <style>{`
@@ -1167,32 +1207,52 @@ export default function Map() {
         />
 
         {/* LEFT PANELS (Mutually exclusive) */}
-        <FlightradarSidePanel
-          flight={selectedFlight}
-          liveFlights={networkFlights}
-          onClose={() => setSelectedFlightId(null)}
-          onPointClick={(lat, lon, iata) => {
-            // Temporarily pause the 10s auto-follow tracking mechanism for a lavish 15 seconds to let the user explore the airport
-            isAnimatingRef.current = true;
-            setTimeout(() => { isAnimatingRef.current = false; }, 15000);
+        {!nearbyData && (
+          <FlightradarSidePanel
+            flight={selectedFlight || null}
+            liveFlights={networkFlights}
+            onClose={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); }}
+            onPointClick={(lat, lon, iata) => {
+              // Temporarily pause the 10s auto-follow tracking mechanism for a lavish 15 seconds to let the user explore the airport
+              isAnimatingRef.current = true;
+              setTimeout(() => { isAnimatingRef.current = false; }, 15000);
 
-            if (iata) {
-              // This natively triggers the 3D tracking engine to drop the Cyan Layer 5 HUD onto the map directly beneath the camera!
-              setSelectedAirportIata(iata);
-            }
+              if (iata) {
+                // This natively triggers the 3D tracking engine to drop the Cyan Layer 5 HUD onto the map directly beneath the camera!
+                setSelectedAirportIata(iata);
+              }
 
-            setViewState((prev: any) => ({
-              ...prev,
-              longitude: lon,
-              latitude: lat,
-              zoom: Math.max(prev.zoom, 7.5),
-              pitch: 35,
-              bearing: 0,
-              transitionDuration: 8000, // Phenomenally smooth, slow cinematic glide
-              transitionInterpolator: new FlyToInterpolator()
-            }));
-          }}
-        />
+              setViewState((prev: any) => ({
+                ...prev,
+                longitude: lon,
+                latitude: lat,
+                zoom: Math.max(prev.zoom, 7.5),
+                pitch: 35,
+                bearing: 0,
+                transitionDuration: 8000, // Phenomenally smooth, slow cinematic glide
+                transitionInterpolator: new FlyToInterpolator()
+              }));
+            }}
+          />
+        )}
+
+        {nearbyData && (
+          <NearbyPanel
+            countryName={nearbyData.countryName}
+            countryCode={nearbyData.countryCode}
+            flights={nearbyData.flights}
+            airports={nearbyData.airports}
+            onClose={() => setNearbyData(null)}
+            onFlightClick={(f) => {
+              handleFlyToFlight(f);
+              setNearbyData(null);
+            }}
+            onAirportClick={(a) => {
+              handleFlyToAirport(a);
+              setNearbyData(null);
+            }}
+          />
+        )}
 
         <AirportSidePanel
           airport={selectedAirport}
