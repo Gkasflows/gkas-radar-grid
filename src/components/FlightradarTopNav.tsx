@@ -18,8 +18,20 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
   const [showDropdown, setShowDropdown] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState('');
   const [isUtc, setIsUtc] = useState(true);
+
+  // Close search dropdown if user clicks outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const [filterMode, setFilterMode] = useState<{ id: string, label: string, placeholder: string } | null>(null);
 
   // Live Auto-Switching Clock Engine
@@ -388,7 +400,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
           {currentTime} <span style={{ opacity: 0.6 }}>{isUtc ? 'UTC' : 'LOC'}</span>
         </div>
 
-        <div className="search-container" style={{ position: 'relative', height: '34px', display: 'flex', alignItems: 'center', transition: 'all 0.3s ease' }}>
+        <div ref={containerRef} className="search-container" style={{ position: 'relative', height: '34px', display: 'flex', alignItems: 'center', transition: 'all 0.3s ease' }}>
           {filterMode && (
              <div style={{ position: 'absolute', left: '10px', display: 'flex', alignItems: 'center', zIndex: 2 }}>
                 <div style={{ backgroundColor: 'rgba(0, 243, 255, 0.2)', color: '#00f3ff', border: '1px solid rgba(0, 243, 255, 0.4)', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 800, letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
