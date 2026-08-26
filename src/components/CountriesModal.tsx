@@ -4,15 +4,9 @@ interface CountriesModalProps {
   globalAirports: any[];
   onClose: () => void;
   onOpenAirportFeatures: (airport: any, feature: string) => void;
-}
-
-function getFlagEmoji(countryCode: string) {
-  if (!countryCode || countryCode.length !== 2) return '🏳️';
-  const codePoints = countryCode
-    .toUpperCase()
-    .split('')
-    .map(char => 127397 + char.charCodeAt(0));
-  return String.fromCodePoint(...codePoints);
+function getFlagUrl(countryCode: string) {
+  if (!countryCode || countryCode.length !== 2) return '';
+  return `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
 }
 
 export default function CountriesModal({ globalAirports, onClose, onOpenAirportFeatures }: CountriesModalProps) {
@@ -43,7 +37,7 @@ export default function CountriesModal({ globalAirports, onClose, onOpenAirportF
         code,
         name,
         count,
-        flag: getFlagEmoji(code)
+        flagUrl: getFlagUrl(code)
       };
     });
 
@@ -187,7 +181,11 @@ export default function CountriesModal({ globalAirports, onClose, onOpenAirportF
                       onMouseOut={e => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '20px' }}>{country.flag}</span>
+                        {country.flagUrl ? (
+                          <img src={country.flagUrl} alt={country.code} width="24" style={{ borderRadius: '2px', boxShadow: '0 0 2px rgba(0,0,0,0.5)' }} />
+                        ) : (
+                          <span style={{ width: '24px', textAlign: 'center' }}>🏳️</span>
+                        )}
                         <span style={{ fontSize: '15px', fontWeight: 500 }}>{country.name}</span>
                       </div>
                       <div style={{ fontSize: '13px', color: '#8E9297', fontWeight: 600 }}>
