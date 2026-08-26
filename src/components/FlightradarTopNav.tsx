@@ -470,70 +470,65 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
                 
                 {/* 2. DEFAULT STATE: SHORTCUTS TO FIND & RECENT */}
                 {!searchQuery && !filterMode && (
-                   <div style={{ display: 'flex', flexDirection: 'column', padding: '12px' }}>
-                      <div style={{ fontSize: '10px', color: '#00f3ff', fontWeight: 800, letterSpacing: '1px', marginBottom: '8px', paddingLeft: '4px' }}>TACTICAL SHORTCUTS</div>
+                   <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 0' }}>
+                      <div style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600, padding: '8px 16px', textTransform: 'uppercase' }}>SHORTCUTS TO FIND</div>
                       
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {[
-                          { id: 'route', label: 'Route', icon: '🗺️', desc: 'Flights by Route', placeholder: 'Enter Route (e.g. JFK-LAX)' },
-                          { id: 'airline', label: 'Airline', icon: '✈️', desc: 'Live Airline Fleets', placeholder: 'Enter Airline Code (e.g. QTR)' },
-                          { id: 'airport', label: 'Airports', icon: '🏛️', desc: 'Airports by Country', placeholder: 'Enter Country Name' },
-                          { id: 'history', label: 'History', icon: '⏳', desc: 'Airport Timetables', placeholder: 'Enter Airport IATA Code' },
+                          { id: 'route', label: 'Flights by route', icon: '✈️', placeholder: 'Enter Route (e.g. JFK-LAX)' },
+                          { id: 'airline', label: 'Live flights by airline', icon: '✈️', placeholder: 'Enter Airline Code (e.g. QTR)' },
+                          { id: 'history', label: 'Airport flights history', icon: '🏛️', placeholder: 'Enter Airport IATA Code' },
+                          { id: 'airport', label: 'Airports by country', icon: '🏛️', placeholder: 'Enter Country Name' },
                         ].map((sc) => (
                            <div key={sc.id} onClick={() => setFilterMode({ id: sc.id, label: sc.label, placeholder: sc.placeholder })}
                              style={{
-                               display: 'flex', flexDirection: 'column', padding: '10px', borderRadius: '10px',
-                               backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-                               cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', overflow: 'hidden'
+                               display: 'flex', alignItems: 'center', padding: '12px 16px',
+                               cursor: 'pointer', transition: 'background 0.2s ease', color: '#fff'
                              }}
-                             onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.08)'; e.currentTarget.style.borderColor = 'rgba(0, 243, 255, 0.3)'; }}
-                             onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+                             onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'; }}
+                             onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                            >
-                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, color: '#fff' }}>
-                               <span>{sc.icon}</span> {sc.label}
-                             </div>
-                             <div style={{ fontSize: '10px', color: '#8E9297', marginTop: '4px' }}>{sc.desc}</div>
+                             <span style={{ marginRight: '12px', fontSize: '15px' }}>{sc.icon}</span> 
+                             <span style={{ fontSize: '13px', fontWeight: 500 }}>{sc.label}</span>
                            </div>
                         ))}
-                      </div>
 
-                      {/* FULL-WIDTH "NEARBY" ACTION */}
-                      <button 
-                        onClick={() => {
-                          if (navigator.geolocation) {
-                             navigator.geolocation.getCurrentPosition(pos => {
-                               // Signal Map to fly to location
-                               onSearch(`@geo:${pos.coords.latitude},${pos.coords.longitude}`);
-                               setShowDropdown(false);
-                             });
-                          }
-                        }}
-                        style={{
-                          width: '100%', padding: '12px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                          border: '1px solid rgba(16, 185, 129, 0.3)', color: '#10b981', fontSize: '13px', fontWeight: 800,
-                          cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                          marginBottom: recentSearches.length > 0 ? '16px' : '4px'
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.2)'; e.currentTarget.style.boxShadow = '0 0 12px rgba(16,185,129,0.3)'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.1)'; e.currentTarget.style.boxShadow = 'none'; }}
-                      >
-                         📡 SCAN LOCAL AIRSPACE (NEARBY)
-                      </button>
+                        {/* "NEARBY" ACTION */}
+                        <div 
+                          onClick={() => {
+                            if (navigator.geolocation) {
+                               navigator.geolocation.getCurrentPosition(pos => {
+                                 onSearch(`@geo:${pos.coords.latitude},${pos.coords.longitude}`);
+                                 setShowDropdown(false);
+                               });
+                            }
+                          }}
+                          style={{
+                            display: 'flex', alignItems: 'center', padding: '12px 16px',
+                            cursor: 'pointer', transition: 'background 0.2s ease', color: '#fff'
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'; }}
+                          onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        >
+                           <span style={{ marginRight: '12px', fontSize: '15px' }}>📍</span> 
+                           <span style={{ fontSize: '13px', fontWeight: 500 }}>Nearby</span>
+                        </div>
+                      </div>
 
                       {recentSearches.length > 0 && (
                          <>
-                           <div style={{ fontSize: '10px', color: '#8E9297', fontWeight: 800, letterSpacing: '0.5px', marginBottom: '8px', paddingLeft: '4px', textTransform: 'uppercase' }}>Recent History</div>
+                           <div style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600, padding: '16px 16px 8px 16px', textTransform: 'uppercase', borderTop: '1px solid rgba(255,255,255,0.05)', marginTop: '8px' }}>Recent Searches</div>
                            {recentSearches.slice(0, 3).map(s => (
-                             <div key={s} onClick={() => handleSelect(s)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderRadius: '8px', marginBottom: '4px', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                             <div key={s} onClick={() => handleSelect(s)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', cursor: 'pointer' }}
                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)'}
+                               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                              >
-                                <span style={{ fontSize: '12px', color: '#ccc', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '13px', color: '#00f3ff', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   <span style={{opacity: 0.5}}>🕒</span> {s}
                                 </span>
                                 <button 
                                   onClick={(e) => handleDeleteSearch(e, s)} 
-                                  style={{ background: 'transparent', border: 'none', color: '#8E9297', cursor: 'pointer', fontSize: '12px', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                  style={{ background: 'transparent', border: 'none', color: '#8E9297', cursor: 'pointer', fontSize: '12px', padding: '4px' }}
                                 >
                                   ✕
                                 </button>
