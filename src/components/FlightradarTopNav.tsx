@@ -192,7 +192,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
       backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', display: 'flex',
       alignItems: 'center', padding: '0 24px', zIndex: 1000, color: '#fff', boxSizing: 'border-box', justifyContent: 'space-between',
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-      borderBottom: '1px solid rgba(251, 191, 36, 0.25)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)'
+      borderBottom: '1px solid rgba(0, 243, 255, 0.25)', boxShadow: '0 4px 30px rgba(0, 0, 0, 0.3)'
     }}>
       
       {/* 1. LEFT CONTROLS */}
@@ -222,9 +222,9 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
         <button
           onClick={toggleHeatmap}
           style={{
-            backgroundColor: isHeatmapActive ? 'rgba(251, 191, 36, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-            border: isHeatmapActive ? '1px solid #fbbf24' : '1px solid rgba(255, 255, 255, 0.1)',
-            color: isHeatmapActive ? '#fbbf24' : '#8E9297',
+            backgroundColor: isHeatmapActive ? 'rgba(0, 243, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+            border: isHeatmapActive ? '1px solid #00f3ff' : '1px solid rgba(255, 255, 255, 0.1)',
+            color: isHeatmapActive ? '#00f3ff' : '#8E9297',
             padding: '6px 14px',
             borderRadius: '6px',
             fontSize: '11px',
@@ -233,7 +233,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
             textTransform: 'uppercase',
             cursor: 'pointer',
             transition: 'all 0.2s ease',
-            boxShadow: isHeatmapActive ? '0 0 10px rgba(251, 191, 36, 0.3)' : 'none'
+            boxShadow: isHeatmapActive ? '0 0 10px rgba(0, 243, 255, 0.3)' : 'none'
           }}
         >
           {isHeatmapActive ? '◆ Altitude Heatmap: ON' : '◇ Altitude Heatmap: OFF'}
@@ -265,7 +265,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
                 alignItems: 'center',
                 gap: '4px'
               }}
-              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fbbf24'; }}
+              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#00f3ff'; }}
               onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#fff'; }}
             >
               {weather.icon} {weather.label}
@@ -288,11 +288,11 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
         }}
       >
         <span className="brand-logo-text" style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '-0.5px' }}>
-          GKAS<span style={{ color: '#fbbf24' }}>FLOWS</span> 
+          GKAS<span style={{ color: '#00f3ff' }}>FLOWS</span> 
         </span>
         <span className="desktop-only-nav" style={{
-          marginLeft: '8px', fontSize: '10px', fontWeight: 700, backgroundColor: 'rgba(251, 191, 36, 0.1)',
-          color: '#fbbf24', padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px'
+          marginLeft: '8px', fontSize: '10px', fontWeight: 700, backgroundColor: 'rgba(0, 243, 255, 0.1)',
+          color: '#00f3ff', padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px'
         }}>
           LIVE BETA
         </span>
@@ -334,9 +334,9 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
               width: '40px',
               height: '40px',
               borderRadius: '50%',
-              backgroundColor: isHeatmapActive ? 'rgba(251, 191, 36, 0.2)' : 'rgba(15, 23, 42, 0.95)',
-              border: isHeatmapActive ? '1px solid #fbbf24' : '1px solid rgba(251, 191, 36, 0.2)',
-              color: isHeatmapActive ? '#fbbf24' : '#ffffff',
+              backgroundColor: isHeatmapActive ? 'rgba(0, 243, 255, 0.2)' : 'rgba(15, 23, 42, 0.95)',
+              border: isHeatmapActive ? '1px solid #00f3ff' : '1px solid rgba(0, 243, 255, 0.2)',
+              color: isHeatmapActive ? '#00f3ff' : '#ffffff',
               boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
               display: 'flex',
               alignItems: 'center',
@@ -382,7 +382,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
           title="Click to toggle UTC / Local Time"
           onClick={() => setIsUtc(!isUtc)} 
           style={{ marginRight: '24px', fontSize: '13px', fontWeight: 700, color: '#e2e8f0', cursor: 'pointer', fontFamily: '"SF Mono", "Consolas", monospace', userSelect: 'none', transition: 'color 0.2s' }}
-          onMouseOver={(e) => (e.currentTarget.style.color = '#fbbf24')}
+          onMouseOver={(e) => (e.currentTarget.style.color = '#00f3ff')}
           onMouseOut={(e) => (e.currentTarget.style.color = '#e2e8f0')}
         >
           {currentTime} <span style={{ opacity: 0.6 }}>{isUtc ? 'UTC' : 'LOC'}</span>
@@ -391,7 +391,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
         <div className="search-container" style={{ position: 'relative', height: '34px', display: 'flex', alignItems: 'center', transition: 'all 0.3s ease' }}>
           {filterMode && (
              <div style={{ position: 'absolute', left: '10px', display: 'flex', alignItems: 'center', zIndex: 2 }}>
-                <div style={{ backgroundColor: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.4)', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 800, letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{ backgroundColor: 'rgba(0, 243, 255, 0.2)', color: '#00f3ff', border: '1px solid rgba(0, 243, 255, 0.4)', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 800, letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                    {filterMode.label}
                 </div>
              </div>
@@ -417,14 +417,14 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
               width: '100%',
               height: '100%',
               backgroundColor: filterMode ? 'rgba(0, 40, 60, 0.6)' : 'rgba(255, 255, 255, 0.1)',
-              border: filterMode ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
+              border: filterMode ? '1px solid rgba(0, 243, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.2)',
               borderRadius: '16px',
               padding: filterMode ? '0 28px 0 110px' : '0 28px 0 36px',
-              color: '#fbbf24', 
+              color: '#00f3ff', 
               fontSize: '13px',
               fontWeight: 500,
               outline: 'none',
-              boxShadow: filterMode ? '0 0 15px rgba(251, 191, 36, 0.15)' : 'inset 0 1px 4px rgba(0,0,0,0.5)',
+              boxShadow: filterMode ? '0 0 15px rgba(0, 243, 255, 0.15)' : 'inset 0 1px 4px rgba(0,0,0,0.5)',
               boxSizing: 'border-box',
               transition: 'all 0.3s ease'
             }}
@@ -452,14 +452,14 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
              <div style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: '12px', 
                 width: '320px', backgroundColor: 'rgba(12, 18, 30, 0.96)', backdropFilter: 'blur(20px)',
-                borderRadius: '16px', border: '1px solid rgba(251,191,36,0.2)', boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
+                borderRadius: '16px', border: '1px solid rgba(0,243,255,0.2)', boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
                 overflow: 'hidden', zIndex: 1100, display: 'flex', flexDirection: 'column'
              }}>
                 
                 {/* 1. TYPING SUGGESTIONS */}
                 {searchQuery && allSuggestions.length > 0 && allSuggestions.map((s, idx) => (
-                   <div key={idx} onClick={() => handleSelect(s.searchValue, s.type, s.raw)} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'background 0.2s', ...(s.type === 'hq' ? {color: '#fbbf24'} : {color: '#ccc'}) }}
-                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(251, 191, 36, 0.08)'}
+                   <div key={idx} onClick={() => handleSelect(s.searchValue, s.type, s.raw)} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', cursor: 'pointer', transition: 'background 0.2s', ...(s.type === 'hq' ? {color: '#00f3ff'} : {color: '#ccc'}) }}
+                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.08)'}
                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                       <div style={{ display: 'flex', alignItems: 'center', fontSize: '13px', fontWeight: 600 }}>
                         <span style={{ marginRight: '8px', fontSize: '15px' }}>{s.icon}</span> {s.title}
@@ -471,7 +471,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
                 {/* 2. DEFAULT STATE: SHORTCUTS TO FIND & RECENT */}
                 {!searchQuery && !filterMode && (
                    <div style={{ display: 'flex', flexDirection: 'column', padding: '12px' }}>
-                      <div style={{ fontSize: '10px', color: '#fbbf24', fontWeight: 800, letterSpacing: '1px', marginBottom: '8px', paddingLeft: '4px' }}>TACTICAL SHORTCUTS</div>
+                      <div style={{ fontSize: '10px', color: '#00f3ff', fontWeight: 800, letterSpacing: '1px', marginBottom: '8px', paddingLeft: '4px' }}>TACTICAL SHORTCUTS</div>
                       
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
                         {[
@@ -486,7 +486,7 @@ export default function FlightradarTopNav({ searchQuery, onSearch, flightCount, 
                                backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
                                cursor: 'pointer', transition: 'all 0.2s ease', position: 'relative', overflow: 'hidden'
                              }}
-                             onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(251, 191, 36, 0.08)'; e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.3)'; }}
+                             onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.08)'; e.currentTarget.style.borderColor = 'rgba(0, 243, 255, 0.3)'; }}
                              onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}
                            >
                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, color: '#fff' }}>

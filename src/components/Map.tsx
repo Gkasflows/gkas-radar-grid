@@ -27,7 +27,7 @@ const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent
 const AIRPLANE_ATLAS = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="64" viewBox="0 0 72 24">' +
   // State 1: Diamond White Base Plane with Neon Cyan Stroke (Replaces regular Yellow plane)
-  '<path transform="translate(0,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ffffff" stroke="#fbbf24" stroke-width="1.2" stroke-linejoin="round"/>' +
+  '<path transform="translate(0,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ffffff" stroke="#00f3ff" stroke-width="1.2" stroke-linejoin="round"/>' +
   // State 2: Electric Magenta Plane with Pink Glow (Replaces Selected Red plane)
   '<path transform="translate(24,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ff00b3" stroke="#ff99ea" stroke-width="1.2" stroke-linejoin="round"/>' +
   // State 3: Ghosted Heatmap plane (White heavily transparent)
@@ -165,7 +165,7 @@ const createTrueRouteSegments = (routeData: any) => {
     segments.push({
       sourcePosition: [sortedTrail[i].lng, sortedTrail[i].lat],
       targetPosition: [sortedTrail[i+1].lng, sortedTrail[i+1].lat],
-      color: [251, 191, 36, alpha]
+      color: [0, 243, 255, alpha]
     });
   }
   
@@ -1046,8 +1046,8 @@ export default function Map() {
       id: 'selected-airport-ping',
       data: [selectedAirport],
       getPosition: (d: Airport) => [d.coords[0], d.coords[1]],
-      getFillColor: [251, 191, 36, 60], // Glowing cyan pulse
-      getLineColor: [251, 191, 36, 255],
+      getFillColor: [0, 243, 255, 60], // Glowing cyan pulse
+      getLineColor: [0, 243, 255, 255],
       lineWidthMinPixels: 3,
       getRadius: 1200, // Massive 1.2km footprint radius physically mapped to ground
       stroked: true,
@@ -1105,7 +1105,7 @@ export default function Map() {
         <div style={{
           position: 'absolute', top: '80px', left: '50%', transform: 'translateX(-50%)', zIndex: 3000,
           backgroundColor: globalAlert.type.includes('EMERGENCY') ? 'rgba(239, 68, 68, 0.85)' : 'rgba(10, 15, 30, 0.85)',
-          border: `1px solid ${globalAlert.type.includes('EMERGENCY') ? '#ff0000' : 'rgba(251, 191, 36, 0.3)'}`,
+          border: `1px solid ${globalAlert.type.includes('EMERGENCY') ? '#ff0000' : 'rgba(0, 243, 255, 0.3)'}`,
           backdropFilter: 'blur(24px) saturate(150%)', borderRadius: '12px', padding: '8px 16px',
           boxShadow: `0 8px 32px ${globalAlert.type.includes('EMERGENCY') ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0, 0, 0, 0.5)'}`,
           display: 'flex', alignItems: 'center', gap: '12px', pointerEvents: 'auto', cursor: 'pointer',
@@ -1118,11 +1118,11 @@ export default function Map() {
               setGlobalAlert(null); // Dismiss on click
             }
           }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '50%', backgroundColor: globalAlert.type.includes('EMERGENCY') ? 'rgba(255,255,255,0.2)' : 'rgba(251, 191, 36, 0.15)' }}>
-            <span style={{ width: '8px', height: '8px', backgroundColor: globalAlert.type.includes('EMERGENCY') ? '#fff' : '#fbbf24', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '50%', backgroundColor: globalAlert.type.includes('EMERGENCY') ? 'rgba(255,255,255,0.2)' : 'rgba(0, 243, 255, 0.15)' }}>
+            <span style={{ width: '8px', height: '8px', backgroundColor: globalAlert.type.includes('EMERGENCY') ? '#fff' : '#00f3ff', borderRadius: '50%', animation: 'pulse 1.5s infinite' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontSize: '10px', color: (globalAlert.type.includes('EMERGENCY') || globalAlert.type.includes('ATC')) ? '#fff' : '#fbbf24', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            <div style={{ fontSize: '10px', color: (globalAlert.type.includes('EMERGENCY') || globalAlert.type.includes('ATC')) ? '#fff' : '#00f3ff', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>
               {globalAlert.type}
             </div>
             <div style={{ fontSize: '12px', color: '#fff', fontWeight: 500, marginTop: '2px' }}>
@@ -1252,8 +1252,8 @@ export default function Map() {
             backgroundColor: 'rgba(10, 15, 30, 0.45)', // Glassmorphism Core
             borderRadius: '12px', // Smoother chassis
             padding: '8px',
-            border: '1px solid rgba(251, 191, 36, 0.25)', // Cyber neon edge
-            boxShadow: '0 8px 30px rgba(0,0,0,0.6), inset 0 0 12px rgba(251,191,36,0.1)', // Complex volumetric depth
+            border: '1px solid rgba(0, 243, 255, 0.25)', // Cyber neon edge
+            boxShadow: '0 8px 30px rgba(0,0,0,0.6), inset 0 0 12px rgba(0,243,255,0.1)', // Complex volumetric depth
             backdropFilter: 'blur(24px) saturate(150%)', // Multi-billion dollar glass rendering
             cursor: 'grab',
             touchAction: 'none' // Essential to stop natural page scrolling while moving the HUD
@@ -1265,7 +1265,7 @@ export default function Map() {
             display: 'flex', justifyContent: 'center', alignItems: 'center',
             cursor: 'grab', opacity: 0.5, marginBottom: '2px'
           }}>
-            <div style={{ width: '20px', height: '4px', borderRadius: '2px', backgroundColor: '#fbbf24' }}></div>
+            <div style={{ width: '20px', height: '4px', borderRadius: '2px', backgroundColor: '#00f3ff' }}></div>
           </div>
 
           <button
@@ -1280,13 +1280,13 @@ export default function Map() {
             onMouseOut={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';
               e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
-              e.currentTarget.style.color = '#fbbf24';
+              e.currentTarget.style.color = '#00f3ff';
             }}
             style={{
               width: '36px', height: '36px',
               border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '6px',
               backgroundColor: 'transparent',
-              color: '#fbbf24', fontSize: '20px', fontWeight: 400,
+              color: '#00f3ff', fontSize: '20px', fontWeight: 400,
               display: 'flex', justifyContent: 'center', alignItems: 'center',
               cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
             }}
@@ -1298,8 +1298,8 @@ export default function Map() {
             onPointerDown={(e) => e.stopPropagation()}
             title="Engage Magnification"
             onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(251, 191, 36, 0.15)';
-              e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.5)';
+              e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.15)';
+              e.currentTarget.style.borderColor = 'rgba(0, 243, 255, 0.5)';
             }}
             onMouseOut={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';
@@ -1309,7 +1309,7 @@ export default function Map() {
               width: '36px', height: '36px',
               border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '6px',
               backgroundColor: 'transparent',
-              color: '#fbbf24', fontSize: '20px', fontWeight: 400,
+              color: '#00f3ff', fontSize: '20px', fontWeight: 400,
               display: 'flex', justifyContent: 'center', alignItems: 'center',
               cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
             }}
@@ -1321,8 +1321,8 @@ export default function Map() {
             onPointerDown={(e) => e.stopPropagation()}
             title="Disengage Magnification"
             onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(251, 191, 36, 0.15)';
-              e.currentTarget.style.borderColor = 'rgba(251, 191, 36, 0.5)';
+              e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.15)';
+              e.currentTarget.style.borderColor = 'rgba(0, 243, 255, 0.5)';
             }}
             onMouseOut={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';
@@ -1332,7 +1332,7 @@ export default function Map() {
               width: '36px', height: '36px',
               border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '6px',
               backgroundColor: 'transparent',
-              color: '#fbbf24', fontSize: '24px', fontWeight: 300,
+              color: '#00f3ff', fontSize: '24px', fontWeight: 300,
               display: 'flex', justifyContent: 'center', alignItems: 'center',
               cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
             }}
@@ -1400,7 +1400,7 @@ export default function Map() {
               backgroundImage: `url("${hoveredAirport.airport.imageUrl}")`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              borderBottom: '2px solid #fbbf24'
+              borderBottom: '2px solid #00f3ff'
             }}></div>
             <div style={{ padding: '12px', color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1523,7 +1523,7 @@ export default function Map() {
                     flex: 1,
                     height: '4px',
                     appearance: 'none',
-                    background: `linear-gradient(to right, #fbbf24 0%, #fbbf24 ${(playbackIndex / Math.max(1, flightSnapshots.current.length - 1)) * 100}%, rgba(255,255,255,0.15) ${(playbackIndex / Math.max(1, flightSnapshots.current.length - 1)) * 100}%, rgba(255,255,255,0.15) 100%)`,
+                    background: `linear-gradient(to right, #00f3ff 0%, #00f3ff ${(playbackIndex / Math.max(1, flightSnapshots.current.length - 1)) * 100}%, rgba(255,255,255,0.15) ${(playbackIndex / Math.max(1, flightSnapshots.current.length - 1)) * 100}%, rgba(255,255,255,0.15) 100%)`,
                     borderRadius: '4px',
                     outline: 'none',
                     cursor: 'pointer'
