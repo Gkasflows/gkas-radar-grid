@@ -32,6 +32,7 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
   const [isAnimating, setIsAnimating] = useState(false);
   const [cachedAirport, setCachedAirport] = useState<Airport | null>(null);
   const [scheduleData, setScheduleData] = useState<any[] | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
 
   const [touchStartY, setTouchStartY] = useState(0);
 
@@ -112,7 +113,7 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
     }
 
     const doFetch = () => {
-      fetchAirportSchedule(displayAirport.iata, activeTab).then(data => {
+      fetchAirportSchedule(displayAirport.iata, activeTab, selectedDate).then(data => {
         if (data && !data.error) {
           setScheduleData(data);
           setScheduleLastUpdated(new Date());
@@ -124,10 +125,13 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
     setScheduleData(null);
     doFetch();
 
-    // Then keep polling every 30 seconds so board stays live
-    const interval = setInterval(doFetch, 30000);
-    return () => clearInterval(interval);
-  }, [displayAirport?.iata, activeTab]);
+    // Only keep polling if the selected date is today
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (selectedDate === todayStr) {
+      const interval = setInterval(doFetch, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [displayAirport?.iata, activeTab, selectedDate]);
 
   // Tactical Radar Sector Scanning Logic
   const localTraffic = React.useMemo(() => {
@@ -482,15 +486,99 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
         </button>
       </div>
 
+      {/* 3.5 DATE NAVIGATOR (Only for Arrivals/Departures) */}
+      {(activeTab === 'arrivals' || activeTab === 'departures') && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 16px',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          backgroundColor: 'rgba(26, 29, 36, 0.4)',
+          gap: '8px'
+        }}>
+          <button
+            onClick={() => {
+              const current = new Date(selectedDate + 'T00:00:00');
+              current.setDate(current.getDate() - 1);
+              setSelectedDate(current.toISOString().slice(0, 10));
+            }}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '6px',
+              color: '#00f3ff',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+          >
+            ← Prev
+          </button>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
+              {(() => {
+                const dateObj = new Date(selectedDate + 'T00:00:00');
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const formatted = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                return selectedDate === todayStr ? `${formatted} (Today)` : formatted;
+              })()}
+            </span>
+            {selectedDate !== new Date().toISOString().slice(0, 10) && (
+              <span
+                onClick={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
+                style={{ fontSize: '10px', color: '#8E9297', cursor: 'pointer', textDecoration: 'underline', marginTop: '2px' }}
+              >
+                Go to Today
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              const current = new Date(selectedDate + 'T00:00:00');
+              current.setDate(current.getDate() + 1);
+              setSelectedDate(current.toISOString().slice(0, 10));
+            }}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '6px',
+              color: '#00f3ff',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+          >
+            Next →
+          </button>
+        </div>
+      )}
+
       {/* 4. LIVE FLIGHT BOARD */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px', backgroundColor: 'transparent' }}>
         {/* LIVE indicator bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '4px', padding: '2px 7px' }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#EF4444', boxShadow: '0 0 6px #EF4444', animation: 'livePulse 1.5s ease-in-out infinite' }} />
-              <span style={{ fontSize: '10px', fontWeight: 800, color: '#EF4444', letterSpacing: '1px' }}>LIVE</span>
-            </div>
+            {selectedDate === new Date().toISOString().slice(0, 10) ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '4px', padding: '2px 7px' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#EF4444', boxShadow: '0 0 6px #EF4444', animation: 'livePulse 1.5s ease-in-out infinite' }} />
+                <span style={{ fontSize: '10px', fontWeight: 800, color: '#EF4444', letterSpacing: '1px' }}>LIVE</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(142,146,151,0.15)', border: '1px solid rgba(142,146,151,0.4)', borderRadius: '4px', padding: '2px 7px' }}>
+                <span style={{ fontSize: '10px', fontWeight: 800, color: '#8E9297', letterSpacing: '1px' }}>SCHEDULE</span>
+              </div>
+            )}
             {flightsData.length > 0 && (
               <span style={{ fontSize: '11px', color: '#8E9297' }}>{flightsData.length} flights</span>
             )}

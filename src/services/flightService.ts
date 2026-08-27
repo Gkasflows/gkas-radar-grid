@@ -162,10 +162,10 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
   const timeoutId = setTimeout(() => controller.abort(new Error('API Timeout')), 15000);
 
   try {
-    // TRI-SOURCE PARALLEL FETCH — three independent Vercel serverless functions
-    // Route 1: /api/flights → FR24 (~2,000 planes)
-    // Route 2: /api/planes  → adsb.lol global dump (~6,700 planes)
-    // Route 3: /api/opensky → OpenSky regional boxes (~3,000-5,000 unique planes, different network)
+    // TRI-SOURCE PARALLEL FETCH â€” three independent Vercel serverless functions
+    // Route 1: /api/flights â†’ FR24 (~2,000 planes)
+    // Route 2: /api/planes  â†’ adsb.lol global dump (~6,700 planes)
+    // Route 3: /api/opensky â†’ OpenSky regional boxes (~3,000-5,000 unique planes, different network)
     // + 5-min CRVM retention = 12,000-15,000+ accumulated planes
     const results = await Promise.all([
       fetch('/api/flights', { signal: controller.signal }).catch(() => null),
@@ -205,7 +205,7 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
       rawOpensky = data.ac || [];
     }
 
-    // Merge: OpenSky base → adsb.lol overwrites → FR24 wins on duplicates (richest metadata)
+    // Merge: OpenSky base â†’ adsb.lol overwrites â†’ FR24 wins on duplicates (richest metadata)
     const mergedRaw = new Map<string, any>();
     for (const s of rawOpensky) mergedRaw.set(s.icao24, s);
     for (const s of rawPlanes) mergedRaw.set(s.icao24, s);
@@ -242,7 +242,7 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
       } as LiveFlight;
     });
 
-    // 🌐 Continuous Retention Vector Merge (CRVM) 🌐
+    // ðŸŒ Continuous Retention Vector Merge (CRVM) ðŸŒ
     // OpenSky free API frequently drops random large global regions (e.g. from 12,000 planes dropping randomly to 2,000) 
     // to gracefully rate-limit bandwidth. Instead of planes spontaneously blipping out of existence from the Map,
     // this engine perpetually stitches missing planes dynamically together.
@@ -284,14 +284,14 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
     } else {
       console.error('FlightService Error:', error.message);
     }
-
     return lastSuccessfulFlights;
   }
 }
 
-export async function fetchAirportSchedule(code: string, mode: 'arrivals' | 'departures') {
+export async function fetchAirportSchedule(code: string, mode: 'arrivals' | 'departures', date?: string) {
   try {
-    const res = await fetch('/api/airport-schedule?code=' + code + '&mode=' + mode);
+    const dateStr = date || new Date().toISOString().slice(0, 10);
+    const res = await fetch('/api/airport-schedule?code=' + code + '&mode=' + mode + '&date=' + dateStr);
     if (!res.ok) return null;
     return await res.json();
   } catch (error) {

@@ -69,14 +69,17 @@ function generateSimulatedSchedule(airportCode: string, mode: 'arrivals' | 'depa
 // ─────────────────────────────────────────────────────────────────────────────
 // REAL DATA: AeroDataBox
 // ─────────────────────────────────────────────────────────────────────────────
-function getTimeWindow() {
-  // AeroDataBox requires local time in ISO format: YYYY-MM-DDTHH:mm
-  const now = new Date();
-  const from = new Date(now.getTime() - 2 * 60 * 60 * 1000); // 2hrs ago
-  const to = new Date(now.getTime() + 10 * 60 * 60 * 1000);  // 10hrs ahead
-
-  const fmt = (d: Date) => d.toISOString().slice(0, 16); // "2024-01-15T10:30"
-  return { from: fmt(from), to: fmt(to) };
+// Returns two 12-hour windows covering the full selected date (AeroDataBox max window = 12hrs)
+function getDayWindows(dateStr: string) {
+  // dateStr = 'YYYY-MM-DD', we build midnight-to-noon and noon-to-midnight
+  const fmt = (d: Date) => d.toISOString().slice(0, 16);
+  const base = new Date(dateStr + 'T00:00:00.000Z');
+  const noon = new Date(dateStr + 'T12:00:00.000Z');
+  const end  = new Date(dateStr + 'T23:59:00.000Z');
+  return [
+    { from: fmt(base), to: fmt(noon) },
+    { from: fmt(noon), to: fmt(end)  }
+  ];
 }
 
 function parseAeroDataBoxResponse(data: any, mode: 'arrivals' | 'departures') {
@@ -124,6 +127,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const mode = searchParams.get('mode') as 'arrivals' | 'departures' | null;
+  // date param: YYYY-MM-DD. Defaults to today (UTC).
+  const dateParam = searchParams.get('date') || new Date().toISOString().slice(0, 10);
 
   if (!code || (mode !== 'arrivals' && mode !== 'departures')) {
     return NextResponse.json({ error: 'Missing or invalid code or mode' }, { status: 400 });
@@ -132,28 +137,42 @@ export async function GET(request: Request) {
   // ── Try AeroDataBox if key is configured ──────────────────────────────────
   if (AERODATABOX_KEY) {
     try {
-      const { from, to } = getTimeWindow();
+      const windows = getDayWindows(dateParam);
       const direction = mode === 'arrivals' ? 'Arrival' : 'Departure';
-      const url = `https://aerodatabox.p.rapidapi.com/flights/airports/iata/${code.toUpperCase()}/${from}/${to}?withLeg=true&direction=${direction}&withCancelled=true&withCodeshared=true&withCargo=false&withPrivate=false&withLocation=false`;
 
-      const res = await fetch(url, {
-        headers: {
-          'X-RapidAPI-Key': AERODATABOX_KEY,
-          'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com'
-        },
-        cache: 'no-store'
+      // Fetch both 12-hr windows in parallel for full-day coverage
+      const fetchWindow = async ({ from, to }: { from: string; to: string }) => {
+        const url = `https://aerodatabox.p.rapidapi.com/flights/airports/iata/${code.toUpperCase()}/${from}/${to}?withLeg=true&direction=${direction}&withCancelled=true&withCodeshared=true&withCargo=false&withPrivate=false&withLocation=false`;
+        const res = await fetch(url, {
+          headers: {
+            'X-RapidAPI-Key': AERODATABOX_KEY,
+            'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com'
+          },
+          cache: 'no-store'
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return parseAeroDataBoxResponse(data, mode);
+      };
+
+      const [firstHalf, secondHalf] = await Promise.all(windows.map(fetchWindow));
+      const merged = [...firstHalf, ...secondHalf];
+
+      // Deduplicate by flight number
+      const seen = new Set<string>();
+      const deduped = merged.filter(f => {
+        if (seen.has(f.flight)) return false;
+        seen.add(f.flight);
+        return true;
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        const parsed = parseAeroDataBoxResponse(data, mode);
-        if (parsed.length > 0) {
-          return NextResponse.json(parsed);
-        }
+      const sorted = deduped.sort((a, b) => a.schTime - b.schTime);
+
+      if (sorted.length > 0) {
+        return NextResponse.json(sorted);
       }
     } catch (err) {
       console.error('[AeroDataBox] Error:', err);
-      // Fall through to simulation
     }
   }
 
