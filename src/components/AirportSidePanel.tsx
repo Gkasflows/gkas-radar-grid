@@ -102,15 +102,31 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
 
   const displayAirport = airport || cachedAirport;
 
+  const [scheduleLastUpdated, setScheduleLastUpdated] = useState<Date | null>(null);
+
   useEffect(() => {
-    if (displayAirport && (activeTab === 'arrivals' || activeTab === 'departures')) {
+    if (!displayAirport || (activeTab !== 'arrivals' && activeTab !== 'departures')) {
       setScheduleData(null);
-      fetchAirportSchedule(displayAirport.iata, activeTab).then(data => {
-        if (data && !data.error) setScheduleData(data);
-      });
-    } else {
-      setScheduleData(null);
+      setScheduleLastUpdated(null);
+      return;
     }
+
+    const doFetch = () => {
+      fetchAirportSchedule(displayAirport.iata, activeTab).then(data => {
+        if (data && !data.error) {
+          setScheduleData(data);
+          setScheduleLastUpdated(new Date());
+        }
+      });
+    };
+
+    // Fetch immediately
+    setScheduleData(null);
+    doFetch();
+
+    // Then keep polling every 30 seconds so board stays live
+    const interval = setInterval(doFetch, 30000);
+    return () => clearInterval(interval);
   }, [displayAirport?.iata, activeTab]);
 
   // Tactical Radar Sector Scanning Logic
@@ -468,18 +484,47 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
 
       {/* 4. LIVE FLIGHT BOARD */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px', backgroundColor: 'transparent' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '50px 80px 1fr 70px 70px', gap: '8px', padding: '0 12px 12px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '8px' }}>
+        {/* LIVE indicator bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '4px', padding: '2px 7px' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#EF4444', boxShadow: '0 0 6px #EF4444', animation: 'livePulse 1.5s ease-in-out infinite' }} />
+              <span style={{ fontSize: '10px', fontWeight: 800, color: '#EF4444', letterSpacing: '1px' }}>LIVE</span>
+            </div>
+            {flightsData.length > 0 && (
+              <span style={{ fontSize: '11px', color: '#8E9297' }}>{flightsData.length} flights</span>
+            )}
+          </div>
+          {scheduleLastUpdated && (
+            <span style={{ fontSize: '10px', color: '#8E9297' }}>
+              Updated {scheduleLastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          )}
+        </div>
+
+        {/* Column headers */}
+        <div style={{ display: 'grid', gridTemplateColumns: '50px 80px 1fr 70px 70px', gap: '8px', padding: '0 4px 10px 4px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '8px' }}>
           <span style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600 }}>TIME</span>
           <span style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600 }}>FLIGHT</span>
-          <span style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600 }}>{activeTab === 'arrivals' ? 'FROM' : 'TO'}</span>
+          <span style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600 }}>{activeTab === 'arrivals' ? 'FROM' : activeTab === 'departures' ? 'TO' : 'ROUTE'}</span>
           <span style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600 }}>AIRCRAFT</span>
           <span style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600, textAlign: 'right' }}>STATUS</span>
         </div>
 
+        <style>{`
+          @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+          @keyframes boardSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        `}</style>
+
         {/* FLIGHT LIST ANIMATED ROWS */}
-        {flightsData.length === 0 ? (
+        {scheduleData === null && (activeTab === 'arrivals' || activeTab === 'departures') ? (
+          <div style={{ padding: '40px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '24px', height: '24px', border: '3px solid rgba(0,243,255,0.2)', borderTop: '3px solid #00f3ff', borderRadius: '50%', animation: 'boardSpin 0.8s linear infinite' }} />
+            <span style={{ fontSize: '12px', color: '#8E9297' }}>Loading live flight data...</span>
+          </div>
+        ) : flightsData.length === 0 ? (
           <div style={{ padding: '24px', textAlign: 'center', color: '#8E9297', fontSize: '13px' }}>
-            No active tracker targets detected on this sector.
+            No flights detected for this sector.
           </div>
         ) : flightsData.slice(0, 50).map((f, i) => (
           <div
