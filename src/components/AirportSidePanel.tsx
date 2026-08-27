@@ -114,9 +114,12 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
 
     const doFetch = () => {
       fetchAirportSchedule(displayAirport.iata, activeTab, selectedDate).then(data => {
-        if (data && !data.error) {
+        if (Array.isArray(data)) {
           setScheduleData(data);
           setScheduleLastUpdated(new Date());
+        } else {
+          // API returned an error object or null — show empty, not spinner
+          setScheduleData([]);
         }
       });
     };
@@ -213,12 +216,12 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
           city: f.city,
           iata: f.iata,
           rawFlight: { 
-            icao24: f.hex, 
-            callsign: f.flight, 
-            latitude: displayAirport.coords[0], 
-            longitude: displayAirport.coords[1],
+            icao24: f.hex || 'N/A', 
+            callsign: f.flight || 'N/A', 
+            latitude: displayAirport.coords?.[1] || displayAirport.coords?.[0] || 0, 
+            longitude: displayAirport.coords?.[0] || 0,
             baro_altitude: 0 
-          } // Mock rawFlight for click
+          }
         };
       });
     }
