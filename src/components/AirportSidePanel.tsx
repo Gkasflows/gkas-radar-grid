@@ -194,13 +194,28 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
         const schTimeStr = schDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const estTimeStr = estDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
-        const firstWord = f.airline ? f.airline.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '') : 'flight';
-        const logoUrl = `https://logo.clearbit.com/${firstWord}.com`;
+        // Use IATA code for logo (e.g. BA → ba.com), fallback to first word of airline name
+        const iataCode = (f.airlineIata || '').toLowerCase();
+        const fallbackWord = f.airline ? f.airline.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '') : 'flight';
+        const logoUrl = iataCode
+          ? `https://logo.clearbit.com/${iataCode}.com`
+          : `https://logo.clearbit.com/${fallbackWord}.com`;
 
-        let color = '#10B981';
-        if (f.status === 'Delayed') color = '#EF4444';
-        else if (f.status === 'Approaching' || f.status === 'Taxiing') color = '#F59E0B';
-        else if (f.status === 'Estimated') color = '#38bdf8';
+        // FR24-style status colours
+        let color = '#10B981'; // green = on time / landed / departed
+        const st = f.status || '';
+        if (st === 'Cancelled')             color = '#EF4444';
+        else if (st === 'Diverted')         color = '#F97316';
+        else if (st === 'Delayed')          color = '#EF4444';
+        else if (st === 'Boarding')         color = '#8B5CF6';
+        else if (st === 'At Gate')          color = '#6366F1';
+        else if (st === 'Taxiing')          color = '#F59E0B';
+        else if (st === 'Approaching')      color = '#F59E0B';
+        else if (st === 'On Time')          color = '#10B981';
+        else if (st === 'Landed')           color = '#10B981';
+        else if (st === 'Departed')         color = '#10B981';
+        else if (st === 'Scheduled')        color = '#8E9297';
+        else if (st === 'Check-in')         color = '#06B6D4';
 
         return {
           time: schTimeStr,
