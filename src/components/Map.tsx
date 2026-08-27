@@ -200,6 +200,7 @@ export default function Map() {
   const [isRouteSearchOpen, setIsRouteSearchOpen] = useState(false);
   const [routeSearchInitialFrom, setRouteSearchInitialFrom] = useState<Airport | null>(null);
   const [routeSearchInitialTo, setRouteSearchInitialTo] = useState<Airport | null>(null);
+  const [launchedFromCountryModal, setLaunchedFromCountryModal] = useState(false);
 
   // 🛑 TRUE ROUTE HIGH-FIDELITY SCRAPER STATE 🛑
   const [trueFlightRoute, setTrueFlightRoute] = useState<any>(null);
@@ -422,6 +423,7 @@ export default function Map() {
 
   const handleOpenAirportFeatures = (airport: Airport, feature: string) => {
     setIsCountryModalOpen(false);
+    setLaunchedFromCountryModal(true);
     if (feature === 'map' || feature === 'arrivals' || feature === 'departures' || feature === 'ground') {
       setAirportPanelTab(feature === 'map' ? 'arrivals' : feature as 'arrivals' | 'departures' | 'ground');
       handleFlyToAirport(airport);
@@ -1290,6 +1292,10 @@ export default function Map() {
             onSearch={(from, to) => {
               setSearchQuery(`Searching route from ${from?.iata || 'Any'} to ${to?.iata || 'Any'}...`);
             }}
+            onBack={launchedFromCountryModal ? () => {
+              setIsRouteSearchOpen(false);
+              setIsCountryModalOpen(true);
+            } : undefined}
           />
         )}
 
@@ -1365,7 +1371,11 @@ export default function Map() {
             airport={selectedAirport}
             liveFlights={networkFilteredFlights}
             onFlightClick={handleFlyToFlight}
-            onClose={() => setSelectedAirportIata(null)}
+            onClose={() => { setSelectedAirportIata(null); setLaunchedFromCountryModal(false); }}
+            onBack={launchedFromCountryModal ? () => {
+              setSelectedAirportIata(null);
+              setIsCountryModalOpen(true);
+            } : undefined}
             initialTab={airportPanelTab}
           />
         )}

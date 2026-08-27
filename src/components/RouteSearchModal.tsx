@@ -7,9 +7,10 @@ interface RouteSearchModalProps {
   initialFrom?: Airport | null;
   initialTo?: Airport | null;
   onSearch: (from: Airport | null, to: Airport | null) => void;
+  onBack?: () => void;
 }
 
-export default function RouteSearchModal({ onClose, globalAirports, initialFrom, initialTo, onSearch }: RouteSearchModalProps) {
+export default function RouteSearchModal({ onClose, globalAirports, initialFrom, initialTo, onSearch, onBack }: RouteSearchModalProps) {
   const [fromQuery, setFromQuery] = useState(initialFrom ? `${initialFrom.name} (${initialFrom.iata})` : '');
   const [toQuery, setToQuery] = useState(initialTo ? `${initialTo.name} (${initialTo.iata})` : '');
   
@@ -74,7 +75,12 @@ export default function RouteSearchModal({ onClose, globalAirports, initialFrom,
         overflow: 'visible'
       }}>
         {/* Header */}
-        <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'relative' }}>
+        <div style={{ padding: '20px', borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'relative', display: 'flex', alignItems: 'center' }}>
+          {onBack && (
+            <button onClick={onBack} style={{ background: 'transparent', border: 'none', color: '#00f3ff', cursor: 'pointer', fontSize: '20px', padding: '0 12px 0 0' }}>
+              ←
+            </button>
+          )}
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#fff' }}>Search Flights by Route</h2>
           <button 
             onClick={onClose}
