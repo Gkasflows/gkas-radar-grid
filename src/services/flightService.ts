@@ -288,3 +288,14 @@ export async function fetchLiveFlights(): Promise<LiveFlight[]> {
     return lastSuccessfulFlights;
   }
 }
+
+export async function fetchAirportSchedule(code: string, mode: 'arrivals' | 'departures') {
+  try {
+    const res = await fetch('/api/airport-schedule?code=' + code + '&mode=' + mode);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (error) {
+    console.error('Failed to fetch airport schedule:', error);
+    return null;
+  }
+}

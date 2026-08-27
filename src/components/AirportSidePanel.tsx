@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Airport } from './FlightradarRightPanel';
-import { LiveFlight } from '../services/flightService';
+import { LiveFlight, fetchAirportSchedule } from '../services/flightService';
 
 interface AirportSidePanelProps {
   airport: Airport | null;
@@ -31,6 +31,7 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [cachedAirport, setCachedAirport] = useState<Airport | null>(null);
+  const [scheduleData, setScheduleData] = useState<any[] | null>(null);
 
   const [touchStartY, setTouchStartY] = useState(0);
 
@@ -101,6 +102,17 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
 
   const displayAirport = airport || cachedAirport;
 
+  useEffect(() => {
+    if (displayAirport && (activeTab === 'arrivals' || activeTab === 'departures')) {
+      setScheduleData(null);
+      fetchAirportSchedule(displayAirport.iata, activeTab).then(data => {
+        if (data && !data.error) setScheduleData(data);
+      });
+    } else {
+      setScheduleData(null);
+    }
+  }, [displayAirport?.iata, activeTab]);
+
   // Tactical Radar Sector Scanning Logic
   const localTraffic = React.useMemo(() => {
     if (!displayAirport || !displayAirport.coords) return [];
@@ -149,10 +161,49 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
       });
   }, [displayAirport, liveFlights, activeTab]);
 
-  // Authentically extract REAL flights from the global live data arrays
   const flightsData = React.useMemo(() => {
     if (!displayAirport) return [];
 
+    if (scheduleData && scheduleData.length > 0 && (activeTab === 'arrivals' || activeTab === 'departures')) {
+      return scheduleData.map((f: any) => {
+        const schDate = new Date(f.schTime * 1000);
+        const estDate = new Date(f.estTime * 1000);
+        const schTimeStr = schDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const estTimeStr = estDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        const firstWord = f.airline ? f.airline.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '') : 'flight';
+        const logoUrl = `https://logo.clearbit.com/${firstWord}.com`;
+
+        let color = '#10B981';
+        if (f.status === 'Delayed') color = '#EF4444';
+        else if (f.status === 'Approaching' || f.status === 'Taxiing') color = '#F59E0B';
+        else if (f.status === 'Estimated') color = '#38bdf8';
+
+        return {
+          time: schTimeStr,
+          estTime: estTimeStr,
+          isDelayed: f.isDelayed,
+          flight: f.flight,
+          airline: f.airline,
+          model: f.model,
+          status: f.status,
+          color: color,
+          logoUrl,
+          hex: f.hex,
+          city: f.city,
+          iata: f.iata,
+          rawFlight: { 
+            icao24: f.hex, 
+            callsign: f.flight, 
+            latitude: displayAirport.coords[0], 
+            longitude: displayAirport.coords[1],
+            baro_altitude: 0 
+          } // Mock rawFlight for click
+        };
+      });
+    }
+
+    // Fallback to Live Radar Data (Ground or if Schedule fails)
     let activeSet = [];
     if (activeTab === 'arrivals') {
       activeSet = liveFlights.filter(f => f.dest_iata === displayAirport.iata);
@@ -206,10 +257,13 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
         status: statusStr,
         color: color,
         logoUrl,
+        city: activeTab === 'arrivals' ? (f.origin_airport || f.origin || 'Unknown') : (f.dest_airport || f.destination || 'Unknown'),
+        iata: activeTab === 'arrivals' ? (f.origin_iata || '???') : (f.dest_iata || '???'),
+        hex: f.icao24.toUpperCase(),
         rawFlight: f // Pass the actual flight object for the Click interaction!
       };
     });
-  }, [displayAirport?.iata, activeTab, liveFlights]);
+  }, [displayAirport, activeTab, liveFlights, scheduleData]);
 
   if (!displayAirport || (!airport && !isAnimating)) return null;
 
@@ -226,9 +280,9 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
         overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, sans-serif'
       } : {
         position: 'absolute', top: '76px', left: '16px',
-        transform: `translateX(${isOpen ? '0' : '-356px'})`,
+        transform: `translateX(${isOpen ? '0' : '-436px'})`,
         transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-        zIndex: 1000, width: '340px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)',
+        zIndex: 1000, width: '420px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)',
         border: '1px solid rgba(0, 243, 255, 0.25)', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
         display: 'flex', flexDirection: 'column', overflow: 'visible', fontFamily: '"Inter", -apple-system, sans-serif', color: '#fff'
       }}>
@@ -468,10 +522,10 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
             {/* TO/FROM (City + IATA) */}
             <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {activeTab === 'arrivals' ? (f.rawFlight.origin_airport || f.rawFlight.origin || 'Unknown') : (f.rawFlight.dest_airport || f.rawFlight.destination || 'Unknown')}
+                {f.city}
               </div>
               <div style={{ fontSize: '10px', color: '#8E9297', fontWeight: 600 }}>
-                {activeTab === 'arrivals' ? (f.rawFlight.origin_iata || '???') : (f.rawFlight.dest_iata || '???')}
+                {f.iata}
               </div>
             </div>
 
@@ -481,7 +535,7 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
                 {f.model}
               </div>
               <div style={{ fontSize: '9px', color: '#8E9297' }}>
-                {f.rawFlight.icao24.toUpperCase()}
+                {f.hex}
               </div>
             </div>
 
