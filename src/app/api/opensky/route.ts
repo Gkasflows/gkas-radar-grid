@@ -63,18 +63,20 @@ export async function GET() {
       const states = data.states || [];
       for (const s of states) {
         const callsign = s[1]?.trim();
-        if (s[6] !== null && s[5] !== null && callsign && !s[8]) {
+        if (s[6] !== null && s[5] !== null && callsign) {
           const icao = String(s[0]).toLowerCase();
+          const onGround = !!s[8];
           map.set(icao, {
             icao24: icao,
             callsign: callsign,
             origin_country: s[2] || 'OPENSKY',
             longitude: s[5],
             latitude: s[6],
-            baro_altitude: s[7] || s[13] || 0,
+            baro_altitude: onGround ? 0 : (s[7] || s[13] || 0),
             velocity: s[9] || 0,
             true_track: s[10] || 0,
             vertical_rate: s[11] || 0,
+            on_ground: onGround,
             category: 0
           });
         }
