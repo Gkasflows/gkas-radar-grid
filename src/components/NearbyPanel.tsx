@@ -8,11 +8,12 @@ interface NearbyPanelProps {
   flights: LiveFlight[];
   airports: Airport[];
   onClose: () => void;
+  onBack?: () => void;
   onFlightClick: (flight: LiveFlight) => void;
   onAirportClick: (airport: Airport) => void;
 }
 
-export default function NearbyPanel({ countryName, countryCode, flights, airports, onClose, onFlightClick, onAirportClick }: NearbyPanelProps) {
+export default function NearbyPanel({ countryName, countryCode, flights, airports, onClose, onBack, onFlightClick, onAirportClick }: NearbyPanelProps) {
   const [activeTab, setActiveTab] = useState<'flights' | 'airports'>('flights');
 
   return (
@@ -27,11 +28,31 @@ export default function NearbyPanel({ countryName, countryCode, flights, airport
     }}>
       {/* Header */}
       <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'relative' }}>
+        {/* Close button */}
         <button onClick={onClose} style={{
           position: 'absolute', top: '16px', right: '16px',
           background: 'transparent', border: 'none', color: '#8E9297',
           fontSize: '16px', cursor: 'pointer'
         }}>✕</button>
+
+        {/* Back button */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '6px', color: '#00f3ff', fontSize: '11px', fontWeight: 700,
+              cursor: 'pointer', padding: '4px 10px', marginBottom: '10px',
+              letterSpacing: '0.3px', transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,243,255,0.12)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+          >
+            ← Back
+          </button>
+        )}
+
         <div style={{ fontSize: '10px', color: '#8E9297', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Regional Scanner</div>
         <div style={{ fontSize: '18px', fontWeight: 700, color: '#00f3ff', marginTop: '4px' }}>{countryName}</div>
       </div>

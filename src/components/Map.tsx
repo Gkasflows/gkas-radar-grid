@@ -1319,6 +1319,7 @@ export default function Map() {
             flight={selectedFlight || null}
             liveFlights={networkFlights}
             onClose={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); }}
+            onBack={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); }}
             onPointClick={(lat, lon, iata) => {
               // Temporarily pause the 10s auto-follow tracking mechanism for a lavish 15 seconds to let the user explore the airport
               isAnimatingRef.current = true;
@@ -1370,6 +1371,10 @@ export default function Map() {
             flights={nearbyData.flights}
             airports={nearbyData.airports}
             onClose={() => setNearbyData(null)}
+            onBack={() => {
+              setNearbyData(null);
+              setIsCountryModalOpen(true);
+            }}
             onFlightClick={(f) => {
               handleFlyToFlight(f);
             }}
