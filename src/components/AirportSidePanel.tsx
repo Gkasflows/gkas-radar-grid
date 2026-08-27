@@ -2,6 +2,37 @@ import React, { useState, useEffect } from 'react';
 import { Airport } from './FlightradarRightPanel';
 import { LiveFlight, fetchAirportSchedule } from '../services/flightService';
 
+// ─── IATA → ICAO airline designator map ─────────────────────────────────────
+// Needed to match schedule callsigns (e.g. "BA 123") to ADS-B callsigns ("BAW123")
+const IATA_TO_ICAO: Record<string, string> = {
+  'AA':'AAL','BA':'BAW','DL':'DAL','UA':'UAL','EK':'UAE','QR':'QTR','LH':'DLH',
+  'AF':'AFR','KL':'KLM','TK':'THY','SQ':'SIA','CX':'CPA','AC':'ACA','QF':'QFA',
+  'EY':'ETD','ET':'ETH','FR':'RYR','U2':'EZY','W6':'WZZ','DY':'NAX','IB':'IBE',
+  'VY':'VLG','AY':'FIN','SK':'SAS','OS':'AUA','SN':'BEL','TP':'TAP','VS':'VIR',
+  'WN':'SWA','B6':'JBU','NK':'NKS','MH':'MAS','TG':'THA','JL':'JAL','NH':'ANA',
+  'KE':'KAL','OZ':'AAR','CI':'CAL','BR':'EVA','AI':'AIC','6E':'IGO','EW':'EWG',
+  'LX':'SWR','AZ':'ITY','MS':'MSR','SA':'SAA','KQ':'KQA','EI':'EIN','PC':'PGT',
+  'HV':'TRA','A3':'AEE','GF':'GFA','CM':'CMP','AV':'AVA','LA':'LAN','G3':'GLO',
+  'AD':'AZU','WS':'WJA','WB':'RWD','BW':'BWA','KP':'KMP',
+};
+
+function findLiveFlight(flightNum: string, airlineIata: string, liveFlights: LiveFlight[]): LiveFlight | null {
+  if (!liveFlights.length || !flightNum || flightNum === 'N/A') return null;
+  const match = flightNum.replace(/\s+/g, '').match(/^([A-Z0-9]{2,3})(\d+)$/i);
+  if (!match) return null;
+  const [, iataCode, num] = match;
+  const icao = IATA_TO_ICAO[iataCode.toUpperCase()] || IATA_TO_ICAO[airlineIata?.toUpperCase() || ''] || iataCode;
+  const candidates = [
+    (icao + num).toUpperCase(),
+    (icao + num.padStart(4, '0')).toUpperCase(),
+    (iataCode + num).toUpperCase(),
+  ];
+  return liveFlights.find(f => {
+    const cs = (f.callsign || '').replace(/\s+/g, '').toUpperCase();
+    return candidates.some(c => cs === c || cs.startsWith(c.slice(0, -1)));
+  }) || null;
+}
+
 interface AirportSidePanelProps {
   airport: Airport | null;
   onClose: () => void;
@@ -194,28 +225,52 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
         const schTimeStr = schDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const estTimeStr = estDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
-        // Use IATA code for logo (e.g. BA → ba.com), fallback to first word of airline name
+        // Use IATA code for logo (e.g. BA → ba.com)
         const iataCode = (f.airlineIata || '').toLowerCase();
         const fallbackWord = f.airline ? f.airline.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '') : 'flight';
         const logoUrl = iataCode
           ? `https://logo.clearbit.com/${iataCode}.com`
           : `https://logo.clearbit.com/${fallbackWord}.com`;
 
+        // ── Live ADS-B cross-reference ─────────────────────────────────────
+        const liveMatch = findLiveFlight(f.flight, f.airlineIata || '', liveFlights || []);
+        let displayStatus = f.status;
+        let liveAltFt: number | null = null;
+        let liveSpdKts: number | null = null;
+        let liveHeading: number | null = null;
+        let isLive = false;
+
+        if (liveMatch) {
+          isLive = true;
+          liveAltFt  = liveMatch.baro_altitude ? Math.round(liveMatch.baro_altitude * 3.28084) : null;
+          liveSpdKts = liveMatch.velocity      ? Math.round(liveMatch.velocity * 1.94384)       : null;
+          liveHeading = liveMatch.true_track    ? Math.round(liveMatch.true_track)               : null;
+          // Derive live status from telemetry
+          const isGround = liveMatch.on_ground || (liveMatch.baro_altitude || 0) < 50;
+          const vs = liveMatch.vertical_rate || 0;
+          if (isGround && activeTab === 'arrivals')        displayStatus = 'Landed';
+          else if (isGround && activeTab === 'departures') displayStatus = 'Taxiing';
+          else if (vs > 200)                               displayStatus = 'Departed';
+          else if (vs < -200)                              displayStatus = 'Approaching';
+          else                                             displayStatus = activeTab === 'arrivals' ? 'En Route' : 'Departed';
+        }
+
         // FR24-style status colours
-        let color = '#10B981'; // green = on time / landed / departed
-        const st = f.status || '';
-        if (st === 'Cancelled')             color = '#EF4444';
-        else if (st === 'Diverted')         color = '#F97316';
-        else if (st === 'Delayed')          color = '#EF4444';
-        else if (st === 'Boarding')         color = '#8B5CF6';
-        else if (st === 'At Gate')          color = '#6366F1';
-        else if (st === 'Taxiing')          color = '#F59E0B';
-        else if (st === 'Approaching')      color = '#F59E0B';
-        else if (st === 'On Time')          color = '#10B981';
-        else if (st === 'Landed')           color = '#10B981';
-        else if (st === 'Departed')         color = '#10B981';
-        else if (st === 'Scheduled')        color = '#8E9297';
-        else if (st === 'Check-in')         color = '#06B6D4';
+        let color = '#10B981';
+        const st = displayStatus || '';
+        if (st === 'Cancelled')        color = '#EF4444';
+        else if (st === 'Diverted')    color = '#F97316';
+        else if (st === 'Delayed')     color = '#EF4444';
+        else if (st === 'Boarding')    color = '#8B5CF6';
+        else if (st === 'At Gate')     color = '#6366F1';
+        else if (st === 'Taxiing')     color = '#F59E0B';
+        else if (st === 'Approaching') color = '#F59E0B';
+        else if (st === 'En Route')    color = '#38bdf8';
+        else if (st === 'On Time')     color = '#10B981';
+        else if (st === 'Landed')      color = '#10B981';
+        else if (st === 'Departed')    color = '#10B981';
+        else if (st === 'Scheduled')   color = '#8E9297';
+        else if (st === 'Check-in')    color = '#06B6D4';
 
         return {
           time: schTimeStr,
@@ -224,19 +279,23 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
           flight: f.flight,
           airline: f.airline,
           model: f.model,
-          status: f.status,
-          color: color,
+          status: displayStatus,
+          color,
           logoUrl,
-          hex: f.hex,
+          hex: liveMatch?.icao24?.toUpperCase() || f.hex,
           city: f.city,
           iata: f.iata,
-          rawFlight: { 
-            icao24: f.hex || 'N/A', 
-            callsign: f.flight || 'N/A', 
-            latitude: displayAirport.coords?.[1] || displayAirport.coords?.[0] || 0, 
+          isLive,
+          liveAltFt,
+          liveSpdKts,
+          liveHeading,
+          rawFlight: liveMatch || {
+            icao24: f.hex || 'N/A',
+            callsign: f.flight || 'N/A',
+            latitude:  displayAirport.coords?.[1] || 0,
             longitude: displayAirport.coords?.[0] || 0,
-            baro_altitude: 0 
-          }
+            baro_altitude: 0
+          } as LiveFlight
         };
       });
     }
@@ -688,19 +747,36 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
               </div>
             </div>
 
-            {/* AIRCRAFT */}
+            {/* AIRCRAFT + live telemetry */}
             <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div style={{ fontSize: '10px', fontWeight: 600, color: '#d1d5db', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {f.model}
               </div>
-              <div style={{ fontSize: '9px', color: '#8E9297' }}>
-                {f.hex}
-              </div>
+              {f.isLive && f.liveAltFt !== null ? (
+                <div style={{ fontSize: '9px', color: '#00f3ff', fontWeight: 600 }}>
+                  {f.liveAltFt.toLocaleString()}ft
+                </div>
+              ) : (
+                <div style={{ fontSize: '9px', color: '#8E9297' }}>{f.hex}</div>
+              )}
             </div>
 
             {/* STATUS */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: f.color }}>{f.status}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '3px' }}>
+              {f.isLive && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '3px',
+                  backgroundColor: 'rgba(0,243,255,0.1)', border: '1px solid rgba(0,243,255,0.3)',
+                  borderRadius: '3px', padding: '1px 4px'
+                }}>
+                  <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#00f3ff', animation: 'livePulse 1.5s infinite' }} />
+                  <span style={{ fontSize: '8px', color: '#00f3ff', fontWeight: 800, letterSpacing: '0.5px' }}>LIVE</span>
+                </div>
+              )}
+              <div style={{ fontSize: '11px', fontWeight: 700, color: f.color, textAlign: 'right' }}>{f.status}</div>
+              {f.isLive && f.liveSpdKts !== null && (
+                <div style={{ fontSize: '9px', color: '#8E9297' }}>{f.liveSpdKts}kts</div>
+              )}
             </div>
           </div>
         ))}
