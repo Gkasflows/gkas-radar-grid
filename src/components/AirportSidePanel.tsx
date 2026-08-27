@@ -144,14 +144,18 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
     }
 
     const doFetch = () => {
+      console.log('[AirportPanel] Fetching schedule:', displayAirport.iata, activeTab, selectedDate);
       fetchAirportSchedule(displayAirport.iata, activeTab, selectedDate).then(data => {
+        console.log('[AirportPanel] Got data:', Array.isArray(data) ? data.length + ' flights' : data);
         if (Array.isArray(data)) {
           setScheduleData(data);
           setScheduleLastUpdated(new Date());
         } else {
-          // API returned an error object or null — show empty, not spinner
           setScheduleData([]);
         }
+      }).catch(err => {
+        console.error('[AirportPanel] Fetch error:', err);
+        setScheduleData([]);
       });
     };
 

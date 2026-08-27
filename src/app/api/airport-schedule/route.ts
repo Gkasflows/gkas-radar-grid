@@ -82,6 +82,7 @@ function mapStatus(raw: string | undefined, isDelayed: boolean, isPast: boolean,
   if (s === 'cancelled')            return 'Cancelled';
   if (s === 'diverted')             return 'Diverted';
   if (s.includes('landed'))         return 'Landed';
+  if (s.includes('arrived'))        return 'Landed';
   if (s.includes('departed'))       return 'Departed';
   if (s.includes('boarding'))       return 'Boarding';
   if (s.includes('gate'))           return 'At Gate';
