@@ -209,6 +209,9 @@ export default function Map() {
   const [routeSearchInitialTo, setRouteSearchInitialTo] = useState<Airport | null>(null);
   const [launchedFromCountryModal, setLaunchedFromCountryModal] = useState(false);
 
+  // Navigation history: remembers the airport the user was on before clicking a flight in the board
+  const previousAirportIataRef = useRef<string | null>(null);
+
   // 🛑 TRUE ROUTE HIGH-FIDELITY SCRAPER STATE 🛑
   const [trueFlightRoute, setTrueFlightRoute] = useState<any>(null);
 
@@ -757,7 +760,9 @@ export default function Map() {
       return;
     }
 
-    setSelectedAirportIata(null); // Clear airport selection
+    // Save the current airport so Back can restore it
+    previousAirportIataRef.current = selectedAirportIata;
+    setSelectedAirportIata(null);
     setSelectedFlightId(flight.icao24);
     setTrueFlightRoute(null);
     setHoveredFlight(null);
@@ -1318,18 +1323,19 @@ export default function Map() {
           <FlightradarSidePanel
             flight={selectedFlight || null}
             liveFlights={networkFlights}
-            onClose={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); }}
-            onBack={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); }}
+            onClose={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); previousAirportIataRef.current = null; }}
+            onBack={() => {
+              setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null);
+              // Restore the airport panel the user came from
+              if (previousAirportIataRef.current) {
+                setSelectedAirportIata(previousAirportIataRef.current);
+                previousAirportIataRef.current = null;
+              }
+            }}
             onPointClick={(lat, lon, iata) => {
-              // Temporarily pause the 10s auto-follow tracking mechanism for a lavish 15 seconds to let the user explore the airport
               isAnimatingRef.current = true;
               setTimeout(() => { isAnimatingRef.current = false; }, 15000);
-
-              if (iata) {
-                // This natively triggers the 3D tracking engine to drop the Cyan Layer 5 HUD onto the map directly beneath the camera!
-                setSelectedAirportIata(iata);
-              }
-
+              if (iata) setSelectedAirportIata(iata);
               setViewState((prev: any) => ({
                 ...prev,
                 longitude: lon,
@@ -1337,7 +1343,7 @@ export default function Map() {
                 zoom: Math.max(prev.zoom, 7.5),
                 pitch: 35,
                 bearing: 0,
-                transitionDuration: 8000, // Phenomenally smooth, slow cinematic glide
+                transitionDuration: 8000,
                 transitionInterpolator: new FlyToInterpolator()
               }));
             }}
@@ -1349,8 +1355,16 @@ export default function Map() {
           <FlightradarSidePanel
             flight={selectedFlight || null}
             liveFlights={networkFlights}
-            onClose={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); setNearbyData(null); }}
-            onBack={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); }}
+            onClose={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); setNearbyData(null); previousAirportIataRef.current = null; }}
+            onBack={() => {
+              setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null);
+              // If user came from an airport board inside NearbyPanel, restore the airport
+              if (previousAirportIataRef.current) {
+                setSelectedAirportIata(previousAirportIataRef.current);
+                previousAirportIataRef.current = null;
+              }
+              // Otherwise nearbyData is still set, so NearbyPanel re-appears naturally
+            }}
             onPointClick={(lat, lon, iata) => {
               isAnimatingRef.current = true;
               setTimeout(() => { isAnimatingRef.current = false; }, 15000);
