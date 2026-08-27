@@ -27,15 +27,17 @@ const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent
   '</svg>'
 );
 
-// Sprite Atlas containing a Yellow, a Red, and a White airplane wrapped in sharp black borders
+// Sprite Atlas containing a Yellow, a Red, a White, and a Blue airplane wrapped in sharp black borders
 const AIRPLANE_ATLAS = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="64" viewBox="0 0 72 24">' +
+  '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="64" viewBox="0 0 96 24">' +
   // State 1: Diamond White Base Plane with Neon Cyan Stroke (Replaces regular Yellow plane)
   '<path transform="translate(0,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ffffff" stroke="#00f3ff" stroke-width="1.2" stroke-linejoin="round"/>' +
   // State 2: Electric Magenta Plane with Pink Glow (Replaces Selected Red plane)
   '<path transform="translate(24,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#ff00b3" stroke="#ff99ea" stroke-width="1.2" stroke-linejoin="round"/>' +
   // State 3: Ghosted Heatmap plane (White heavily transparent)
   '<path transform="translate(48,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="rgba(255,255,255,0.7)" stroke="none"/>' +
+  // State 4: Solid Blue Taxiing/Grounded plane
+  '<path transform="translate(72,0)" d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#0ea5e9" stroke="#0284c7" stroke-width="1.2" stroke-linejoin="round"/>' +
   '</svg>'
 );
 
@@ -62,6 +64,11 @@ const calculateFlightHistoryTrail = (flight: LiveFlight | null) => {
   const endLon = flight.longitude;
   const endLat = flight.latitude;
   const currentAlt = flight.baro_altitude || 10000;
+  
+  // Suppress trail completely if grounded
+  if (flight.on_ground || (flight.velocity !== undefined && flight.velocity < 20 && currentAlt < 50)) {
+    return [];
+  }
 
   // Plane's live heading vector
   const headingRad = (flight.true_track || 0) * (Math.PI / 180);
@@ -1073,12 +1080,14 @@ export default function Map() {
       iconMapping: {
         'yellow': { x: 0, y: 0, width: 64, height: 64, mask: false },
         'red': { x: 64, y: 0, width: 64, height: 64, mask: false },
-        'white': { x: 128, y: 0, width: 64, height: 64, mask: true }
+        'white': { x: 128, y: 0, width: 64, height: 64, mask: true },
+        'blue': { x: 192, y: 0, width: 64, height: 64, mask: false }
       },
       billboard: false, // Forces planes to physically glue flat to the Map Terrain instead of statically facing the camera!
       getIcon: (d: LiveFlight) => {
         if (d.icao24 === selectedFlightId) return 'red';
         if (isHeatmapActive) return 'white';
+        if (d.on_ground || (d.velocity !== undefined && d.velocity < 20 && (d.baro_altitude || 0) < 50)) return 'blue';
         return 'yellow';
       },
       getPosition: (d: LiveFlight) => [d.longitude, d.latitude],
@@ -1086,8 +1095,13 @@ export default function Map() {
       getSize: (d: LiveFlight) => {
         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
         const baseSize = isMobile ? 24 : 36;
-        if (!selectedFlightId) return hoveredFlight?.flight.icao24 === d.icao24 ? baseSize + 10 : baseSize;
-        return d.icao24 === selectedFlightId ? baseSize + 16 : (isMobile ? 10 : 16);
+        
+        // Grounded planes are 30% smaller to avoid taxiway clutter
+        const isGrounded = d.on_ground || (d.velocity !== undefined && d.velocity < 20 && (d.baro_altitude || 0) < 50);
+        const actualBaseSize = isGrounded ? baseSize * 0.7 : baseSize;
+
+        if (!selectedFlightId) return hoveredFlight?.flight.icao24 === d.icao24 ? actualBaseSize + 10 : actualBaseSize;
+        return d.icao24 === selectedFlightId ? actualBaseSize + 16 : (isMobile ? 10 : 16);
       },
       sizeScale: Math.max(
         typeof window !== 'undefined' && window.innerWidth < 768 ? 0.15 : 0.35,
