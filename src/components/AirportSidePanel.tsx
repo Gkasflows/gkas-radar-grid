@@ -178,21 +178,34 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
         color = '#8b5cf6'; // Purple
       }
 
-      // Deterministic Scheduled Time Generation
+      // Deterministic Scheduled vs Estimated Time Generation
       let hash = 0;
       for (let i = 0; i < f.icao24.length; i++) hash = (hash << 5) - hash + f.icao24.charCodeAt(i);
       const d = new Date();
-      const isDelayed = Math.abs(hash) % 5 === 0; // 20% chance of distinct delay
+      const isDelayed = Math.abs(hash) % 5 === 0;
       d.setMinutes(d.getMinutes() - (Math.abs(hash) % 180));
+        
+      const estDate = new Date(d);
+      if (isDelayed) {
+          estDate.setMinutes(estDate.getMinutes() + 20 + (Math.abs(hash) % 90));
+      }
+        
       const schTime = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const estTime = estDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      const firstWord = f.airline ? f.airline.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '') : 'flight';
+      const logoUrl = `https://logo.clearbit.com/${firstWord}.com`;
 
       return {
         time: schTime,
+        estTime: estTime,
         isDelayed: isDelayed,
         flight: f.callsign?.substring(0, 8) || f.icao24.toUpperCase().substring(0, 6),
-        airline: f.airline || 'Private/Unknown',
+        airline: f.airline || 'Unknown',
+        model: f.model || f.type || 'Unknown',
         status: statusStr,
         color: color,
+        logoUrl,
         rawFlight: f // Pass the actual flight object for the Click interaction!
       };
     });
@@ -230,8 +243,8 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
             alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 1000,
             boxShadow: '4px 0 15px rgba(0,243,255,0.2)', transition: 'background 0.2s', fontSize: '14px'
           }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.2)'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(15, 23, 42, 0.95)'}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.2)')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(15, 23, 42, 0.95)')}
         >
           {isOpen ? '◀' : '▶'}
         </div>
@@ -253,7 +266,7 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
         height: '180px',
         width: '100%',
         backgroundColor: '#2A2B30',
-        backgroundImage: `url("${getAirportImage(displayAirport.iata)}")`,
+        backgroundImage: `url("${realAirportPhoto || getAirportImage(displayAirport.iata)}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         position: 'relative'
@@ -400,65 +413,84 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
       </div>
 
       {/* 4. LIVE FLIGHT BOARD */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0', backgroundColor: 'transparent' }}>
-        <div style={{ padding: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-            <span style={{ fontSize: '12px', color: '#8E9297', fontWeight: 600 }}>TIME</span>
-            <span style={{ fontSize: '12px', color: '#8E9297', fontWeight: 600 }}>FLIGHT</span>
-            <span style={{ fontSize: '12px', color: '#8E9297', fontWeight: 600 }}>STATUS</span>
-          </div>
-
-          {/* FLIGHT LIST ANIMATED ROWS */}
-          {flightsData.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#8E9297', fontSize: '13px' }}>
-              No active tracker targets detected on this sector.
-            </div>
-          ) : flightsData.slice(0, 50).map((f, i) => (
-            <div
-              key={i}
-              onClick={() => onFlightClick && onFlightClick(f.rawFlight)}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '12px 10px', marginBottom: '8px',
-                backgroundColor: 'rgba(42, 43, 48, 0.4)', borderRadius: '6px',
-                border: '1px solid rgba(54, 57, 63, 0.4)',
-                cursor: 'pointer',
-                transition: 'border 0.2s, background-color 0.2s'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.border = '1px solid #00f3ff'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(42, 43, 48, 0.4)'; e.currentTarget.style.border = '1px solid rgba(54, 57, 63, 0.4)'; }}
-            >
-              {/* TIME */}
-              <div style={{ width: '48px', borderRight: '1px solid rgba(255,255,255,0.1)', paddingRight: '8px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: f.isDelayed ? '#EF4444' : '#fff' }}>
-                  {f.time}
-                </div>
-                {f.isDelayed && <div style={{ fontSize: '9px', color: '#EF4444', fontWeight: 700 }}>LATE</div>}
-              </div>
-
-              {/* FLIGHT/AIRLINE & ROUTE */}
-              <div style={{ flex: 1, marginLeft: '12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <div style={{ fontSize: '10px', color: '#8E9297', fontWeight: 600 }}>
-                  {f.rawFlight.origin_iata || '???'} <span style={{ color: '#00f3ff', margin: '0 2px' }}>→</span> {f.rawFlight.dest_iata || '???'}
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff' }}>{f.flight}</div>
-                <div style={{ fontSize: '10px', color: '#8E9297', textTransform: 'uppercase' }}>{f.airline}</div>
-              </div>
-
-              {/* STATUS DOT */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '4px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: f.color, boxShadow: `0 0 6px ${f.color}` }}></div>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: f.color }}>{f.status}</div>
-                </div>
-                <div style={{ fontSize: '9px', color: '#8E9297', fontWeight: 500 }}>
-                  {f.rawFlight.baro_altitude ? `${Math.round(f.rawFlight.baro_altitude * 3.28084)} ft` : 'Ground'}
-                </div>
-              </div>
-            </div>
-          ))}
-
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', backgroundColor: 'transparent' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '50px 80px 1fr 70px 70px', gap: '8px', padding: '0 12px 12px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '8px' }}>
+          <span style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600 }}>TIME</span>
+          <span style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600 }}>FLIGHT</span>
+          <span style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600 }}>{activeTab === 'arrivals' ? 'FROM' : 'TO'}</span>
+          <span style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600 }}>AIRCRAFT</span>
+          <span style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600, textAlign: 'right' }}>STATUS</span>
         </div>
+
+        {/* FLIGHT LIST ANIMATED ROWS */}
+        {flightsData.length === 0 ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: '#8E9297', fontSize: '13px' }}>
+            No active tracker targets detected on this sector.
+          </div>
+        ) : flightsData.slice(0, 50).map((f, i) => (
+          <div
+            key={i}
+            onClick={() => onFlightClick && onFlightClick(f.rawFlight)}
+            style={{
+              display: 'grid', gridTemplateColumns: '50px 80px 1fr 70px 70px', gap: '8px', alignItems: 'center',
+              padding: '12px 10px', marginBottom: '8px',
+              backgroundColor: 'rgba(42, 43, 48, 0.4)', borderRadius: '6px',
+              border: '1px solid rgba(54, 57, 63, 0.4)',
+              cursor: 'pointer',
+              transition: 'border 0.2s, background-color 0.2s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.border = '1px solid #00f3ff'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(42, 43, 48, 0.4)'; e.currentTarget.style.border = '1px solid rgba(54, 57, 63, 0.4)'; }}
+          >
+            {/* TIME */}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: '12px', color: f.isDelayed ? '#8E9297' : '#fff', fontWeight: 600, textDecoration: f.isDelayed ? 'line-through' : 'none' }}>
+                {f.time}
+              </div>
+              <div style={{ fontSize: '12px', color: f.isDelayed ? '#EF4444' : '#10B981', fontWeight: 800 }}>
+                {f.estTime}
+              </div>
+            </div>
+
+            {/* FLIGHT (Logo + Number) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <img 
+                src={f.logoUrl} 
+                alt="logo"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                style={{ width: '18px', height: '18px', borderRadius: '4px', objectFit: 'contain', backgroundColor: '#fff', padding: '1px' }} 
+              />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: '#fff' }}>{f.flight}</div>
+              </div>
+            </div>
+
+            {/* TO/FROM (City + IATA) */}
+            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {activeTab === 'arrivals' ? (f.rawFlight.origin_airport || f.rawFlight.origin || 'Unknown') : (f.rawFlight.dest_airport || f.rawFlight.destination || 'Unknown')}
+              </div>
+              <div style={{ fontSize: '10px', color: '#8E9297', fontWeight: 600 }}>
+                {activeTab === 'arrivals' ? (f.rawFlight.origin_iata || '???') : (f.rawFlight.dest_iata || '???')}
+              </div>
+            </div>
+
+            {/* AIRCRAFT */}
+            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ fontSize: '10px', fontWeight: 600, color: '#d1d5db', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {f.model}
+              </div>
+              <div style={{ fontSize: '9px', color: '#8E9297' }}>
+                {f.rawFlight.icao24.toUpperCase()}
+              </div>
+            </div>
+
+            {/* STATUS */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: f.color }}>{f.status}</div>
+            </div>
+          </div>
+        ))}
 
         {/* METRICS (Coordinates etc) */}
         <div style={{ padding: '16px', borderTop: '1px solid rgba(47, 49, 54, 0.6)', backgroundColor: 'transparent' }}>
