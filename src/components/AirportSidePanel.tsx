@@ -499,9 +499,13 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
         }}>
           <button
             onClick={() => {
-              const current = new Date(selectedDate + 'T00:00:00');
+              const [year, month, day] = selectedDate.split('-').map(Number);
+              const current = new Date(year, month - 1, day);
               current.setDate(current.getDate() - 1);
-              setSelectedDate(current.toISOString().slice(0, 10));
+              const y = current.getFullYear();
+              const m = String(current.getMonth() + 1).padStart(2, '0');
+              const d = String(current.getDate()).padStart(2, '0');
+              setSelectedDate(`${y}-${m}-${d}`);
             }}
             style={{
               padding: '6px 12px',
@@ -541,9 +545,13 @@ export default function AirportSidePanel({ airport, onClose, onBack, liveFlights
 
           <button
             onClick={() => {
-              const current = new Date(selectedDate + 'T00:00:00');
+              const [year, month, day] = selectedDate.split('-').map(Number);
+              const current = new Date(year, month - 1, day);
               current.setDate(current.getDate() + 1);
-              setSelectedDate(current.toISOString().slice(0, 10));
+              const y = current.getFullYear();
+              const m = String(current.getMonth() + 1).padStart(2, '0');
+              const d = String(current.getDate()).padStart(2, '0');
+              setSelectedDate(`${y}-${m}-${d}`);
             }}
             style={{
               padding: '6px 12px',
