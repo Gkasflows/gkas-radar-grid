@@ -154,22 +154,22 @@ export default function FlightradarSidePanel({ flight, onClose, onBack, onPointC
 
   return (
     <div 
+      className={!isMobile ? "glass-panel" : ""}
       onTouchStart={isMobile ? handleTouchStart : undefined}
       onTouchEnd={isMobile ? handleTouchEnd : undefined}
       style={isMobile ? {
       position: 'fixed', zIndex: 1000, transition: 'all 0.4s cubic-bezier(0.16,1,0.3,1)',
       bottom: isOpen ? '0px' : '-100%', left: '0px', width: '100%', 
       height: isExpanded ? '100vh' : '40vh',
-      backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', borderTop: '1px solid rgba(0, 243, 255, 0.25)',
+      backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)', borderTop: '1px solid var(--color-border-glass)',
       borderRadius: isExpanded ? '0' : '24px 24px 0 0', display: 'flex', flexDirection: 'column', color: '#fff',
       overflow: 'hidden', boxShadow: '0 -8px 30px rgba(0,0,0,0.5)', fontFamily: '"Inter", -apple-system, sans-serif'
     } : {
-      position: 'absolute', top: '76px', left: '16px',
-      transform: `translateX(${isOpen ? '0' : '-336px'})`,
+      position: 'absolute', top: '90px', left: '20px',
+      transform: `translateX(${isOpen ? '0' : '-350px'})`,
       transition: 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-      zIndex: 1000, width: '320px', height: 'calc(100vh - 92px)', backgroundColor: 'rgba(10, 15, 30, 0.45)', backdropFilter: 'blur(24px) saturate(150%)',
-      border: '1px solid rgba(0, 243, 255, 0.25)', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-      display: 'flex', flexDirection: 'column', overflow: 'visible', fontFamily: '"Inter", -apple-system, sans-serif', color: '#fff'
+      zIndex: 1000, width: '320px', height: 'calc(100vh - 110px)',
+      display: 'flex', flexDirection: 'column', overflow: 'visible', color: '#fff'
     }}>
       {/* SLIDE TOGGLE BUTTON - Desktop Only */}
       {!isMobile && (
@@ -200,14 +200,16 @@ export default function FlightradarSidePanel({ flight, onClose, onBack, onPointC
         </div>
       )}
       {/* 1. PHOTO AND X BUTTON */}
-      <div style={{ 
+        <div style={{ 
         height: '180px', 
         width: '100%', 
         backgroundColor: '#2A2B30',
         backgroundImage: `url("${realPlanePhoto || displayFlight.imageUrl}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        position: 'relative'
+        position: 'relative',
+        borderTopLeftRadius: '16px',
+        borderTopRightRadius: '16px'
       }}>
         {/* Close Button FR24 style */}
         {!isMobile && (

@@ -96,7 +96,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
             height: 40vh !important;
             background-color: rgba(10, 15, 30, 0.45) !important;
             backdrop-filter: blur(24px) saturate(150%) !important;
-            border-top: 1px solid rgba(0, 243, 255, 0.25) !important;
+            border-top: 1px solid var(--color-border-glass) !important;
             border-radius: 24px 24px 0 0 !important;
             /* reset desktop transform */
             top: auto !important;
@@ -109,17 +109,12 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
           
           .right-panel-container {
             position: absolute !important;
-            top: 76px !important;
-            right: 16px !important;
-            transform: translateX(${isOpen ? '0' : '316px'}) !important;
+            top: 90px !important;
+            right: 20px !important;
+            transform: translateX(${isOpen ? '0' : '350px'}) !important;
             transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            width: 300px !important;
-            height: calc(100vh - 92px) !important;
-            background-color: rgba(10, 15, 30, 0.45) !important;
-            backdrop-filter: blur(24px) saturate(150%) !important;
-            border: 1px solid rgba(0, 243, 255, 0.25) !important;
-            border-radius: 16px !important;
-            box-shadow: 0 4px 30px rgba(0,0,0,0.4) !important;
+            width: 320px !important;
+            height: calc(100vh - 110px) !important;
           }
         }
       `}</style>
@@ -145,7 +140,7 @@ export default function FlightradarRightPanel({ flights, airports, onFlightClick
         )}
       </div>
 
-      <div className="right-panel-container" style={{
+      <div className={!isMobile ? "right-panel-container glass-panel" : "right-panel-container"} style={{
           color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'visible',
           fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
       }}>

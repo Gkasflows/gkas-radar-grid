@@ -17,14 +17,10 @@ export default function NearbyPanel({ countryName, countryCode, flights, airport
   const [activeTab, setActiveTab] = useState<'flights' | 'airports'>('flights');
 
   return (
-    <div style={{
-      position: 'absolute', top: '76px', left: '16px',
-      zIndex: 1000, width: '320px', height: 'calc(100vh - 92px)', 
-      backgroundColor: 'rgba(15, 23, 42, 0.98)', backdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px',
-      boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
-      display: 'flex', flexDirection: 'column', color: '#fff',
-      fontFamily: '"Inter", -apple-system, sans-serif'
+    <div className="glass-panel" style={{
+      position: 'absolute', top: '90px', left: '20px',
+      zIndex: 1000, width: '320px', height: 'calc(100vh - 110px)', 
+      display: 'flex', flexDirection: 'column', color: '#fff'
     }}>
       {/* Header */}
       <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'relative' }}>

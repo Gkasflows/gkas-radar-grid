@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import DeckGL from '@deck.gl/react';
-import { MapView, FlyToInterpolator } from '@deck.gl/core';
+import { MapView, _GlobeView, FlyToInterpolator } from '@deck.gl/core';
 import { TileLayer, GreatCircleLayer } from '@deck.gl/geo-layers';
 import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer, GeoJsonLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
@@ -15,9 +15,10 @@ import AirportSidePanel from './AirportSidePanel';
 import WeatherSimulationCanvas, { WeatherCondition } from './WeatherSimulationCanvas';
 import CountriesModal from './CountriesModal';
 import RouteSearchModal from './RouteSearchModal';
+import CommandConsole from './CommandConsole';
 
 // Ultra-High-Resolution Command Center Satellite Imaging
-const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Hybrid: Satellite + Detailed Cartography Labels
+const FR24_MAP_URL = 'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png'; // Deep Dark Command Center Base
 
 // Airport Pin location SVG (Exact FR24 styling: Cyan-blue teardrop pin with white center dot and dark stroke)
 const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
@@ -1263,7 +1264,7 @@ export default function Map() {
 
       <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
         <DeckGL
-          views={new MapView({ id: 'map', repeat: true })}
+          views={new _GlobeView({ id: 'map', resolution: 10 })}
           viewState={viewState}
           onViewStateChange={({ viewState: newViewState, interactionState }) => {
             setViewState(newViewState);
@@ -1640,7 +1641,7 @@ export default function Map() {
         {flightSnapshots.current.length > 1 && (
           <div className="mobile-playback-hidden desktop-only-playback" style={{
             position: 'absolute',
-            bottom: isMobile ? '24px' : 0,
+            bottom: isMobile ? '24px' : '180px',
             left: 0,
             right: 0,
             height: isPlaybackMode ? '100px' : '36px',
@@ -1774,6 +1775,10 @@ export default function Map() {
             )}
           </div>
         )}
+
+        {/* BOTTOM TERMINAL PANEL */}
+        {!isMobile && <CommandConsole logs={[]} />}
+
       </div>
     </>
   );
