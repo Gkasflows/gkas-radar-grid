@@ -49,9 +49,9 @@ const FALLBACK_AIRPORTS: Airport[] = [
 
 const INITIAL_VIEW_STATE = {
   longitude: 0,
-  latitude: 0,
-  zoom: 0, // Zoom out globe entirely
-  pitch: 0, // Looking straight down globally
+  latitude: 20,
+  zoom: 2.2, // Full-screen flat map zoom
+  pitch: 0,
   bearing: 0,
   maxZoom: 20,
   minZoom: 0
@@ -1264,7 +1264,7 @@ export default function Map() {
 
       <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
         <DeckGL
-          views={new _GlobeView({ id: 'map', resolution: 10 })}
+          views={new MapView({ id: 'main-map', repeat: true })}
           viewState={viewState}
           onViewStateChange={({ viewState: newViewState, interactionState }) => {
             setViewState(newViewState);
