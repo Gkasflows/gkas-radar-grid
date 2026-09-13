@@ -49,12 +49,11 @@ export default function CommandConsole({ logs }: CommandConsoleProps) {
 
   return (
     <div className="glass-panel" style={{
-      position: 'absolute',
-      bottom: '0',
-      left: '0',
+      position: 'relative',
       width: '100%',
-      height: '180px',
+      height: '100%',
       zIndex: 900,
+      borderTop: '1px solid var(--color-border-glass)',
       borderBottom: 'none',
       borderLeft: 'none',
       borderRight: 'none',
