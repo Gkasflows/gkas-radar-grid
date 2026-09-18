@@ -16,10 +16,6 @@ import WeatherSimulationCanvas, { WeatherCondition } from './WeatherSimulationCa
 import CountriesModal from './CountriesModal';
 import RouteSearchModal from './RouteSearchModal';
 import CommandConsole from './CommandConsole';
-import RadarTrackingPanel from './RadarTrackingPanel';
-import AtmosphericDataPanel from './AtmosphericDataPanel';
-import CargoVolumePanel from './CargoVolumePanel';
-import SatelliteFeedPanel from './SatelliteFeedPanel';
 
 // Ultra-High-Resolution Command Center Satellite Imaging (Esri Dark Canvas, No API Key Required)
 const FR24_MAP_URL = 'https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
@@ -52,9 +48,9 @@ const FALLBACK_AIRPORTS: Airport[] = [
 ];
 
 const INITIAL_VIEW_STATE = {
-  longitude: -40,
-  latitude: 30,
-  zoom: 1.0, // Globe zoom for center panel
+  longitude: 0,
+  latitude: 20,
+  zoom: 2.2, // Full-screen flat map zoom
   pitch: 0,
   bearing: 0,
   maxZoom: 20,
@@ -1266,93 +1262,523 @@ export default function Map() {
       <style>{`@keyframes alertSlide { 0% { transform: translate(-50%, -40px) scale(0.95); opacity: 0; } 100% { transform: translate(-50%, 0) scale(1); opacity: 1; } }`}</style>
 
 
-      <div className="command-grid">
-        {/* TOP HEADER */}
-        <div style={{ gridArea: 'header' }}>
-          <FlightradarTopNav
-            searchQuery={searchQuery}
-            onSearch={handleSearchIntercept}
-            flightCount={networkFlights.length}
-            isHeatmapActive={isHeatmapActive}
-            toggleHeatmap={() => setIsHeatmapActive(prev => !prev)}
-            onReset={handleMasterReset}
-            globalAirports={globalAirports}
-            globalFlights={networkFlights}
-            onFlightSelect={handleFlyToFlight}
-            onAirportSelect={handleFlyToAirport}
-            onWeatherChase={handleWeatherChase}
-            onOpenCountries={() => setIsCountryModalOpen(true)}
-          />
-        </div>
+      <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
+        <DeckGL
+          views={new MapView({ id: 'main-map', repeat: true })}
+          viewState={viewState}
+          onViewStateChange={({ viewState: newViewState, interactionState }) => {
+            setViewState(newViewState);
+            if (interactionState?.isDragging || interactionState?.isPanning) {
+              isAnimatingRef.current = false;
+            }
+            if (isLocationActive) setIsLocationActive(false);
+          }}
+          controller={{ doubleClickZoom: false, keyboard: true, inertia: true, scrollZoom: { speed: 0.05, smooth: true } }}
+          layers={layers}
+        />
 
-        {/* LEFT PANELS */}
-        <div className="left-panels-container">
-          <RadarTrackingPanel />
-          <SatelliteFeedPanel />
-        </div>
+        <WeatherSimulationCanvas condition={liveWeather} />
 
-        {/* CENTER GLOBE */}
-        <div className="center-globe-container">
-          {/* Orbital HUD Rings */}
-          <div className="globe-hud-ring animate-radar" style={{ width: '90vh', height: '90vh', border: '1px dashed rgba(0, 243, 255, 0.2)' }} />
-          <div className="globe-hud-ring" style={{ width: '88vh', height: '88vh', border: '1px solid rgba(0, 243, 255, 0.1)' }} />
-          <div className="globe-hud-ring animate-radar" style={{ width: '84vh', height: '84vh', border: '2px dotted rgba(0, 243, 255, 0.3)', animationDuration: '30s', animationDirection: 'reverse' }} />
-          
-          <div className="globe-mask">
-            <DeckGL
-              views={new _GlobeView({ id: 'main-globe', resolution: 10 })}
-              viewState={viewState}
-              onViewStateChange={({ viewState: newViewState, interactionState }) => {
-                setViewState(newViewState);
-                if (interactionState?.isDragging || interactionState?.isPanning) {
-                  isAnimatingRef.current = false;
-                }
-              }}
-              controller={{ doubleClickZoom: false, keyboard: true, inertia: true, scrollZoom: { speed: 0.05, smooth: true } }}
-              layers={layers}
-            />
-          </div>
-        </div>
+        {/* TOP NAVBAR */}
+        <FlightradarTopNav
+          searchQuery={searchQuery}
+          onSearch={handleSearchIntercept}
+          flightCount={networkFlights.length}
+          isHeatmapActive={isHeatmapActive}
+          toggleHeatmap={() => setIsHeatmapActive(prev => !prev)}
+          onReset={handleMasterReset}
+          globalAirports={globalAirports}
+          globalFlights={networkFlights}
+          onFlightSelect={handleFlyToFlight}
+          onAirportSelect={handleFlyToAirport}
+          onWeatherChase={handleWeatherChase}
+          onOpenCountries={() => setIsCountryModalOpen(true)}
+        />
 
-        {/* RIGHT PANELS */}
-        <div className="right-panels-container">
-          <AtmosphericDataPanel />
-          <CargoVolumePanel />
-        </div>
-
-        {/* BOTTOM TERMINAL FOOTER */}
-        <div style={{ gridArea: 'footer', display: 'flex', flexDirection: 'column', height: '100%', minHeight: '180px' }}>
-          <CommandConsole logs={[]} />
-        </div>
-
-        {/* Modals float over the grid */}
         {isCountryModalOpen && (
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999 }}>
-            <CountriesModal 
-              globalAirports={globalAirports} 
-              onClose={() => setIsCountryModalOpen(false)} 
-              onOpenAirportFeatures={handleOpenAirportFeatures}
-            />
-          </div>
+          <CountriesModal 
+            globalAirports={globalAirports} 
+            onClose={() => setIsCountryModalOpen(false)} 
+            onOpenAirportFeatures={handleOpenAirportFeatures}
+          />
         )}
 
         {isRouteSearchOpen && (
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 9999 }}>
-            <RouteSearchModal
-              globalAirports={globalAirports}
-              onClose={() => setIsRouteSearchOpen(false)}
-              initialFrom={routeSearchInitialFrom}
-              initialTo={routeSearchInitialTo}
-              onSearch={(from, to) => {
-                setSearchQuery(`Searching route from ${from?.iata || 'Any'} to ${to?.iata || 'Any'}...`);
-              }}
-              onBack={launchedFromCountryModal ? () => {
-                setIsRouteSearchOpen(false);
-                setIsCountryModalOpen(true);
-              } : undefined}
-            />
+          <RouteSearchModal
+            globalAirports={globalAirports}
+            onClose={() => setIsRouteSearchOpen(false)}
+            initialFrom={routeSearchInitialFrom}
+            initialTo={routeSearchInitialTo}
+            onSearch={(from, to) => {
+              setSearchQuery(`Searching route from ${from?.iata || 'Any'} to ${to?.iata || 'Any'}...`);
+            }}
+            onBack={launchedFromCountryModal ? () => {
+              setIsRouteSearchOpen(false);
+              setIsCountryModalOpen(true);
+            } : undefined}
+          />
+        )}
+
+        {/* LEFT PANELS (Mutually exclusive via conditionals) */}
+        {!nearbyData && (
+          <FlightradarSidePanel
+            flight={selectedFlight || null}
+            liveFlights={networkFlights}
+            onClose={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); previousAirportIataRef.current = null; }}
+            onBack={() => {
+              setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null);
+              // Restore the airport panel the user came from
+              if (previousAirportIataRef.current) {
+                setSelectedAirportIata(previousAirportIataRef.current);
+                previousAirportIataRef.current = null;
+              }
+            }}
+            onPointClick={(lat, lon, iata) => {
+              isAnimatingRef.current = true;
+              setTimeout(() => { isAnimatingRef.current = false; }, 15000);
+              if (iata) setSelectedAirportIata(iata);
+              setViewState((prev: any) => ({
+                ...prev,
+                longitude: lon,
+                latitude: lat,
+                zoom: Math.max(prev.zoom, 7.5),
+                pitch: 35,
+                bearing: 0,
+                transitionDuration: 8000,
+                transitionInterpolator: new FlyToInterpolator()
+              }));
+            }}
+          />
+        )}
+
+        {/* When Nearby is active, but we clicked a flight inside it, show the flight panel with a BACK button */}
+        {nearbyData && selectedFlight && (
+          <FlightradarSidePanel
+            flight={selectedFlight || null}
+            liveFlights={networkFlights}
+            onClose={() => { setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null); setNearbyData(null); previousAirportIataRef.current = null; }}
+            onBack={() => {
+              setSelectedFlightId(null); setTrueFlightRoute(null); setRadarPath(null);
+              // If user came from an airport board inside NearbyPanel, restore the airport
+              if (previousAirportIataRef.current) {
+                setSelectedAirportIata(previousAirportIataRef.current);
+                previousAirportIataRef.current = null;
+              }
+              // Otherwise nearbyData is still set, so NearbyPanel re-appears naturally
+            }}
+            onPointClick={(lat, lon, iata) => {
+              isAnimatingRef.current = true;
+              setTimeout(() => { isAnimatingRef.current = false; }, 15000);
+              if (iata) setSelectedAirportIata(iata);
+              setViewState((prev: any) => ({
+                ...prev, longitude: lon, latitude: lat, zoom: Math.max(prev.zoom, 7.5), pitch: 35, bearing: 0,
+                transitionDuration: 8000, transitionInterpolator: new FlyToInterpolator()
+              }));
+            }}
+          />
+        )}
+
+        {/* When Nearby is active and NO flight/airport is selected, show the Nearby panel */}
+        {nearbyData && !selectedFlight && !selectedAirport && (
+          <NearbyPanel
+            countryName={nearbyData.countryName}
+            countryCode={nearbyData.countryCode}
+            flights={nearbyData.flights}
+            airports={nearbyData.airports}
+            onClose={() => setNearbyData(null)}
+            onBack={() => {
+              setNearbyData(null);
+              setIsCountryModalOpen(true);
+            }}
+            onFlightClick={(f) => {
+              handleFlyToFlight(f);
+            }}
+            onAirportClick={(a) => {
+              handleFlyToAirport(a);
+            }}
+          />
+        )}
+
+        {/* Normal / Default Airport Side Panel */}
+        {!nearbyData && (
+          <AirportSidePanel
+            airport={selectedAirport}
+            liveFlights={networkFilteredFlights}
+            onFlightClick={handleFlyToFlight}
+            onClose={() => { setSelectedAirportIata(null); setLaunchedFromCountryModal(false); }}
+            onBack={launchedFromCountryModal ? () => {
+              setSelectedAirportIata(null);
+              setIsCountryModalOpen(true);
+            } : undefined}
+            initialTab={airportPanelTab}
+          />
+        )}
+
+        {/* Airport Side Panel when launched from Nearby Scanner */}
+        {nearbyData && selectedAirport && (
+          <AirportSidePanel
+            airport={selectedAirport}
+            liveFlights={networkFilteredFlights}
+            onFlightClick={handleFlyToFlight}
+            onClose={() => { setSelectedAirportIata(null); setNearbyData(null); }}
+            onBack={() => { setSelectedAirportIata(null); }}
+            initialTab={airportPanelTab}
+          />
+        )}
+
+        {/* HIGH-TECH DRAGGABLE ZOOM CONTROLS */}
+        <div
+          onPointerDown={(e) => {
+            zoomDragRef.current = { isDragging: true, startX: e.clientX, startY: e.clientY, initialBottom: zoomPos.bottom, initialRight: zoomPos.right };
+            e.currentTarget.setPointerCapture(e.pointerId);
+            e.currentTarget.style.cursor = 'grabbing';
+          }}
+          onPointerMove={(e) => {
+            if (!zoomDragRef.current.isDragging) return;
+            const dy = e.clientY - zoomDragRef.current.startY;
+            const dx = e.clientX - zoomDragRef.current.startX;
+            setZoomPos({
+              bottom: zoomDragRef.current.initialBottom - dy,
+              right: zoomDragRef.current.initialRight - dx
+            });
+          }}
+          onPointerUp={(e) => {
+            zoomDragRef.current.isDragging = false;
+            e.currentTarget.releasePointerCapture(e.pointerId);
+            e.currentTarget.style.cursor = 'grab';
+          }}
+          onTouchStart={(e) => {
+            const touch = e.touches[0];
+            zoomDragRef.current = { isDragging: true, startX: touch.clientX, startY: touch.clientY, initialBottom: zoomPos.bottom, initialRight: zoomPos.right };
+          }}
+          onTouchMove={(e) => {
+            if (!zoomDragRef.current.isDragging) return;
+            const touch = e.touches[0];
+            const dy = touch.clientY - zoomDragRef.current.startY;
+            const dx = touch.clientX - zoomDragRef.current.startX;
+            setZoomPos({
+              bottom: zoomDragRef.current.initialBottom - dy,
+              right: zoomDragRef.current.initialRight - dx
+            });
+          }}
+          onTouchEnd={() => {
+            zoomDragRef.current.isDragging = false;
+          }}
+          // Prevent map interaction while dragging zoom
+          onPointerLeave={(e) => { if (zoomDragRef.current.isDragging) e.stopPropagation(); }}
+          style={{
+            position: 'absolute',
+            bottom: `${zoomPos.bottom}px`,
+            right: `${zoomPos.right}px`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            zIndex: 1000,
+            backgroundColor: 'rgba(10, 15, 30, 0.45)', // Glassmorphism Core
+            borderRadius: '12px', // Smoother chassis
+            padding: '8px',
+            border: '1px solid rgba(0, 243, 255, 0.25)', // Cyber neon edge
+            boxShadow: '0 8px 30px rgba(0,0,0,0.6), inset 0 0 12px rgba(0,243,255,0.1)', // Complex volumetric depth
+            backdropFilter: 'blur(24px) saturate(150%)', // Multi-billion dollar glass rendering
+            cursor: 'grab',
+            touchAction: 'none' // Essential to stop natural page scrolling while moving the HUD
+          }}>
+
+          {/* DRAG GRIP HANDLE */}
+          <div style={{
+            width: '100%', height: '14px',
+            display: 'flex', justifyContent: 'center', alignItems: 'center',
+            cursor: 'grab', opacity: 0.5, marginBottom: '2px'
+          }}>
+            <div style={{ width: '20px', height: '4px', borderRadius: '2px', backgroundColor: '#00f3ff' }}></div>
+          </div>
+
+          <button
+            onClick={(e) => handleTrackLocation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            title="Acquire Satellite GPS Lock"
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
+              e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+              e.currentTarget.style.color = '#10B981';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+              e.currentTarget.style.color = '#00f3ff';
+            }}
+            style={{
+              width: '36px', height: '36px',
+              border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '6px',
+              backgroundColor: 'transparent',
+              color: '#00f3ff', fontSize: '20px', fontWeight: 400,
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+            }}
+          >
+            ⌖
+          </button>
+          <button
+            onClick={zoomIn}
+            onPointerDown={(e) => e.stopPropagation()}
+            title="Engage Magnification"
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.15)';
+              e.currentTarget.style.borderColor = 'rgba(0, 243, 255, 0.5)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+            }}
+            style={{
+              width: '36px', height: '36px',
+              border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '6px',
+              backgroundColor: 'transparent',
+              color: '#00f3ff', fontSize: '20px', fontWeight: 400,
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+            }}
+          >
+            ＋
+          </button>
+          <button
+            onClick={zoomOut}
+            onPointerDown={(e) => e.stopPropagation()}
+            title="Disengage Magnification"
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(0, 243, 255, 0.15)';
+              e.currentTarget.style.borderColor = 'rgba(0, 243, 255, 0.5)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+            }}
+            style={{
+              width: '36px', height: '36px',
+              border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '6px',
+              backgroundColor: 'transparent',
+              color: '#00f3ff', fontSize: '24px', fontWeight: 300,
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+            }}
+          >
+            −
+          </button>
+        </div>
+
+        {/* RIGHT PANEL (Flights & Airports Lists) */}
+        <FlightradarRightPanel
+          flights={networkFilteredFlights}
+          airports={filteredAirports}
+          onFlightClick={handleFlyToFlight}
+          onAirportClick={handleFlyToAirport}
+          selectedFlightId={selectedFlightId}
+          selectedAirportIata={selectedAirportIata}
+          onToggle={(open) => setIsRightPanelOpen(open)}
+          isPlaybackMode={isPlaybackMode}
+        />
+
+        {/* FLIGHT HOVER TOOLTIP */}
+        {hoveredFlight && hoveredFlight.flight.icao24 !== selectedFlightId && (
+          <div style={{
+            position: 'absolute',
+            left: hoveredFlight.x + 20,
+            top: hoveredFlight.y - 20,
+            backgroundColor: 'rgba(28, 29, 33, 0.95)',
+            color: '#fff',
+            padding: '8px 14px',
+            borderRadius: '6px',
+            pointerEvents: 'none',
+            zIndex: 1000,
+            boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+            border: '1px solid rgba(47, 49, 54, 0.8)',
+            whiteSpace: 'nowrap'
+          }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#FFDE1B', letterSpacing: '0.5px' }}>
+              {hoveredFlight.flight.callsign || hoveredFlight.flight.icao24.toUpperCase()}
+            </div>
+            <div style={{ fontSize: '11px', color: '#8E9297', fontWeight: 600, marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>{hoveredFlight.flight.origin?.substring(0, 3).toUpperCase() || 'N/A'}</span>
+              <span style={{ fontSize: '10px', color: '#4F545C' }}>✈</span>
+              <span>{hoveredFlight.flight.destination?.substring(0, 3).toUpperCase() || 'N/A'}</span>
+            </div>
           </div>
         )}
+
+        {/* AIRPORT HOVER TOOLTIP */}
+        {hoveredAirport && (
+          <div style={{
+            position: 'absolute',
+            left: hoveredAirport.x + 15,
+            top: hoveredAirport.y - 40,
+            backgroundColor: '#1E293B',
+            borderRadius: '8px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+            overflow: 'hidden',
+            zIndex: 1000,
+            pointerEvents: 'none',
+            border: '1px solid #334155',
+            width: '240px'
+          }}>
+            <div style={{
+              height: '110px',
+              backgroundImage: `url("${hoveredAirport.airport.imageUrl}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              borderBottom: '2px solid #00f3ff'
+            }}></div>
+            <div style={{ padding: '12px', color: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ backgroundColor: '#2563EB', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 800 }}>{hoveredAirport.airport.iata}</span>
+                <span style={{ fontSize: '13px', fontWeight: 700 }}>{hoveredAirport.airport.name}</span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>{hoveredAirport.airport.city}, {hoveredAirport.airport.country}</div>
+            </div>
+          </div>
+        )}
+
+        {/* GLOBAL PLAYBACK TIMELINE SLIDER */}
+        {flightSnapshots.current.length > 1 && (
+          <div className="mobile-playback-hidden desktop-only-playback" style={{
+            position: 'absolute',
+            bottom: isMobile ? '24px' : '180px',
+            left: 0,
+            right: 0,
+            height: isPlaybackMode ? '100px' : '36px',
+            background: isPlaybackMode
+              ? 'linear-gradient(180deg, rgba(10,12,18,0.0) 0%, rgba(10,12,18,0.95) 30%)'
+              : 'linear-gradient(180deg, transparent 0%, rgba(10,12,18,0.7) 100%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            padding: '24px 24px 10px 24px', // Standard internal padding
+            zIndex: 900,
+            transition: 'height 0.3s ease, background 0.3s ease'
+          }}>
+            {/* Toggle Button */}
+            <button
+              onClick={() => {
+                if (isPlaybackMode) {
+                  // Exit playback: restore live data
+                  setIsPlaybackMode(false);
+                  setIsPlaying(false);
+                  const latest = flightSnapshots.current[flightSnapshots.current.length - 1];
+                  if (latest) {
+                    setFlights(latest.flights);
+                    setNetworkFlights(latest.flights);
+                  }
+                  setPlaybackIndex(flightSnapshots.current.length - 1);
+                } else {
+                  setIsPlaybackMode(true);
+                }
+              }}
+              style={{
+                position: 'absolute',
+                top: isPlaybackMode ? '-35px' : '-65px', // Hovers dependably
+                left: '50%',
+                transform: 'translateX(-50%)', // Centered beautifully below the Tracker list button
+                background: isPlaybackMode ? 'rgba(255,0,100,0.9)' : 'rgba(20,24,35,0.85)',
+                border: `1px solid ${isPlaybackMode ? 'rgba(255,100,150,0.5)' : 'rgba(100,110,140,0.4)'}`,
+                color: '#fff',
+                padding: '6px 18px', // Slightly larger hit target bounds for mobile
+                borderRadius: '16px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                letterSpacing: '1px',
+                backdropFilter: 'blur(10px)',
+                transition: 'all 0.4s ease, opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              {isPlaybackMode ? '✕ EXIT PLAYBACK' : '⏪ PLAYBACK'}
+            </button>
+
+            {/* Playback Controls & Slider */}
+            {isPlaybackMode && (
+              <div style={{ width: '100%', maxWidth: '900px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* Play/Pause Button */}
+                <button
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: '#fff',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}
+                >
+                  {isPlaying ? '⏸' : '▶'}
+                </button>
+
+                {/* Timestamp Label (Left) */}
+                <div style={{ color: '#8E9297', fontSize: '11px', fontWeight: 600, minWidth: '55px', textAlign: 'center', fontFamily: 'monospace' }}>
+                  {flightSnapshots.current[playbackIndex]
+                    ? new Date(flightSnapshots.current[playbackIndex].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                    : '--:--:--'
+                  }
+                </div>
+
+                {/* Slider */}
+                <input
+                  type="range"
+                  min={0}
+                  max={flightSnapshots.current.length - 1}
+                  value={playbackIndex}
+                  onChange={(e) => {
+                    const idx = parseInt(e.target.value);
+                    setPlaybackIndex(idx);
+                    const snapshot = flightSnapshots.current[idx];
+                    if (snapshot) {
+                      setFlights(snapshot.flights);
+                      setNetworkFlights(snapshot.flights);
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    height: '4px',
+                    appearance: 'none',
+                    background: `linear-gradient(to right, #00f3ff 0%, #00f3ff ${(playbackIndex / Math.max(1, flightSnapshots.current.length - 1)) * 100}%, rgba(255,255,255,0.15) ${(playbackIndex / Math.max(1, flightSnapshots.current.length - 1)) * 100}%, rgba(255,255,255,0.15) 100%)`,
+                    borderRadius: '4px',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                />
+
+                {/* LIVE Label (Right) */}
+                <div style={{
+                  color: playbackIndex === flightSnapshots.current.length - 1 ? '#00ff88' : '#8E9297',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  letterSpacing: '1px',
+                  minWidth: '40px',
+                  textAlign: 'center'
+                }}>
+                  {playbackIndex === flightSnapshots.current.length - 1 ? '● LIVE' : 'PAST'}
+                </div>
+
+                {/* Flight Count */}
+                <div style={{ color: '#4F545C', fontSize: '10px', fontWeight: 600, minWidth: '60px', textAlign: 'right' }}>
+                  {flightSnapshots.current[playbackIndex]?.flights.length || 0} flights
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* BOTTOM TERMINAL PANEL */}
+        {!isMobile && <CommandConsole logs={[]} />}
+
       </div>
     </>
   );
