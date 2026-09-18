@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import DeckGL from '@deck.gl/react';
-import { MapView, _GlobeView, FlyToInterpolator } from '@deck.gl/core';
+import { MapView, FlyToInterpolator } from '@deck.gl/core';
 import { TileLayer, GreatCircleLayer } from '@deck.gl/geo-layers';
 import { BitmapLayer, IconLayer, PathLayer, LineLayer, ArcLayer, TextLayer, ScatterplotLayer, GeoJsonLayer } from '@deck.gl/layers';
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
@@ -15,10 +15,9 @@ import AirportSidePanel from './AirportSidePanel';
 import WeatherSimulationCanvas, { WeatherCondition } from './WeatherSimulationCanvas';
 import CountriesModal from './CountriesModal';
 import RouteSearchModal from './RouteSearchModal';
-import CommandConsole from './CommandConsole';
 
-// Ultra-High-Resolution Command Center Satellite Imaging (Esri Dark Canvas, No API Key Required)
-const FR24_MAP_URL = 'https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+// Ultra-High-Resolution Command Center Satellite Imaging
+const FR24_MAP_URL = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Hybrid: Satellite + Detailed Cartography Labels
 
 // Airport Pin location SVG (Exact FR24 styling: Cyan-blue teardrop pin with white center dot and dark stroke)
 const AIRPORT_PIN_SVG = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
@@ -49,9 +48,9 @@ const FALLBACK_AIRPORTS: Airport[] = [
 
 const INITIAL_VIEW_STATE = {
   longitude: 0,
-  latitude: 20,
-  zoom: 2.2, // Full-screen flat map zoom
-  pitch: 0,
+  latitude: 0,
+  zoom: 0, // Zoom out globe entirely
+  pitch: 0, // Looking straight down globally
   bearing: 0,
   maxZoom: 20,
   minZoom: 0
@@ -1264,7 +1263,7 @@ export default function Map() {
 
       <div style={{ position: 'relative', width: '100vw', height: '100vh', backgroundColor: '#0f172a' }}>
         <DeckGL
-          views={new MapView({ id: 'main-map', repeat: true })}
+          views={new MapView({ id: 'map', repeat: true })}
           viewState={viewState}
           onViewStateChange={({ viewState: newViewState, interactionState }) => {
             setViewState(newViewState);
@@ -1641,7 +1640,7 @@ export default function Map() {
         {flightSnapshots.current.length > 1 && (
           <div className="mobile-playback-hidden desktop-only-playback" style={{
             position: 'absolute',
-            bottom: isMobile ? '24px' : '180px',
+            bottom: isMobile ? '24px' : 0,
             left: 0,
             right: 0,
             height: isPlaybackMode ? '100px' : '36px',
@@ -1775,10 +1774,6 @@ export default function Map() {
             )}
           </div>
         )}
-
-        {/* BOTTOM TERMINAL PANEL */}
-        {!isMobile && <CommandConsole logs={[]} />}
-
       </div>
     </>
   );

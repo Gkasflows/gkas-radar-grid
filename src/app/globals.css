@@ -1,32 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
-
-:root {
-  --color-bg-deep: #020617;
-  --color-bg-panel: rgba(10, 15, 30, 0.65);
-  --color-border-glass: rgba(0, 243, 255, 0.15);
-  --color-neon-cyan: #00f3ff;
-  --color-neon-magenta: #ff00b3;
-  --color-neon-amber: #ffaa00;
-  --color-text-main: #ffffff;
-  --color-text-dim: #8ba3b8;
-  --font-display: 'Orbitron', sans-serif;
-  --font-ui: 'Rajdhani', sans-serif;
-  --font-mono: 'Share Tech Mono', monospace;
-  --panel-blur: blur(24px) saturate(150%);
-}
-
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--color-bg-deep);
-  color: var(--color-text-main);
-  font-family: var(--font-ui);
+  background-color: #000;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   overflow: hidden;
-  /* Subtle dark grid background to simulate a tactical screen */
-  background-image: 
-    linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
-  background-size: 50px 50px;
 }
 
 * {
@@ -37,57 +15,3 @@ a {
   color: inherit;
   text-decoration: none;
 }
-
-/* Custom Scrollbar for Data Feeds */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(0,0,0,0.2);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-neon-cyan);
-  border-radius: 4px;
-}
-
-/* UI Utility Classes for the Command Center */
-.glass-panel {
-  background: var(--color-bg-panel);
-  backdrop-filter: var(--panel-blur);
-  -webkit-backdrop-filter: var(--panel-blur);
-  border: 1px solid var(--color-border-glass);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7);
-}
-
-.text-cyan { color: var(--color-neon-cyan); text-shadow: 0 0 8px rgba(0, 243, 255, 0.5); }
-.text-magenta { color: var(--color-neon-magenta); text-shadow: 0 0 8px rgba(255, 0, 179, 0.5); }
-.text-amber { color: var(--color-neon-amber); text-shadow: 0 0 8px rgba(255, 170, 0, 0.5); }
-
-/* Animations */
-@keyframes radar-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes pulse-glow {
-  0% { box-shadow: 0 0 5px rgba(0, 243, 255, 0.2); }
-  50% { box-shadow: 0 0 20px rgba(0, 243, 255, 0.6); }
-  100% { box-shadow: 0 0 5px rgba(0, 243, 255, 0.2); }
-}
-
-@keyframes scroll-up {
-  from { transform: translateY(0); }
-  to { transform: translateY(-50%); }
-}
-
-@keyframes alert-flash {
-  0% { background-color: rgba(255, 0, 0, 0.1); border-color: transparent; }
-  50% { background-color: rgba(255, 0, 0, 0.6); border-color: #ff0000; box-shadow: 0 0 20px #ff0000; }
-  100% { background-color: rgba(255, 0, 0, 0.1); border-color: transparent; }
-}
-
-.animate-radar { animation: radar-spin 4s linear infinite; }
-.animate-pulse-glow { animation: pulse-glow 2s infinite; }
-.animate-alert { animation: alert-flash 1s infinite; }
-
-
